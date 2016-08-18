@@ -11,7 +11,7 @@ set (EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 
 set(CMAKE_CXX_FLAGS "-Wall -O3 -g0 -std=c++11")
 
-find_package( Boost REQUIRED COMPONENTS system )
+find_package( Boost REQUIRED COMPONENTS system serialization)
 include_directories( ${Boost_INCLUDE_DIRS} )
 
 add_executable (${PROJECT_NAME} src/main.cpp)
