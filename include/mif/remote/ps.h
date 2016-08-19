@@ -1,26 +1,18 @@
 #ifndef __MIF_REMOTE_PS_H__
 #define __MIF_REMOTE_PS_H__
 
-// STD
-#include <cstdint>
-#include <stdexcept>
-#include <string>
-#include <type_traits>
-#include <tuple>
-#include <utility>
-
 // MIF
 #include "mif/common/index_sequence.h"
 #include "mif/common/detail/hierarchy.h"
 #include "mif/common/detail/method.h"
 
 #define MIF_REMOTE_PS_BEGIN(interface_) \
-    template <typename TProxyBase> \
+    template <typename TProxyBase, typename TStubBase> \
     class interface_ ## _PS \
     { \
     private: \
         using InterfaceType = interface_; \
-        static constexpr auto InterfaceName = #interface_; \
+        static constexpr auto InterfaceId = #interface_; \
         class ProxyBase \
             : public InterfaceType \
         { \
@@ -43,7 +35,10 @@
         static char (&GetNextCounter(void *))[1]; \
         static ProxyBase* GetProxyBase(::Mif::Common::Detail::Hierarchy<1>); \
         class StubBase \
+            : public TStubBase \
         { \
+        public: \
+            using TStubBase::TStubBase; \
         }; \
         static StubBase GetStubBase(::Mif::Common::Detail::Hierarchy<1>);
 
@@ -58,8 +53,21 @@
             using MethodProxies::MethodProxies; \
         }; \
         class Stub \
-            : public MethodStubs \
+            : private MethodStubs \
         { \
+        public: \
+            using MethodStubs::MethodStubs; \
+            using MethodStubs::Init; \
+            using MethodStubs::Done; \
+        private: \
+            virtual char const* GetInterfaceId() const override \
+            { \
+                return InterfaceId; \
+            } \
+            virtual void InvokeMethod(std::string const &method, void *params) override \
+            { \
+                MethodStubs::InvokeMethod(method, params); \
+            } \
         }; \
     };
 
@@ -80,7 +88,7 @@
                 "Method \"" #method_ "\" must not return pointer or reference. Only value."); \
             return this->template _Mif_Remote_Call_Method<ResultType> \
                 ( \
-                    InterfaceName, \
+                    InterfaceId, \
                     #method_, \
                     std::forward \
                     < \
@@ -113,12 +121,23 @@
     class method_ ## _Mif_Remote_Stub \
         : public method_ ## _Stub_Base_Type \
     { \
-    public: \
-        template <typename TReslt, typename TParamsTuple> \
-        static TReslt Invoker(InterfaceType &instance, TParamsTuple && params) \
+    private: \
+        using BaseType = method_ ## _Stub_Base_Type; \
+        using ResultType = typename method_ ## _Info ::ResultType; \
+        using ParamTypeList = typename method_ ## _Info ::ParamTypeList; \
+    protected: \
+        using BaseType::BaseType; \
+        static ResultType Invoke(InterfaceType &instance, ParamTypeList && params) \
         { \
             instance. method_ (std::get<Indexes>(params) ... ); \
             throw std::runtime_error{"Stub for " #method_  " not implemented."}; \
+        } \
+        virtual void InvokeMethod(std::string const &method, void *params) override \
+        { \
+            if (method != #method_) \
+                BaseType::InvokeMethod(method, params); \
+            else \
+                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, params); \
         } \
     }; \
     template <std::size_t ... Indexes> \

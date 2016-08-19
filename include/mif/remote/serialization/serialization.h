@@ -13,11 +13,12 @@ namespace Mif
             {
             public:
                 using Serializer = TSerializer;
-                using Deserivalizer = TDeserializer;
+                using Deserializer = TDeserializer;
             };
 
         }   // namespace Serialization
-    }   // namespace Remote
+    }   //  namespace Remote
 }   // namespace Mif
+
 
 #endif  // !__MIF_REMOTE_SERIALIZATION_SERIALIZATION_H__

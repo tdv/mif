@@ -3,18 +3,21 @@
 
 // STD
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <vector>
+#include <tuple>
 #include <utility>
 
 // BOOST
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/device/array.hpp>
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/bitset.hpp>
-#include <boost/serialization/boost_unordered_map.hpp>
-#include <boost/serialization/boost_unordered_set.hpp>
+//#include <boost/serialization/boost_unordered_map.hpp>
+//#include <boost/serialization/boost_unordered_set.hpp>
 #include <boost/serialization/deque.hpp>
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/map.hpp>
@@ -76,7 +79,7 @@ namespace Mif
                         PutParams(archive, 1, std::forward<TParams>(params) ... );
                     }
 
-                    Buffer  GetBuffer()
+                    Buffer GetBuffer()
                     {
                         return std::move(m_result);
                     }
@@ -100,11 +103,69 @@ namespace Mif
                 class Deserializer final
                 {
                 public:
-                    Deserializer()
+                    using Buffer = std::vector<char>;
+
+                    Deserializer(Buffer && buffer)
+                        : m_buffer(std::move(buffer))
+                        , m_source(!m_buffer.empty() ? &m_buffer[0] : nullptr, m_buffer.size())
+                        , m_stream(m_source)
+                        , m_archive(m_stream)
                     {
+                        if (m_buffer.empty())
+                            throw std::invalid_argument{"[Mif::Remote::Serialization::Boost::Deserializer] Empty buffer."};
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Type, m_type);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Instsnce, m_instance);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Interface, m_interface);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Method, m_method);
+                    }
+
+                    bool IsRequest() const
+                    {
+                        return GetType() == Detail::Tag::Request;
+                    }
+
+                    bool IsResponce() const
+                    {
+                        return GetType() == Detail::Tag::Response;
+                    }
+
+                    std::string const& GetType() const
+                    {
+                        return m_type;
+                    }
+
+                    std::string const& GetInstance() const
+                    {
+                        return m_instance;
+                    }
+
+                    std::string const& GetInterface() const
+                    {
+                        return m_interface;
+                    }
+
+                    std::string const& GetMethod() const
+                    {
+                        return m_method;
+                    }
+
+                    template <typename ... TParams>
+                    std::tuple<TParams ... > GetParams() const
+                    {
+                        std::tuple<TParams ... > res;
+                        return res;
                     }
 
                 private:
+                    using SourceType = boost::iostreams::basic_array_source<typename Buffer::value_type>;
+                    Buffer m_buffer;
+                    SourceType m_source;
+                    boost::iostreams::stream<SourceType> m_stream;
+                    TArchive m_archive;
+                    std::string m_type;
+                    std::string m_instance;
+                    std::string m_interface;
+                    std::string m_method;
                 };
 
             }   // namespace Boost
