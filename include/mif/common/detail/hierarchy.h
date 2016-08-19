@@ -1,5 +1,5 @@
-#ifndef __MIF_COMMON_HIERARCHY_H__
-#define __MIF_COMMON_HIERARCHY_H__
+#ifndef __MIF_COMMON_DETAIL_HIERARCHY_H__
+#define __MIF_COMMON_DETAIL_HIERARCHY_H__
 
 // STD
 #include <cstdint>
@@ -26,8 +26,7 @@ namespace Mif
             using MakeHierarchy = Hierarchy<N>;
 
         }   // namespace Detail
-
     }   // namespace Common
 }   // namespace Mif
 
-#endif  // !__MIF_COMMON_HIERARCHY_H__
+#endif  // !__MIF_COMMON_DETAIL_HIERARCHY_H__

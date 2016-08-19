@@ -1,6 +1,14 @@
 #ifndef __MIF_REMOTE_PS_H__
 #define __MIF_REMOTE_PS_H__
 
+// STD
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <tuple>
+#include <utility>
+
 // MIF
 #include "mif/common/index_sequence.h"
 #include "mif/common/detail/hierarchy.h"
