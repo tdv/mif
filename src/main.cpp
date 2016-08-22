@@ -14,7 +14,7 @@ struct ITest
     virtual ~ITest() = default;
     virtual void Print() = 0;
     virtual void SetVersion(int major, int minor) = 0;
-    virtual void SetName(std::string name) = 0;
+    virtual void SetName(std::string const &name) = 0;
     virtual std::string  GetName() = 0;
     virtual int GetMajor() const = 0;
     virtual int GetMinor() const = 0;
@@ -47,7 +47,7 @@ private:
         m_major = major;
         m_minor = minor;
     }
-    virtual void SetName(std::string name) override
+    virtual void SetName(std::string const &name) override
     {
         std::cout << "[Test::SetName] New name \"" << name << "\"" << std::endl;
         m_name = name;

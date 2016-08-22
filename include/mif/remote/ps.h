@@ -60,11 +60,11 @@
             using MethodStubs::Init; \
             using MethodStubs::Done; \
         private: \
-            virtual char const* GetInterfaceId() const override \
+            virtual char const* GetInterfaceId() const override final \
             { \
                 return InterfaceId; \
             } \
-            virtual void InvokeMethod(std::string const &method, void *params) override \
+            virtual void InvokeMethod(std::string const &method, void *params) override final \
             { \
                 MethodStubs::InvokeMethod(method, params); \
             } \
@@ -82,7 +82,7 @@
         using method_ ## _Proxy_Base_Type :: method_ ## _Proxy_Base_Type ; \
         virtual ResultType method_ \
                 (typename std::tuple_element<Indexes, typename method_ ## _Info ::ParamTypeList>::type ... params) \
-            const_ override \
+            const_ override final \
         { \
             static_assert(!std::is_pointer<ResultType>::value && !std::is_reference<ResultType>::value, \
                 "Method \"" #method_ "\" must not return pointer or reference. Only value."); \

@@ -150,9 +150,9 @@ namespace Mif
                     }
 
                     template <typename ... TParams>
-                    std::tuple<TParams ... > GetParams() const
+                    std::tuple<typename std::decay<TParams>::type ... > GetParams() const
                     {
-                        std::tuple<TParams ... > res;
+                        std::tuple<typename std::decay<TParams>::type ... > res;
                         return res;
                     }
 
