@@ -1,6 +1,9 @@
 #include <iostream>
 #include <functional>
+#include <memory>
+#include <vector>
 
+/*
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 
@@ -136,4 +139,80 @@ int main()
 		std::cerr << "Error: " << e.what() << std::endl;
 	}
 	return 0;
+}
+*/
+
+namespace Mif
+{
+    namespace Remote
+    {
+    }   // namespace Remote
+}   // namespace Mif
+
+namespace Mif
+{
+    namespace Net
+    {
+
+        using Buffer = std::vector<char>;
+
+        struct IControl
+        {
+            virtual ~IControl() = default;
+            virtual void CloseMe() = 0;
+        };
+
+        using IControlPtr = std::shared_ptr<IControl>;
+
+        struct IPublisher
+        {
+            virtual ~IPublisher() = default;
+            virtual void Publish(Buffer buffer) = 0;
+        };
+
+        using IPublisherPtr = std::shared_ptr<IPublisher>;
+
+        struct ISubscriber
+        {
+            virtual ~ISubscriber() = default;
+            virtual void OnData(Buffer buffer) = 0;
+        };
+
+        using ISubscriberPtr = std::shared_ptr<ISubscriber>;
+
+        class Client
+            : public std::enable_shared_from_this<Client>
+            , public ISubscriber
+        {
+        public:
+            virtual ~Client() = default;
+
+            Client(IControlPtr control, IPublisherPtr publisher)
+            {
+                (void)control;
+                (void)publisher;
+            }
+
+            // ISubscriber
+            virtual void OnData(Buffer buffer) override final
+            {
+                throw std::runtime_error{"OnData not implemented."};
+            }
+        };
+
+    }   // namespace Net
+}   // namespace Mif
+
+int main()
+{
+    try
+    {
+        Mif::Net::IControlPtr ctrl;
+        Mif::Net::IPublisherPtr ptr;
+        std::make_shared<Mif::Net::Client>(ctrl, ptr);
+    }
+    catch (std::exception const &e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
 }

@@ -12,7 +12,6 @@ namespace Mif
 {
     namespace Remote
     {
-
         namespace Detail
         {
 
