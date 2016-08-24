@@ -13,6 +13,51 @@ namespace Mif
     namespace Remote
     {
 
+        namespace Detail
+        {
+
+            template <typename TResult>
+            struct FunctionWrap
+            {
+                template <typename TFunc, typename TStorage>
+                static void Call(TFunc func, TStorage &storage)
+                {
+                    auto res = func();
+                    storage.PutParams(std::move(res));
+                }
+            };
+
+            template <>
+            struct FunctionWrap<void>
+            {
+                template <typename TFunc, typename TStorage>
+                static void Call(TFunc func, TStorage &storage)
+                {
+                    func();
+                }
+            };
+
+            template <typename TResult>
+            struct ResultExtractor
+            {
+                template <typename TStorage>
+                static TResult Extract(TStorage &storage)
+                {
+                    return std::get<0>(storage.template GetParams<TResult>());
+                }
+            };
+
+            template <>
+            struct ResultExtractor<void>
+            {
+                template <typename TStorage>
+                static void Extract(TStorage &)
+                {
+                }
+            };
+
+        }  // namespace Detail
+
         class ProxyStubException final
             : public std::runtime_error
         {
@@ -32,16 +77,39 @@ namespace Mif
 
             virtual ~Proxy() = default;
 
-        public:
             template <typename TResult, typename ... TParams>
             TResult RemoteCall(std::string const &interface, std::string const &method, TParams && ... params)
             {
                 try
                 {
                     using Serializer = typename TSerializer::Serializer;
-                    Serializer serializer(m_instance, interface, method, std::forward<TParams>(params) ... );
+                    using Deserializer = typename TSerializer::Deserializer;
+                    Serializer serializer(m_instance, interface, method, true, std::forward<TParams>(params) ... );
                     auto response = m_transport.Send(std::move(serializer.GetBuffer()));
-                    throw ProxyStubException{method + " not implemented."};
+                    Deserializer deserializer(std::move(response));
+                    if (!deserializer.IsResponse())
+                        throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad response type \"" + deserializer.GetType() + "\""};
+                    auto const &instance = deserializer.GetInstance();
+                    if (instance != m_instance)
+                    {
+                        throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad instance id \"" + instance + "\" "
+                            "Needed instance id \"" + m_instance + "\""};
+                    }
+                    auto const &interfaceId = deserializer.GetInterface();
+                    if (interface != interfaceId)
+                    {
+                        throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad interface for instance whith id \"" +
+                            interfaceId + "\" Needed \"" + interface + "\""};
+                    }
+                    auto const &methodId = deserializer.GetMethod();
+                    if (method != methodId)
+                    {
+                        throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Method \"" + methodId + "\" "
+                            "of interface \"" + interface + "\" for instance with id \"" + m_instance + "\" "
+                            "not found. Needed method \"" + method + "\""};
+                    }
+
+                    return Detail::ResultExtractor<TResult>::Extract(deserializer);
                 }
                 catch (std::exception const &e)
                 {
@@ -81,19 +149,25 @@ namespace Mif
             }
 
         protected:
-            virtual void InvokeMethod(std::string const &method, void *)
+            virtual void InvokeMethod(std::string const &method, void *, void *)
             {
                 throw ProxyStubException{"[Mif::Remote::Stub::InvokeMethod] Method \"" + method + "\" "
                     "of interface \"" + std::string{GetInterfaceId()} + "\" not found."};
             }
 
+            using Serializer = typename TSerializer::Serializer;
             using Deserializer = typename TSerializer::Deserializer;
 
             template <typename TResult, typename TInterface, typename ... TParams>
-            void InvokeRealMethod(TResult (*method)(TInterface &, std::tuple<TParams ... > && ), void *params)
+            void InvokeRealMethod(TResult (*method)(TInterface &, std::tuple<TParams ... > && ),
+                                  void *deserializer, void *serializer)
             {
-                method(*reinterpret_cast<TInterface *>(m_impl->GetInstance()),
-                    reinterpret_cast<Deserializer *>(params)->template GetParams<TParams ... >());
+                auto &instance = *reinterpret_cast<TInterface *>(m_impl->GetInstance());
+                auto params = reinterpret_cast<Deserializer *>(deserializer)->template GetParams<TParams ... >();
+                Detail::FunctionWrap<TResult>::Call(
+                        [&method, &instance, &params] () { return method(instance, std::move(params)); },
+                        *reinterpret_cast<Serializer *>(serializer)
+                    );
             }
 
         private:
@@ -131,7 +205,7 @@ namespace Mif
 
                 virtual void Init() override
                 {
-                    m_transport.SetHandler(std::bind(&Impl::OnData, this->shared_from_this(), std::placeholders::_1));
+                    m_transport.SetHandler(std::bind(&Impl::ProcessData, this->shared_from_this(), std::placeholders::_1));
                 }
 
                 virtual void Done() override
@@ -144,32 +218,36 @@ namespace Mif
                     return m_instance.get();
                 }
 
-                void OnData(Buffer && buffer)
+                Buffer ProcessData(Buffer && buffer)
                 {
                     try
                     {
                         if (buffer.empty())
-                            throw ProxyStubException{"[Mif::Remote::Stub::OnData] Empty data."};
+                            throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Empty data."};
                         Deserializer deserializer(std::move(buffer));
                         if (!deserializer.IsRequest())
-                            throw ProxyStubException{"[Mif::Remote::Stub::OnData] Bad request type \"" + deserializer.GetType() + "\""};
-                        if (deserializer.GetInstance() != m_instanceId)
+                            throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Bad request type \"" + deserializer.GetType() + "\""};
+                        auto const &instanceId = deserializer.GetInstance();
+                        if (instanceId != m_instanceId)
                         {
-                            throw ProxyStubException{"[Mif::Remote::Stub::OnData] Bad instance id \"" + deserializer.GetInstance() + "\" "
+                            throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Bad instance id \"" + instanceId + "\" "
                                 "Needed instance id \"" + m_instanceId + "\""};
                         }
-                        if (deserializer.GetInterface() != m_owner.GetInterfaceId())
+                        auto const &interfaceId = deserializer.GetInterface();
+                        if (interfaceId != m_owner.GetInterfaceId())
                         {
-                            throw ProxyStubException{"[Mif::Remote::Stub::OnData] Bad interface for instance whith id \"" +
-                                deserializer.GetInterface() + "\" Needed \"" + m_owner.GetInterfaceId() + "\""};
+                            throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Bad interface for instance whith id \"" +
+                                interfaceId + "\" Needed \"" + m_owner.GetInterfaceId() + "\""};
                         }
                         auto const &method = deserializer.GetMethod();
                         if (method.empty())
                         {
-                            throw ProxyStubException{"[Mif::Remote::Stub::OnData] Empty method name of interface \"" +
+                            throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Empty method name of interface \"" +
                                 std::string{m_owner.GetInterfaceId()} + "\" for instance with id \"" + m_instanceId + "\""};
                         }
-                        m_owner.InvokeMethod(method, &deserializer);
+                        Serializer serializer(instanceId, interfaceId, method, false);
+                        m_owner.InvokeMethod(method, &deserializer, &serializer);
+                        return serializer.GetBuffer();
                     }
                     catch (ProxyStubException const &)
                     {
@@ -177,7 +255,7 @@ namespace Mif
                     }
                     catch (std::exception const &e)
                     {
-                        throw ProxyStubException{"[Mif::Remote::Stub::OnData] Failed to call method for instance with id \"" +
+                        throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Failed to call method for instance with id \"" +
                                                 m_instanceId + "\" Error: " + std::string{e.what()}};
                     }
                 }
@@ -190,7 +268,7 @@ namespace Mif
 
             virtual char const* GetInterfaceId() const
             {
-                return "[Mif::Remote::Stub::OnData] Default interface id.";
+                return "[Mif::Remote::Stub::ProcessData] Default interface id.";
             }
         };
 

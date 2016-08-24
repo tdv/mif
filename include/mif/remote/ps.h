@@ -64,9 +64,9 @@
             { \
                 return InterfaceId; \
             } \
-            virtual void InvokeMethod(std::string const &method, void *params) override final \
+            virtual void InvokeMethod(std::string const &method, void *deserializer, void *serializer) override final \
             { \
-                MethodStubs::InvokeMethod(method, params); \
+                MethodStubs::InvokeMethod(method, deserializer, serializer); \
             } \
         }; \
     };
@@ -129,15 +129,16 @@
         using BaseType::BaseType; \
         static ResultType Invoke(InterfaceType &instance, ParamTypeList && params) \
         { \
-            instance. method_ (std::get<Indexes>(params) ... ); \
-            throw std::runtime_error{"Stub for " #method_  " not implemented."}; \
+            static_assert(!std::is_pointer<ResultType>::value && !std::is_reference<ResultType>::value, \
+                "Method \"" #method_ "\" must not return pointer or reference. Only value."); \
+            return instance. method_ (std::get<Indexes>(params) ... ); \
         } \
-        virtual void InvokeMethod(std::string const &method, void *params) override \
+        virtual void InvokeMethod(std::string const &method, void *deserializer, void *serializer) override \
         { \
             if (method != #method_) \
-                BaseType::InvokeMethod(method, params); \
+                BaseType::InvokeMethod(method, deserializer, serializer); \
             else \
-                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, params); \
+                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, deserializer, serializer); \
         } \
     }; \
     template <std::size_t ... Indexes> \

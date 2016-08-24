@@ -81,7 +81,7 @@ public:
     }
 
     using Buffer = std::vector<char>;
-    using DataHandler = std::function<void (Buffer &&)>;
+    using DataHandler = std::function<Buffer (Buffer &&)>;
 
     DataHandler m_handler;
 
@@ -93,16 +93,15 @@ public:
 
     Buffer Send(Buffer && buffer);
 
-    void Call(Buffer && buffer)
+    Buffer Call(Buffer && buffer)
     {
-        m_handler(std::move(buffer));
+        return m_handler(std::move(buffer));
     }
 };
 
 TestTransport::Buffer TestTransport::Send(Buffer && buffer)
 {
-    p_transport->Call(std::move(buffer));
-    throw std::runtime_error{"[TestTransport::Send} Not implemented."};
+    return p_transport->Call(std::move(buffer));
 }
 
 int main()
@@ -121,7 +120,16 @@ int main()
         ProxyStub::Proxy proxy("100500", std::move(proxyTransport));
 
         ITest &rps = proxy;
+        std::cout << "Old name: " << rps.GetName() << std::endl;
+        std::cout << "Old major: " << rps.GetMajor() << std::endl;
+        std::cout << "Old minor: " << rps.GetMinor() << std::endl;
+        std::cout << "--------------------------- RPC ---------------------------" << std::endl;
         rps.SetName("New name");
+        rps.SetVersion(100, 500);
+        std::cout << "--------------------------- RPC ---------------------------" << std::endl;
+        std::cout << "New name: " << rps.GetName() << std::endl;
+        std::cout << "New major: " << rps.GetMajor() << std::endl;
+        std::cout << "New minor: " << rps.GetMinor() << std::endl;
     }
 	catch (std::exception const &e)
 	{

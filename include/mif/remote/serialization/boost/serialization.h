@@ -67,34 +67,43 @@ namespace Mif
 
                     template <typename ... TParams>
                     Serializer(std::string const &instanceId, std::string const &interfaceId,
-                        std::string const &methodId, TParams && ... params)
+                        std::string const &methodId, bool isReques, TParams && ... params)
+                        : m_stream(boost::iostreams::back_inserter(m_result))
+                        , m_archive(m_stream)
                     {
-                        boost::iostreams::filtering_ostream stream(boost::iostreams::back_inserter(m_result));
-                        TArchive archive(stream);
-                        std::string type = Detail::Tag::Request;
-                        archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
-                        archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
-                        archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
-                        archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
-                        PutParams(archive, 1, std::forward<TParams>(params) ... );
+                        std::string type = isReques ? Detail::Tag::Request : Detail::Tag::Response;
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
+                        SaveParams(1, std::forward<TParams>(params) ... );
+                    }
+
+                    template <typename ... TParams>
+                    void PutParams(TParams && ... params)
+                    {
+                        SaveParams(1, std::forward<TParams>(params) ... );
                     }
 
                     Buffer GetBuffer()
                     {
+                        m_stream.flush();
                         return std::move(m_result);
                     }
 
                 private:
                     Buffer m_result;
+                    boost::iostreams::filtering_ostream m_stream;
+                    TArchive m_archive;
 
                     template <typename TParam, typename ... TParams>
-                    void PutParams(TArchive &archive, std::size_t index, TParam && param, TParams && ... params) const
+                    void SaveParams(std::size_t index, TParam && param, TParams && ... params)
                     {
-                        archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
-                        PutParams(archive, index + 1, std::forward<TParams>(params) ... );
+                        m_archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
+                        SaveParams(index + 1, std::forward<TParams>(params) ... );
                     }
 
-                    void PutParams(TArchive &, std::size_t) const
+                    void SaveParams(std::size_t)
                     {
                     }
                 };
@@ -124,7 +133,7 @@ namespace Mif
                         return GetType() == Detail::Tag::Request;
                     }
 
-                    bool IsResponce() const
+                    bool IsResponse() const
                     {
                         return GetType() == Detail::Tag::Response;
                     }
@@ -152,7 +161,15 @@ namespace Mif
                     template <typename ... TParams>
                     std::tuple<typename std::decay<TParams>::type ... > GetParams() const
                     {
-                        std::tuple<typename std::decay<TParams>::type ... > res;
+                        using TResult = std::tuple<typename std::decay<TParams>::type ... >;
+                        TResult res;
+                        LoadParams(reinterpret_cast
+                                    <
+                                        std::integral_constant
+                                            <
+                                                std::size_t, std::tuple_size<TResult>::value
+                                            > const *
+                                    >(0), res);
                         return res;
                     }
 
@@ -161,11 +178,32 @@ namespace Mif
                     Buffer m_buffer;
                     SourceType m_source;
                     boost::iostreams::stream<SourceType> m_stream;
-                    TArchive m_archive;
+                    mutable TArchive m_archive;
                     std::string m_type;
                     std::string m_instance;
                     std::string m_interface;
                     std::string m_method;
+
+                    template <std::size_t Index, typename TParams,
+                              typename = typename std::enable_if<Index>::type>
+                    void LoadParams(std::integral_constant<std::size_t, Index> const *,
+                                   TParams &params) const
+                    {
+                        auto &param = std::get<std::tuple_size<TParams>::value - Index>(params);
+                        m_archive >> boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(Index)).c_str(), param);
+                        LoadParams(reinterpret_cast
+                                    <
+                                        std::integral_constant
+                                            <
+                                                std::size_t, Index - 1
+                                            > const *
+                                    >(0), params);
+                    }
+
+                    template <typename TParams>
+                    void LoadParams(std::integral_constant<std::size_t, 0> const *, TParams &) const
+                    {
+                    }
                 };
 
             }   // namespace Boost
