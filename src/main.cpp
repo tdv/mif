@@ -3,6 +3,10 @@
 #include <memory>
 #include <vector>
 
+#include <boost/asio.hpp>
+#include <boost/shared_array.hpp>
+#include <boost/thread.hpp>
+
 /*
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
@@ -154,7 +158,7 @@ namespace Mif
     namespace Net
     {
 
-        using Buffer = std::vector<char>;
+        using Buffer = std::pair<std::size_t, boost::shared_array<char>>;
 
         struct IControl
         {
@@ -180,6 +184,13 @@ namespace Mif
 
         using ISubscriberPtr = std::shared_ptr<ISubscriber>;
 
+        struct ISubscriberFactory
+        {
+            virtual ~ISubscriberFactory() = default;
+            virtual std::shared_ptr<ISubscriber> Create(std::weak_ptr<IControl> control,
+                                                        std::weak_ptr<IPublisher> publisher) = 0;
+        };
+
         class Client
             : public std::enable_shared_from_this<Client>
             , public ISubscriber
@@ -187,11 +198,15 @@ namespace Mif
         public:
             virtual ~Client() = default;
 
-            Client(IControlPtr control, IPublisherPtr publisher)
+            Client(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher)
+                : m_control(control)
+                , m_publisher(publisher)
             {
-                (void)control;
-                (void)publisher;
             }
+
+        private:
+            std::weak_ptr<IControl> m_control;
+            std::weak_ptr<IPublisher> m_publisher;
 
             // ISubscriber
             virtual void OnData(Buffer buffer) override final
@@ -200,6 +215,206 @@ namespace Mif
             }
         };
 
+        class ClientFactory final
+            : public ISubscriberFactory
+        {
+        public:
+        private:
+            // ISubscriberFactory
+            virtual std::shared_ptr<ISubscriber> Create(std::weak_ptr<IControl> control,
+                std::weak_ptr<IPublisher> publisher) override
+            {
+                return std::make_shared<Client>(control, publisher);
+            }
+        };
+
+    }   // namespace Net
+}   // namespace Mif
+
+namespace Mif
+{
+    namespace Net
+    {
+        namespace Detail
+        {
+
+            class TCPSession final
+                : public std::enable_shared_from_this<TCPSession>
+                , public IPublisher
+                , public IControl
+            {
+            public:
+                TCPSession(boost::asio::ip::tcp::socket socket, ISubscriberFactory &factory)
+                    : m_socket(std::move(socket))
+                    , m_factory(factory)
+                {
+                }
+
+                void Start()
+                {
+                    m_subscriber = m_factory.Create(std::weak_ptr<IControl>(shared_from_this()),
+                        std::weak_ptr<IPublisher>(shared_from_this()));
+
+                    DoRead();
+                }
+
+            private:
+                boost::asio::ip::tcp::socket m_socket;
+                ISubscriberFactory &m_factory;
+                std::shared_ptr<ISubscriber> m_subscriber;
+
+                //----------------------------------------------------------------------------
+                // IPublisher
+                virtual void Publish(Buffer buffer) override
+                {
+                    try
+                    {
+                        auto self(shared_from_this());
+
+                        auto publisherTask = [self, buffer] ()
+                        {
+                            boost::asio::async_write(self->m_socket, boost::asio::buffer(buffer.second.get(), buffer.first),
+                                    [self, buffer] (boost::system::error_code error, std::size_t /*length*/)
+                                    {
+                                        if (error)
+                                        {
+                                            // TODO: error to log
+                                            self->CloseMe();
+                                        }
+                                    }
+                                );
+                        };
+
+                        m_socket.get_io_service().post(publisherTask);
+                    }
+                    catch (std::exception const &)
+                    {
+                        // TODO: to log
+                        CloseMe();
+                    }
+                }
+
+                //----------------------------------------------------------------------------
+                // IControl
+                virtual void CloseMe() override
+                {
+                    try
+                    {
+                        auto self = shared_from_this();
+                        m_socket.get_io_service().post([self] () { self->m_socket.close(); } );
+                    }
+                    catch (std::exception const &)
+                    {
+                        // TODO: to log
+                    }
+                }
+
+                //----------------------------------------------------------------------------
+
+                void DoRead()
+                {
+                    std::size_t const bytes = 4096; // TODO: from params
+                    auto buffer = std::make_pair(bytes, boost::shared_array<char>(new char [bytes]));
+                    auto self(shared_from_this());
+                    m_socket.async_read_some(boost::asio::buffer(buffer.second.get(), buffer.first),
+                        [self, buffer] (boost::system::error_code error, std::size_t length)
+                        {
+                            try
+                            {
+                                if (!error)
+                                    self->m_subscriber->OnData(std::move(buffer));
+                                else
+                                    self->CloseMe();
+                            }
+                            catch (std::exception const &)
+                            {
+                                // TODO: to lgg
+                                self->CloseMe();
+                            }
+                        }
+                    );
+                }
+            };
+
+            class TCPServer final
+            {
+            public:
+                TCPServer(std::string const &host, std::uint16_t port,
+                          std::uint16_t ioTreadCount,
+                          std::shared_ptr<ISubscriberFactory> factory)
+                    : m_factory(factory)
+                    , m_acceptor(m_ioService, boost::asio::ip::tcp::endpoint(
+                            boost::asio::ip::address::from_string(host), port)
+                        )
+                    , m_socket(m_ioService)
+                {
+                    std::unique_ptr<boost::asio::io_service::work> ioWork(new boost::asio::io_service::work(m_ioService));
+                    for (std::uint16_t i = 0 ; i < ioTreadCount ; ++i)
+                    {
+                        std::exception_ptr exception{};
+                        m_ioTreads.create_thread([this, &exception] ()
+                                {
+                                    try
+                                    {
+                                        m_ioService.run();
+                                    }
+                                    catch (std::exception const &)
+                                    {
+                                        // TODO: to log
+                                        exception = std::current_exception();
+                                    }
+                                }
+                            );
+                        if (exception)
+                        {
+                            m_socket.close();
+                            ioWork.reset();
+                            m_ioTreads.join_all();
+                            std::rethrow_exception(exception);
+                        }
+                        m_ioWork = std::move(ioWork);
+
+                        DoAccept();
+                    }
+                }
+
+                virtual ~TCPServer()
+                {
+                    try
+                    {
+                        m_socket.close();
+                        m_ioWork.reset();
+                        m_ioTreads.join_all();
+                    }
+                    catch (std::exception const &)
+                    {
+                        // TODO: to log
+                    }
+                }
+
+            private:
+                std::shared_ptr<ISubscriberFactory> m_factory;
+                boost::asio::io_service m_ioService;
+                std::unique_ptr<boost::asio::io_service::work> m_ioWork;
+                boost::asio::ip::tcp::acceptor m_acceptor;
+                boost::asio::ip::tcp::socket m_socket;
+                boost::thread_group m_ioTreads;
+
+                void DoAccept()
+                {
+                    m_acceptor.async_accept(m_socket,
+                            [this] (boost::system::error_code error)
+                            {
+                                if (!error)
+                                {
+                                    std::make_shared<TCPSession>(std::move(m_socket), *m_factory)->Start();
+                                }
+                                DoAccept();
+                            }
+                        );
+                }
+            };
+        }   // namespace Detail
     }   // namespace Net
 }   // namespace Mif
 
@@ -207,9 +422,9 @@ int main()
 {
     try
     {
-        Mif::Net::IControlPtr ctrl;
-        Mif::Net::IPublisherPtr ptr;
-        std::make_shared<Mif::Net::Client>(ctrl, ptr);
+        auto server = std::make_shared<Mif::Net::Detail::TCPServer>(
+            "127.0.0.1", 5555, 2, std::make_shared<Mif::Net::ClientFactory>());
+        std::cin.get();
     }
     catch (std::exception const &e)
     {
