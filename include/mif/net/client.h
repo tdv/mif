@@ -15,43 +15,43 @@ namespace Mif
     namespace Net
     {
 
-    class Client
-        : public std::enable_shared_from_this<Client>
-        , public ISubscriber
-    {
-    public:
-        Client(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher)
-            : m_control{control}
-            , m_publisher{publisher}
+        class Client
+            : public std::enable_shared_from_this<Client>
+            , public ISubscriber
         {
-        }
+        public:
+            Client(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher)
+                : m_control{control}
+                , m_publisher{publisher}
+            {
+            }
 
-    private:
-        std::weak_ptr<IControl> m_control;
-        std::weak_ptr<IPublisher> m_publisher;
+        private:
+            std::weak_ptr<IControl> m_control;
+            std::weak_ptr<IPublisher> m_publisher;
 
-        // ISubscriber
-        virtual void OnData(Common::Buffer buffer) override final
-        {
-            if (!buffer.first || !buffer.second)
-                throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
-        }
+            // ISubscriber
+            virtual void OnData(Common::Buffer buffer) override final
+            {
+                if (!buffer.first || !buffer.second)
+                    throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
+            }
 
-    protected:
-        std::weak_ptr<IControl> GetControl() const
-        {
-            return m_control;
-        }
+        protected:
+            std::weak_ptr<IControl> GetControl() const
+            {
+                return m_control;
+            }
 
-        std::weak_ptr<IPublisher> GetPublisher() const
-        {
-            return m_publisher;
-        }
+            std::weak_ptr<IPublisher> GetPublisher() const
+            {
+                return m_publisher;
+            }
 
-        virtual void ProcessData(Common::Buffer /*buffer*/)
-        {
-        }
-    };
+            virtual void ProcessData(Common::Buffer /*buffer*/)
+            {
+            }
+        };
 
     }   // namespace Net
 }   // namespace Mif

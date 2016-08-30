@@ -19,9 +19,9 @@ namespace Mif
 
             TCPSession::TCPSession(boost::asio::ip::tcp::socket socket,
                 Common::ThreadPool &workers, ISubscriberFactory &factory)
-                : m_socket(std::move(socket))
-                , m_workers(workers)
-                , m_factory(factory)
+                : m_socket{std::move(socket)}
+                , m_workers{workers}
+                , m_factory{factory}
             {
             }
 
@@ -47,19 +47,21 @@ namespace Mif
                                         {
                                             if (error)
                                             {
-                                                // TODO: error to log
+                                                std::cerr << "[Mif::Net::Detail::TCPSession::Publisher]. "
+                                                    << "Failed to write data. Error: " << error.message()
+                                                    << std::endl;
                                                 self->CloseMe();
-                                                std::cerr << "OnWrite error. Error: " << error.message() << std::endl;
                                             }
                                         }
                                     );
                             }
                         );
                 }
-                catch (std::exception const &)
+                catch (std::exception const &e)
                 {
-                    // TODO: to log
                     CloseMe();
+                    std::cerr << "[Mif::Net::Detail::TCPSession::Publisher]. "
+                        << "Failed to publish data. Error: " << e.what() << std::endl;
                 }
             }
 
@@ -74,8 +76,8 @@ namespace Mif
                             }
                             catch (std::exception const &e)
                             {
-                                std::cerr << "CloseMe error: " << e.what() << std::endl;
-                                // TODO: to log
+                                std::cerr << "[Mif::Net::Detail::TCPSession::CloseMe]. "
+                                    << "Failed to post 'stop'. Error: " << e.what() << std::endl;
                             }
                         }
                     );
@@ -84,7 +86,7 @@ namespace Mif
             void TCPSession::DoRead()
             {
                 std::size_t const bytes = 4096; // TODO: from params
-                auto buffer = std::make_pair(bytes, boost::shared_array<char>(new char [bytes]));
+                auto buffer = std::make_pair(bytes, boost::shared_array<char>{new char [bytes]});
                 auto self(shared_from_this());
                 m_socket.async_read_some(boost::asio::buffer(buffer.second.get(), buffer.first),
                     [self, buffer] (boost::system::error_code error, std::size_t length)
@@ -101,8 +103,8 @@ namespace Mif
                                             }
                                             catch (std::exception const &e)
                                             {
-                                                // TODO: to log
-                                                std::cerr << "Failed to process data. Error: " << e.what() << std::endl;
+                                                std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                                    << "Failed to process data. Error: " << e.what() << std::endl;
                                             }
                                         }
                                     );
@@ -110,16 +112,16 @@ namespace Mif
                             }
                             else
                             {
-                                // TODO: to log
                                 self->CloseMe();
-                                std::cerr << "Failed to process data. Error: " << error.message() << std::endl;
+                                std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                    << "Failed to read data. Error: " << error.message() << std::endl;
                             }
                         }
                         catch (std::exception const &e)
                         {
-                            // TODO: to lgg
                             self->CloseMe();
-                            std::cerr << "Failed to process data. Error: " << e.what() << std::endl;
+                            std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                << "Failed to post task on data processing. Error: " << e.what() << std::endl;
                         }
                     }
                 );

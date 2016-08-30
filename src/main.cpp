@@ -1,19 +1,11 @@
 #include <iostream>
-#include <functional>
-#include <memory>
-#include <vector>
 
-#include <thread>
-#include <chrono>
-
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
-
-
+#include "mif/net/tcp_server.h"
+#include "mif/net/tcp_clients.h"
+#include "mif/net/client_factory.h"
 #include "mif/net/client.h"
-#include "mif/net/isubscriber_factory.h"
 
-/*
+
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 
@@ -93,8 +85,7 @@ public:
     {
     }
 
-    using Buffer = std::vector<char>;
-    using DataHandler = std::function<Buffer (Buffer &&)>;
+    using DataHandler = std::function<Mif::Common::Buffer (Mif::Common::Buffer &&)>;
 
     DataHandler m_handler;
 
@@ -104,18 +95,53 @@ public:
         m_handler = std::move(handler);
     }
 
-    Buffer Send(Buffer && buffer);
+    Mif::Common::Buffer Send(Mif::Common::Buffer && buffer);
 
-    Buffer Call(Buffer && buffer)
+    Mif::Common::Buffer Call(Mif::Common::Buffer && buffer)
     {
         return m_handler(std::move(buffer));
     }
 };
 
-TestTransport::Buffer TestTransport::Send(Buffer && buffer)
+Mif::Common::Buffer TestTransport::Send(Mif::Common::Buffer && buffer)
 {
     return p_transport->Call(std::move(buffer));
 }
+
+namespace Mif
+{
+    namespace Remote
+    {
+
+        template
+        <
+            typename TInterface,
+            typename TImplementation,
+            template <typename, typename> class TProxyStub
+        >
+        struct Binder
+        {
+            using InterfaceType = TInterface;
+            using ImplementationType = TImplementation;
+            template <typename TSerializerTraits, typename TTransport>
+            using ProxyStubType = TProxyStub<TSerializerTraits, TTransport>;
+        };
+
+        template
+        <
+            typename TSerializer,
+            typename TDeserializer,
+            typename TTransport,
+            typename ... TBinders
+        >
+        class ServerFactory final
+        {
+        public:
+        private:
+        };
+
+    }   // namespace Remote
+}   // namespace Mif
 
 int main()
 {
@@ -125,6 +151,10 @@ int main()
         using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
         using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
         using ProxyStub = ITest_PS<Mif::Remote::Proxy<SerializerTraits, TestTransport>, Mif::Remote::Stub<SerializerTraits, TestTransport>>;
+
+        using ITestBindedr = Mif::Remote::Binder<ITest, Test, ITest_PS>;
+        using Factory = Mif::Remote::ServerFactory<BoostSerializer, BoostDeserializer, TestTransport, ITestBindedr>;
+        Factory factory;
 
         TestTransport proxyTransport;
         TestTransport stubTransport;
@@ -150,82 +180,17 @@ int main()
 	}
 	return 0;
 }
-*/
 
-namespace Mif
-{
-    namespace Remote
-    {
-    }   // namespace Remote
-}   // namespace Mif
-
-
-namespace Mif
-{
-    namespace Net
-    {
-        class ClientFactory final
-            : public ISubscriberFactory
-        {
-        public:
-        private:
-            // ISubscriberFactory
-            virtual std::shared_ptr<ISubscriber> Create(std::weak_ptr<IControl> control,
-                std::weak_ptr<IPublisher> publisher) override
-            {
-                return std::make_shared<Client>(control, publisher);
-            }
-        };
-
-    }   // namespace Net
-}   // namespace Mif
-
-#include "mif/net/tcp_server.h"
-#include "mif/net/tcp_clients.h"
-
-
-class ClientFactory final
-    : public Mif::Net::ISubscriberFactory
-{
-public:
-    /*void PostData()
-    {
-        for (auto client : m_clients)
-        {
-            if (auto publisher = client->m_publisher.lock())
-            {
-                std::string s = "GET / HTTP/1.1\r\n\r\n";
-                boost::shared_array<char> b(new char [s.length() + 1]);
-                std::strcpy(b.get(), s.c_str());
-                Mif::Net::Buffer buffer = std::make_pair(s.length(), b);
-                publisher->Publish(buffer);
-            }
-        }
-    }*/
-
-private:
-    std::list<std::shared_ptr<Mif::Net::Client>> m_clients;
-    // ISubscriberFactory
-    virtual std::shared_ptr<Mif::Net::ISubscriber> Create(std::weak_ptr<Mif::Net::IControl> control,
-        std::weak_ptr<Mif::Net::IPublisher> publisher) override
-    {
-        auto client = std::make_shared<Mif::Net::Client>(control, publisher);
-        m_clients.push_back(client);
-        return client;
-    }
-};
+/*
 
 int main()
 {
     try
     {
+        auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Net::Client>>();
         auto server = std::make_shared<Mif::Net::TCPServer>(
-            "localhost", "5555", 4, std::make_shared<Mif::Net::ClientFactory>());
-        auto clientFactgory = std::make_shared<ClientFactory>();
+            "localhost", "5555", 4, clientFactgory);
         Mif::Net::TCPClients clients(4, clientFactgory);
-        /*for (int i = 0 ; i < 10 ; ++i)
-            clients.RunClient("localhost", "5555");
-        clientFactgory->PostData();*/
         std::cin.get();
     }
     catch (std::exception const &e)
@@ -233,3 +198,4 @@ int main()
         std::cerr << "Error: " << e.what() << std::endl;
     }
 }
+*/

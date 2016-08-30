@@ -8,6 +8,9 @@
 #include <string>
 #include <utility>
 
+// MIF
+#include "mif/common/types.h"
+
 namespace Mif
 {
     namespace Remote
@@ -194,7 +197,6 @@ namespace Mif
                 }
 
             private:
-                using Buffer = typename TTransport::Buffer;
                 using DataHandler = typename TTransport::DataHandler;
 
                 Stub<TSerializer, TTransport> &m_owner;
@@ -217,11 +219,11 @@ namespace Mif
                     return m_instance.get();
                 }
 
-                Buffer ProcessData(Buffer && buffer)
+                Common::Buffer ProcessData(Common::Buffer && buffer)
                 {
                     try
                     {
-                        if (buffer.empty())
+                        if (!buffer.first)
                             throw ProxyStubException{"[Mif::Remote::Stub::ProcessData] Empty data."};
                         Deserializer deserializer(std::move(buffer));
                         if (!deserializer.IsRequest())
