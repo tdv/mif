@@ -147,7 +147,7 @@ namespace Mif
             }
             void Done()
             {
-                m_impl->Dode();
+                m_impl->Done();
             }
 
         protected:

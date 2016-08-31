@@ -35,6 +35,7 @@ namespace Mif
             {
                 if (!buffer.first || !buffer.second)
                     throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
+                ProcessData(std::move(buffer));
             }
 
         protected:
