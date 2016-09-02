@@ -8,7 +8,6 @@
 #include <vector>
 #include <tuple>
 #include <utility>
-#include <cstring>
 
 // BOOST
 #include <boost/iostreams/stream.hpp>
@@ -70,32 +69,26 @@ namespace Mif
                     template <typename ... TParams>
                     Serializer(std::string const &instanceId, std::string const &interfaceId,
                         std::string const &methodId, bool isReques, TParams && ... params)
-                        : m_stream(new boost::iostreams::filtering_ostream(boost::iostreams::back_inserter(m_result)))
-                        , m_archive(new TArchive(*m_stream))
+                        : m_stream(boost::iostreams::back_inserter(m_result))
+                        , m_archive(m_stream)
                     {
                         std::string type = isReques ? Detail::Tag::Request : Detail::Tag::Response;
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
                         SaveParams(1, std::forward<TParams>(params) ... );
                     }
 
                     template <typename ... TParams>
                     void PutParams(TParams && ... params)
                     {
-                        if (!m_archive)
-                            throw std::runtime_error{"[Mif::Remote::Serialization::Boost::Serializer::PutParams] Archive closed."};
                         SaveParams(1, std::forward<TParams>(params) ... );
                     }
 
                     Common::Buffer GetBuffer()
                     {
-                        if (!m_archive)
-                            throw std::runtime_error{"[Mif::Remote::Serialization::Boost::Serializer::PutParams] Archive closed."};
-                        m_stream->flush();;
-                        m_archive.reset();
-                        m_stream.reset();
+                        m_stream.flush();;
                         auto const length = m_result.size();
                         Common::CharArray buffer{new char [length]};
                         std::memcpy(buffer.get(), &m_result.front(), length);
@@ -104,13 +97,13 @@ namespace Mif
 
                 private:
                     std::vector<char> m_result;
-                    std::unique_ptr<boost::iostreams::filtering_ostream> m_stream;
-                    std::unique_ptr<TArchive> m_archive;
+                    boost::iostreams::filtering_ostream m_stream;
+                    TArchive m_archive;
 
                     template <typename TParam, typename ... TParams>
                     void SaveParams(std::size_t index, TParam && param, TParams && ... params)
                     {
-                        *m_archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
+                        m_archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
                         SaveParams(index + 1, std::forward<TParams>(params) ... );
                     }
 

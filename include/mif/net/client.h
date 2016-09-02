@@ -39,14 +39,24 @@ namespace Mif
             }
 
         protected:
-            std::weak_ptr<IControl> GetControl() const
+            bool CloseMe()
             {
-                return m_control;
+                if (auto control = m_control.lock())
+                {
+                    control->CloseMe();
+                    return true;
+                }
+                return false;
             }
 
-            std::weak_ptr<IPublisher> GetPublisher() const
+            bool Post(Common::Buffer &&buffer)
             {
-                return m_publisher;
+                if (auto publisher = m_publisher.lock())
+                {
+                    publisher->Publish(std::move(buffer));
+                    return true;
+                }
+                return false;
             }
 
             virtual void ProcessData(Common::Buffer /*buffer*/)

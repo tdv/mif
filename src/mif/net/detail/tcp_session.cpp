@@ -113,8 +113,11 @@ namespace Mif
                             else
                             {
                                 self->CloseMe();
-                                std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
-                                    << "Failed to read data. Error: " << error.message() << std::endl;
+                                if (error.value() != boost::asio::error::eof)
+                                {
+                                    std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                        << "Failed to read data. Error: " << error.message() << std::endl;
+                                }
                             }
                         }
                         catch (std::exception const &e)
