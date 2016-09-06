@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <map>
+#include <mutex>
 
 #include "mif/net/tcp_server.h"
 #include "mif/net/tcp_clients.h"
@@ -14,7 +16,6 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "mif/remote/ps.h"
-#include "mif/remote/proxy_stub.h"
 #include "mif/remote/serialization/serialization.h"
 #include "mif/remote/serialization/boost/serialization.h"
 
@@ -25,64 +26,7 @@ namespace Mif
     namespace Remote
     {
 
-        template
-        <
-            typename TInterface,
-            typename TImplementation,
-            template <typename, typename> class TProxyStub
-        >
-        struct Binder
-        {
-            using InterfaceType = TInterface;
-            using ImplementationType = TImplementation;
-            template <typename TSerializerTraits, typename TTransport>
-            using ProxyStubType = TProxyStub<TSerializerTraits, TTransport>;
-        };
-
-        template
-        <
-            typename TSerializer,
-            typename TDeserializer,
-            typename TTransport,
-            typename ... TBinders
-        >
-        class ServerFactory final
-        {
-        public:
-        private:
-        };
-
-        struct IObjectManager
-        {
-            virtual ~IObjectManager() = default;
-            virtual std::string CreateObject(std::string const &classId) = 0;
-            virtual void DestroyObject(std::string const &instanceId) = 0;
-        };
-
-        class ObjectManager final
-            : public IObjectManager
-        {
-        public:
-        private:
-            // IObjectManager
-            virtual std::string CreateObject(std::string const &classId) override final
-            {
-                std::cout << "CreateObject. ClassId: " << classId << std::endl;
-                return "new_instance_" + classId;
-            }
-
-            virtual void DestroyObject(std::string const &instanceId) override final
-            {
-                std::cout << "DestroyObject. InstanceId: " << instanceId << std::endl;
-            }
-        };
-
-        MIF_REMOTE_PS_BEGIN(IObjectManager)
-            MIF_REMOTE_METHOD(CreateObject)
-            MIF_REMOTE_METHOD(DestroyObject)
-        MIF_REMOTE_PS_END()
-
-        class NetClient
+        /*class NetClient
             : public Net::Client
         {
         public:
@@ -232,22 +176,129 @@ namespace Mif
                 m_objectManagerProxy.reset();
                 m_objectManagerStub.reset();
             }
-        };
+        };*/
 
         class ProxyNetClient
-            : public NetClient
+            : public Net::Client
         {
         public:
-            using NetClient::NetClient;
+            using Client::Client;
         private:
         };
 
-        class StubNetClient
-            : public NetClient
+        namespace Detail
+        {
+
+            struct IObjectManager
+            {
+                virtual ~IObjectManager() = default;
+                virtual std::string CreateObject(std::string const &classId) = 0;
+                virtual void DestroyObject(std::string const &instanceId) = 0;
+            };
+
+            MIF_REMOTE_PS_BEGIN(IObjectManager)
+                MIF_REMOTE_METHOD(CreateObject)
+                MIF_REMOTE_METHOD(DestroyObject)
+            MIF_REMOTE_PS_END()
+
+        }   // namespace Detail
+
+        template <typename TSerializer>
+        class StubClient final
+            : public Net::Client
+            , public Detail::IObjectManager
         {
         public:
-            using NetClient::NetClient;
+            StubClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher)
+                : Client(control, publisher)
+            {
+                m_instances.insert(std::make_pair(std::string{"0"}, std::make_shared<ObjectManagerStub>()));
+            }
+
         private:
+            using IStubPtr = std::shared_ptr<Detail::IStub<TSerializer>>;
+            using Instances = std::map<std::string/*instance id*/, IStubPtr>;
+            using Serializer = typename TSerializer::Serializer;
+            using Deserializer = typename TSerializer::Deserializer;
+            using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
+
+            using LockType = std::mutex;
+            using LockGuard = std::lock_guard<LockType>;
+
+            LockType m_lock;
+            Instances m_instances;
+
+
+            // Client
+            virtual void ProcessData(Common::Buffer buffer) override final
+            {
+                try
+                {
+                    if (!buffer.first)
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty data."};
+                    Deserializer deserializer(std::move(buffer));
+                    if (!deserializer.IsRequest())
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Bad request type \"" + deserializer.GetType() + "\""};
+                    auto const &instanceId = deserializer.GetInstance();
+                    if (instanceId.empty())
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty instance id."};
+                    IStubPtr stub;
+                    {
+                        LockGuard lock(m_lock);
+                        auto iter = m_instances.find(instanceId);
+                        if (iter == std::end(m_instances))
+                            throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Instance \"" + instanceId + "\" not found."};
+                        stub = iter->second;
+                    }
+                    auto const &interfaceId = deserializer.GetInterface();
+                    if (interfaceId.empty())
+                    {
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty method interface id for instanse "
+                            "\"" + instanceId + "\""};
+                    }
+                    auto const &method = deserializer.GetMethod();
+                    if (method.empty())
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty method name of interface \"" + interfaceId  + "\""};
+                    Serializer serializer(instanceId, interfaceId, method, false);
+                    stub->Call(static_cast<Detail::IObjectManager *>(this), deserializer, serializer);
+                    if (!Post(serializer.GetBuffer()))
+                    {
+                        if (!CloseMe())
+                        {
+                            throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Failed to post response from instance "
+                                "\"" + instanceId + "\". No channel for post data and failed to close self."};
+                        }
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Failed to post response from instanse "
+                            "\"" + instanceId + "\". No channel for post data."};
+                    }
+                }
+                catch (Detail::ProxyStubException const &)
+                {
+                    throw;
+                }
+                catch (std::exception const &e)
+                {
+                    throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] "
+                        "Failed to process data. Error: " + std::string{e.what()}};
+                }
+                catch (...)
+                {
+                    throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] "
+                        "Failed to process data. Error: unknown."};
+                }
+            }
+
+            // IObjectManager
+            virtual std::string CreateObject(std::string const &classId) override final
+            {
+                std::cout << "CreateObject. ClassId: " << classId << std::endl;
+                return "new_instance_" + classId;
+            }
+
+            virtual void DestroyObject(std::string const &instanceId) override final
+            {
+                std::cout << "DestroyObject. InstanceId: " << instanceId << std::endl;
+            }
         };
 
     }   // namespace Remote
@@ -265,13 +316,17 @@ int main(int argc, char const **argv)
         if (argv[1] == std::string("--server"))
         {
             std::cout << "Creating server ..." << std::endl;
-            auto serverFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::StubNetClient>>(true);
+            using BoostSerializer = Mif::Remote::Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
+            using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
+            using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
+            auto serverFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::StubClient<SerializerTraits>>>();
             auto server = std::make_shared<Mif::Net::TCPServer>(
                 "localhost", "5555", 4, serverFactgory);
+            (void)server;
             std::cout << "Created server." << std::endl;
             std::cin.get();
         }
-        else if (argv[1] == std::string("--client"))
+        /*else if (argv[1] == std::string("--client"))
         {
             std::cout << "Creating client ..." << std::endl;
             auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::ProxyNetClient>>(false);
@@ -288,7 +343,7 @@ int main(int argc, char const **argv)
             std::cout << "Created new object with id \"" << id << "\"" << std::endl;
             m->DestroyObject(id);
             std::cin.get();
-        }
+        }*/
         else
         {
             std::cerr << "Error: waiting --server or --client" << std::endl;

@@ -5,9 +5,10 @@
 #include "mif/common/index_sequence.h"
 #include "mif/common/detail/hierarchy.h"
 #include "mif/common/detail/method.h"
+#include "mif/remote/detail/ps.h"
 
 #define MIF_REMOTE_PS_BEGIN(interface_) \
-    template <typename TProxyBase, typename TStubBase> \
+    template <typename TSerializer> \
     class interface_ ## _PS \
     { \
     private: \
@@ -23,7 +24,7 @@
             { \
             } \
         private: \
-            mutable TProxyBase m_proxy; \
+            mutable ::Mif::Remote::Detail::Proxy<TSerializer> m_proxy; \
         protected: \
             template <typename TResult, typename ... TParams> \
             TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const \
@@ -35,10 +36,10 @@
         static char (&GetNextCounter(void *))[1]; \
         static ProxyBase* GetProxyBase(::Mif::Common::Detail::Hierarchy<1>); \
         class StubBase \
-            : public TStubBase \
+            : public ::Mif::Remote::Detail::Stub<TSerializer> \
         { \
         public: \
-            using TStubBase::TStubBase; \
+            using ::Mif::Remote::Detail::Stub<TSerializer>::Stub; \
         }; \
         static StubBase GetStubBase(::Mif::Common::Detail::Hierarchy<1>);
 
@@ -53,20 +54,18 @@
             using MethodProxies::MethodProxies; \
         }; \
         class Stub \
-            : private MethodStubs \
+            : public MethodStubs \
         { \
         public: \
             using MethodStubs::MethodStubs; \
-            using MethodStubs::Init; \
-            using MethodStubs::Done; \
         private: \
             virtual char const* GetInterfaceId() const override final \
             { \
                 return InterfaceId; \
             } \
-            virtual void InvokeMethod(std::string const &method, void *deserializer, void *serializer) override final \
+            virtual void InvokeMethod(void *instance, std::string const &method, void *deserializer, void *serializer) override final \
             { \
-                MethodStubs::InvokeMethod(method, deserializer, serializer); \
+                MethodStubs::InvokeMethod(instance, method, deserializer, serializer); \
             } \
         }; \
     };
@@ -133,12 +132,12 @@
                 "Method \"" #method_ "\" must not return pointer or reference. Only value."); \
             return instance. method_ (std::get<Indexes>(params) ... ); \
         } \
-        virtual void InvokeMethod(std::string const &method, void *deserializer, void *serializer) override \
+        virtual void InvokeMethod(void *instance, std::string const &method, void *deserializer, void *serializer) override \
         { \
             if (method != #method_) \
-                BaseType::InvokeMethod(method, deserializer, serializer); \
+                BaseType::InvokeMethod(instance, method, deserializer, serializer); \
             else \
-                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, deserializer, serializer); \
+                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, instance, deserializer, serializer); \
         } \
     }; \
     template <std::size_t ... Indexes> \
