@@ -18,19 +18,21 @@ namespace Mif
         {
 
             TCPSession::TCPSession(boost::asio::ip::tcp::socket socket,
-                Common::ThreadPool &workers, ISubscriberFactory &factory)
+                Common::ThreadPool &workers, IClientFactory &factory)
                 : m_socket{std::move(socket)}
                 , m_workers{workers}
                 , m_factory{factory}
             {
             }
 
-            void TCPSession::Start()
+            IClientFactory::ClientPtr TCPSession::Start()
             {
-                m_subscriber = m_factory.Create(std::weak_ptr<IControl>(shared_from_this()),
+                m_client = m_factory.Create(std::weak_ptr<IControl>(shared_from_this()),
                     std::weak_ptr<IPublisher>(shared_from_this()));
 
                 DoRead();
+
+                return m_client;
             }
 
 
@@ -99,7 +101,7 @@ namespace Mif
                                         {
                                             try
                                             {
-                                                self->m_subscriber->OnData(std::make_pair(length, std::move(buffer.second)));
+                                                self->m_client->OnData(std::make_pair(length, std::move(buffer.second)));
                                             }
                                             catch (std::exception const &e)
                                             {

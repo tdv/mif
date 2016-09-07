@@ -21,7 +21,7 @@ namespace Mif
         class TCPClients::Impl final
         {
         public:
-            Impl(std::uint16_t workers, std::shared_ptr<ISubscriberFactory> factory)
+            Impl(std::uint16_t workers, std::shared_ptr<IClientFactory> factory)
             try
                 : m_factory(factory)
                 , m_workers(std::make_shared<Common::ThreadPool>(workers))
@@ -84,14 +84,14 @@ namespace Mif
                 std::cerr << "[Mif::Net::TCPClients::Impl] Failed tp stop clients. Error: unknown." << std::endl;
             }
 
-            void RunClient(std::string const &host, std::string const &port)
+            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port)
             {
                 try
                 {
                     boost::asio::ip::tcp::socket socket{m_ioService};
                     boost::asio::ip::tcp::resolver resolver{m_ioService};
                     boost::asio::connect(socket, resolver.resolve({host, port}));
-                    std::make_shared<Detail::TCPSession>(std::move(socket), *m_workers, *m_factory)->Start();
+                    return std::make_shared<Detail::TCPSession>(std::move(socket), *m_workers, *m_factory)->Start();
                 }
                 catch (std::exception const &e)
                 {
@@ -101,7 +101,7 @@ namespace Mif
             }
 
         private:
-            std::shared_ptr<ISubscriberFactory> m_factory;
+            std::shared_ptr<IClientFactory> m_factory;
             std::shared_ptr<Common::ThreadPool> m_workers;
             boost::asio::io_service m_ioService;
             std::unique_ptr<std::thread> m_thread;
@@ -109,7 +109,7 @@ namespace Mif
         };
 
 
-        TCPClients::TCPClients(std::uint16_t workers, std::shared_ptr<ISubscriberFactory> factory)
+        TCPClients::TCPClients(std::uint16_t workers, std::shared_ptr<IClientFactory> factory)
             : m_impl{new TCPClients::Impl{workers, factory}}
         {
         }
@@ -118,9 +118,9 @@ namespace Mif
         {
         }
 
-        void TCPClients::RunClient(std::string const &host, std::string const &port)
+        IClientFactory::ClientPtr TCPClients::RunClient(std::string const &host, std::string const &port)
         {
-            m_impl->RunClient(host, port);
+            return m_impl->RunClient(host, port);
         }
 
 

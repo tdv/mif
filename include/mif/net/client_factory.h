@@ -8,7 +8,7 @@
 
 // MIF
 #include "mif/common/index_sequence.h"
-#include "mif/net/isubscriber_factory.h"
+#include "mif/net/iclient_factory.h"
 
 namespace Mif
 {
@@ -17,7 +17,7 @@ namespace Mif
 
         template <typename TClient>
         class ClientFactory final
-            : public ISubscriberFactory
+            : public IClientFactory
         {
         public:
             template <typename ... TArgs>
@@ -27,11 +27,11 @@ namespace Mif
             }
 
         private:
-            std::unique_ptr<ISubscriberFactory> m_impl;
+            std::unique_ptr<IClientFactory> m_impl;
 
             template <typename ... TArgs>
             class Impl final
-                : public ISubscriberFactory
+                : public IClientFactory
             {
             public:
                 Impl(TArgs && ... args)
@@ -43,23 +43,23 @@ namespace Mif
                 using TupleType = std::tuple<typename std::decay<TArgs>::type ... >;
                 TupleType m_args;
 
-                // ISubscriberFactory
-                virtual std::shared_ptr<ISubscriber> Create(IControlPtr control, IPublisherPtr publisher) override final
+                // IClientFactory
+                virtual ClientPtr Create(IControlPtr control, IPublisherPtr publisher) override final
                 {
                     return Create(control, publisher,
                         reinterpret_cast<Common::MakeIndexSequence<std::tuple_size<TupleType>::value> const *>(0));
                 }
 
                 template <std::size_t ... Indexes>
-                std::shared_ptr<ISubscriber> Create(IControlPtr control, IPublisherPtr publisher,
+                ClientPtr Create(IControlPtr control, IPublisherPtr publisher,
                     Common::IndexSequence<Indexes ... > const *)
                 {
                     return std::make_shared<TClient>(control, publisher, std::get<Indexes>(m_args) ... );
                 }
             };
 
-            // ISubscriberFactory
-            virtual std::shared_ptr<ISubscriber> Create(IControlPtr control, IPublisherPtr publisher) override final
+            // IClientFactory
+            virtual ClientPtr Create(IControlPtr control, IPublisherPtr publisher) override final
             {
                 return m_impl->Create(control, publisher);
             }

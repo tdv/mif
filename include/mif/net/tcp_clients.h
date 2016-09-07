@@ -7,7 +7,7 @@
 #include <string>
 
 // MIF
-#include "mif/net/isubscriber_factory.h"
+#include "mif/net/iclient_factory.h"
 
 namespace Mif
 {
@@ -17,10 +17,10 @@ namespace Mif
         class TCPClients final
         {
         public:
-            TCPClients(std::uint16_t workers, std::shared_ptr<ISubscriberFactory> factory);
+            TCPClients(std::uint16_t workers, std::shared_ptr<IClientFactory> factory);
             ~TCPClients();
 
-            void RunClient(std::string const &host, std::string const &port);
+            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port);
 
         private:
             class Impl;

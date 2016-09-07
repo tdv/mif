@@ -10,6 +10,7 @@
 
 // MIF
 #include "mif/common/types.h"
+#include "mif/common/uuid_generator.h"
 
 namespace Mif
 {
@@ -69,40 +70,43 @@ namespace Mif
             class Proxy
             {
             public:
-                Proxy(std::string const &instance)
+                using Serializer = typename TSerializer::Serializer;
+                using Deserializer = typename TSerializer::Deserializer;
+                using DeserializerPtr = std::unique_ptr<Deserializer>;
+
+                using Sender = std::function<DeserializerPtr (std::string const &, Serializer &)>;
+
+                Proxy(std::string const &instance, Sender && sender)
                     : m_instance(instance)
+                    , m_sender(std::move(sender))
                 {
                 }
 
                 virtual ~Proxy() = default;
-
-                virtual Common::Buffer Send(Common::Buffer && buffer) = 0;
 
                 template <typename TResult, typename ... TParams>
                 TResult RemoteCall(std::string const &interface, std::string const &method, TParams && ... params)
                 {
                     try
                     {
-                        using Serializer = typename TSerializer::Serializer;
-                        using Deserializer = typename TSerializer::Deserializer;
-                        Serializer serializer(m_instance, interface, method, true, std::forward<TParams>(params) ... );
-                        auto response = Send(std::move(serializer.GetBuffer()));
-                        Deserializer deserializer(std::move(response));
-                        if (!deserializer.IsResponse())
-                            throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad response type \"" + deserializer.GetType() + "\""};
-                        auto const &instance = deserializer.GetInstance();
+                        auto const requestId = m_generator.Generate();
+                        Serializer serializer(true, requestId, m_instance, interface, method, std::forward<TParams>(params) ... );
+                        auto deserializer = m_sender(requestId, serializer);
+                        if (!deserializer->IsResponse())
+                            throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad response type \"" + deserializer->GetType() + "\""};
+                        auto const &instance = deserializer->GetInstance();
                         if (instance != m_instance)
                         {
                             throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad instance id \"" + instance + "\" "
                                 "Needed instance id \"" + m_instance + "\""};
                         }
-                        auto const &interfaceId = deserializer.GetInterface();
+                        auto const &interfaceId = deserializer->GetInterface();
                         if (interface != interfaceId)
                         {
                             throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad interface for instance whith id \"" +
                                 interfaceId + "\" Needed \"" + interface + "\""};
                         }
-                        auto const &methodId = deserializer.GetMethod();
+                        auto const &methodId = deserializer->GetMethod();
                         if (method != methodId)
                         {
                             throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Method \"" + methodId + "\" "
@@ -110,7 +114,7 @@ namespace Mif
                                 "not found. Needed method \"" + method + "\""};
                         }
 
-                        return ResultExtractor<TResult>::Extract(deserializer);
+                        return ResultExtractor<TResult>::Extract(*deserializer);
                     }
                     catch (std::exception const &e)
                     {
@@ -121,7 +125,9 @@ namespace Mif
                 }
 
             private:
+                Common::UuidGenerator m_generator;
                 std::string m_instance;
+                Sender m_sender;
             };
 
             template <typename TSerializer>

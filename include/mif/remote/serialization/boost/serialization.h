@@ -51,6 +51,7 @@ namespace Mif
 
                     struct Tag
                     {
+                        static constexpr auto Uuid = "uuid";
                         static constexpr auto Type = "type";
                         static constexpr auto Request = "request";
                         static constexpr auto Response = "response";
@@ -67,11 +68,13 @@ namespace Mif
                 {
                 public:
                     template <typename ... TParams>
-                    Serializer(std::string const &instanceId, std::string const &interfaceId,
-                        std::string const &methodId, bool isReques, TParams && ... params)
+                    Serializer(bool isReques, std::string const &uuid,
+                        std::string const &instanceId, std::string const &interfaceId,
+                        std::string const &methodId, TParams && ... params)
                         : m_stream(boost::iostreams::back_inserter(m_result))
                         , m_archive(m_stream)
                     {
+                        m_archive << boost::serialization::make_nvp(Detail::Tag::Uuid, uuid);
                         std::string type = isReques ? Detail::Tag::Request : Detail::Tag::Response;
                         m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
                         m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
@@ -124,10 +127,16 @@ namespace Mif
                     {
                         if (!m_buffer.first)
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Boost::Deserializer] Empty buffer."};
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Uuid, m_uuid);
                         m_archive >> boost::serialization::make_nvp(Detail::Tag::Type, m_type);
                         m_archive >> boost::serialization::make_nvp(Detail::Tag::Instsnce, m_instance);
                         m_archive >> boost::serialization::make_nvp(Detail::Tag::Interface, m_interface);
                         m_archive >> boost::serialization::make_nvp(Detail::Tag::Method, m_method);
+                    }
+
+                    std::string const& GetUuid() const
+                    {
+                        return m_uuid;
                     }
 
                     bool IsRequest() const
@@ -181,6 +190,7 @@ namespace Mif
                     SourceType m_source;
                     boost::iostreams::stream<SourceType> m_stream;
                     mutable TArchive m_archive;
+                    std::string m_uuid;
                     std::string m_type;
                     std::string m_instance;
                     std::string m_interface;

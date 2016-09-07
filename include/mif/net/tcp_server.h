@@ -7,7 +7,7 @@
 #include <string>
 
 // MIF
-#include "mif/net/isubscriber_factory.h"
+#include "mif/net/iclient_factory.h"
 
 namespace Mif
 {
@@ -18,7 +18,7 @@ namespace Mif
         {
         public:
             TCPServer(std::string const &host, std::string const &port,
-                std::uint16_t workers, std::shared_ptr<ISubscriberFactory> factory);
+                std::uint16_t workers, std::shared_ptr<IClientFactory> factory);
 
             ~TCPServer();
 

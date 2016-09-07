@@ -3,11 +3,11 @@
 #include <chrono>
 #include <map>
 #include <mutex>
+#include <ctime>
 
 #include "mif/net/tcp_server.h"
 #include "mif/net/tcp_clients.h"
 #include "mif/net/client_factory.h"
-#include "mif/net/client.h"
 
 
 #include <boost/archive/xml_iarchive.hpp>
@@ -25,167 +25,6 @@ namespace Mif
 {
     namespace Remote
     {
-
-        /*class NetClient
-            : public Net::Client
-        {
-        public:
-            NetClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher,
-                bool isServerItem)
-                : Client(control, publisher)
-                , m_isServerItem(isServerItem)
-            {
-                Init();
-
-                if (!m_isServerItem)
-                {
-                         std::cout << "Create client item." << std::endl;
-                         g_m = m_objectManagerProxy.get();
-                }
-            }
-
-            ~NetClient()
-            {
-                Done();
-            }
-
-        private:
-            using DataHandler = std::function<Mif::Common::Buffer (Mif::Common::Buffer &&)>;
-
-            bool m_isServerItem;
-            bool m_waitResponse = false;
-            Common::Buffer m_response;
-            DataHandler m_handler;
-
-            void SetHandler(DataHandler && handler)
-            {
-                m_handler = std::move(handler);
-            }
-
-            Mif::Common::Buffer Send(Mif::Common::Buffer && buffer)
-            {
-                if (m_isServerItem)
-                    throw std::runtime_error{"[Mif::Remote::NetClient::Send] Can't call 'Send' for server item client."};
-                try
-                {
-                    if (!Post(std::move(buffer)))
-                    {
-                        std::cerr << "[Mif::Remote::NetClient::Send] Failed to send data. Error: no publisher." << std::endl;
-                        if (!CloseMe())
-                            std::cerr << "[Mif::Remote::NetClient::Send] Failed to close self." << std::endl;
-                    }
-                }
-                catch (std::exception const &e)
-                {
-                    std::cerr << "[Mif::Remote::NetClient::Send] Failed to send data. Error: " << e.what() << std::endl;
-                    if (!CloseMe())
-                        std::cerr << "[Mif::Remote::NetClient::Send] Failed to close self." << std::endl;
-                }
-                for (std::size_t i = 0 ; i < 5000 ; ++i)
-                {
-                    if (m_response.first)
-                        break;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                }
-                // TODO: change on other ...
-                if (!m_response.first)
-                    throw std::runtime_error{"[Mif::Remote::NetClient::Send] No response."};
-                auto result = std::move(m_response);
-                Common::Buffer{}.swap(m_response);
-                return result;
-            }
-
-            // Client
-            virtual void ProcessData(Common::Buffer buffer) override final
-            {
-                m_response = std::move(buffer);
-                if (m_isServerItem)
-                {
-                    auto data = std::move(m_response);
-                    Common::Buffer{}.swap(m_response);
-                    auto result = m_handler(std::move(std::move(data)));
-                    try
-                    {
-                        if (!Post(std::move(result)))
-                        {
-                            std::cerr << "[Mif::Remote::NetClient::ProcessData] Failed to publish data. Error: no publisher." << std::endl;
-                            if (!CloseMe())
-                                std::cerr << "[Mif::Remote::NetClient::ProcessData] Failed to close self." << std::endl;
-                        }
-                    }
-                    catch (std::exception const &e)
-                    {
-                        std::cerr << "[Mif::Remote::NetClient::ProcessData] Failed to publish data. Error: " << e.what() << std::endl;
-                        if (!CloseMe())
-                            std::cerr << "[Mif::Remote::NetClient::ProcessData] Failed to close self." << std::endl;
-                    }
-                }
-            }
-
-            class Transport final
-            {
-            public:
-                Transport(NetClient &owner)
-                    : m_owner(owner)
-                {
-                }
-
-                using DataHandler = NetClient::DataHandler;
-
-                void SetHandler(DataHandler && handler)
-                {
-                    m_owner.SetHandler(std::move(handler));
-                }
-
-                Mif::Common::Buffer Send(Mif::Common::Buffer && buffer)
-                {
-                    return m_owner.Send(std::move(buffer));
-                }
-
-            private:
-                NetClient &m_owner;
-            };
-
-            friend class Transport;
-
-            using BoostSerializer = Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
-            using BoostDeserializer = Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
-            //using BoostSerializer = Serialization::Boost::Serializer<boost::archive::binary_oarchive>;
-            //using BoostDeserializer = Serialization::Boost::Deserializer<boost::archive::binary_iarchive>;
-            using SerializerTraits = Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
-            using ObjectManagerPS = IObjectManager_PS<Proxy<SerializerTraits, Transport>, Stub<SerializerTraits, Transport>>;
-
-            std::unique_ptr<ObjectManagerPS::Proxy> m_objectManagerProxy;
-            std::unique_ptr<ObjectManagerPS::Stub> m_objectManagerStub;
-
-            void Init()
-            {
-                m_objectManagerProxy.reset(new ObjectManagerPS::Proxy("0", std::move(Transport(*this))));
-
-                auto objectManager = std::make_shared<ObjectManager>();
-                m_objectManagerStub.reset(new ObjectManagerPS::Stub("0", objectManager,
-                    std::move(Transport(*this))));
-                m_objectManagerStub->Init();
-            }
-
-            void Done()
-            {
-                if (m_objectManagerStub)
-                    m_objectManagerStub->Done();
-
-                m_objectManagerProxy.reset();
-                m_objectManagerStub.reset();
-            }
-        };*/
-
-        class ProxyNetClient
-            : public Net::Client
-        {
-        public:
-            using Client::Client;
-        private:
-        };
-
         namespace Detail
         {
 
@@ -213,6 +52,13 @@ namespace Mif
                 : Client(control, publisher)
             {
                 m_instances.insert(std::make_pair(std::string{"0"}, std::make_shared<ObjectManagerStub>()));
+
+                std::cout << "StubClient" << std::endl;
+            }
+
+            ~StubClient()
+            {
+                std::cout << "~StubClient" << std::endl;
             }
 
         private:
@@ -253,13 +99,13 @@ namespace Mif
                     auto const &interfaceId = deserializer.GetInterface();
                     if (interfaceId.empty())
                     {
-                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty method interface id for instanse "
+                        throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty interface id for instanse "
                             "\"" + instanceId + "\""};
                     }
                     auto const &method = deserializer.GetMethod();
                     if (method.empty())
                         throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty method name of interface \"" + interfaceId  + "\""};
-                    Serializer serializer(instanceId, interfaceId, method, false);
+                    Serializer serializer(false, deserializer.GetUuid(), instanceId, interfaceId, method);
                     stub->Call(static_cast<Detail::IObjectManager *>(this), deserializer, serializer);
                     if (!Post(serializer.GetBuffer()))
                     {
@@ -301,6 +147,117 @@ namespace Mif
             }
         };
 
+        template <typename TSerializer>
+        class ProxyClient
+            : public Net::Client
+        {
+        public:
+            using ThisType = ProxyClient<TSerializer>;
+
+            ProxyClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher)
+                : Client(control, publisher)
+            {
+            }
+
+            using IObjectManagerPtr = std::shared_ptr<Detail::IObjectManager>;
+
+            IObjectManagerPtr CreateObjectManager()
+            {
+                auto proxy = std::make_shared<ObjectManagerProxy>(std::string{"0"}, std::bind(&ThisType::Send,
+                    std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2));
+                return std::static_pointer_cast<Detail::IObjectManager>(proxy);
+            }
+
+        private:
+            using Serializer = typename TSerializer::Serializer;
+            using Deserializer = typename TSerializer::Deserializer;
+            using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::Proxy;
+
+            using DeserializerPtr = std::unique_ptr<Deserializer>;
+            using Response = std::pair<std::time_t/*timestamp*/, DeserializerPtr>;
+            using Responses = std::map<std::string/*uuid*/, Response>;
+            Responses m_responses;
+
+            DeserializerPtr Send(std::string const &requestId, Serializer &serializer)
+            {
+                if (!Post(std::move(serializer.GetBuffer())))
+                {
+                    if (!CloseMe())
+                    {
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to post request."
+                            "No channel for post data and failed to close self."};
+                    }
+                    throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to post request. "
+                        "No channel for post data."};
+                }
+
+                // TODO: do other wait
+                for (int i = 0 ; i < 1000 ; ++i)
+                {
+                    auto iter = m_responses.find(requestId);
+                    if (iter != std::end(m_responses))
+                    {
+                        auto deserializer = std::move(iter->second.second);
+                        m_responses.erase(iter);
+                        return std::move(deserializer);
+                    }
+                    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+                }
+
+                throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to send data. "
+                    "Expired response timeout from remote server."};
+            }
+
+            virtual void ProcessData(Common::Buffer buffer) override final
+            {
+                try
+                {
+                    if (!buffer.first)
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Empty data."};
+                    DeserializerPtr deserializer{new Deserializer(std::move(buffer))};
+                    if (!deserializer->IsResponse())
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Bad response type \"" + deserializer->GetType() + "\""};
+                    auto const &instanceId = deserializer->GetInstance();
+                    if (instanceId.empty())
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Empty instance id."};
+                    auto const &interfaceId = deserializer->GetInterface();
+                    if (interfaceId.empty())
+                    {
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Empty interface id for instanse "
+                            "\"" + instanceId + "\""};
+                    }
+                    auto const &method = deserializer->GetMethod();
+                    if (method.empty())
+                    {
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Empty method name of interface "
+                            "\"" + interfaceId  + "\" for instance \"" + instanceId + "\""};
+                    }
+                    auto const uuid = deserializer->GetUuid();
+                    if (m_responses.find(uuid) != std::end(m_responses))
+                    {
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Response id "
+                            "\"" + uuid + "\" not unique."};
+                    }
+                    Response response{std::time(nullptr), std::move(deserializer)};
+                    m_responses.insert(std::make_pair(uuid, std::move(response)));
+                }
+                catch (Detail::ProxyStubException const &)
+                {
+                    throw;
+                }
+                catch (std::exception const &e)
+                {
+                    throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] "
+                        "Failed to process data. Error: " + std::string{e.what()}};
+                }
+                catch (...)
+                {
+                    throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] "
+                        "Failed to process data. Error: unknown."};
+                }
+            }
+        };
+
     }   // namespace Remote
 }   // namespace Mif
 
@@ -313,37 +270,39 @@ int main(int argc, char const **argv)
     }
 	try
     {
+        using BoostSerializer = Mif::Remote::Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
+        using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
+        using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
+
         if (argv[1] == std::string("--server"))
         {
             std::cout << "Creating server ..." << std::endl;
-            using BoostSerializer = Mif::Remote::Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
-            using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
-            using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
             auto serverFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::StubClient<SerializerTraits>>>();
             auto server = std::make_shared<Mif::Net::TCPServer>(
                 "localhost", "5555", 4, serverFactgory);
             (void)server;
             std::cout << "Created server." << std::endl;
             std::cin.get();
+            std::cout << "Stopping server." << std::endl;
         }
-        /*else if (argv[1] == std::string("--client"))
+        else if (argv[1] == std::string("--client"))
         {
             std::cout << "Creating client ..." << std::endl;
-            auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::ProxyNetClient>>(false);
+            auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::ProxyClient<SerializerTraits>>>();
             Mif::Net::TCPClients clients(4, clientFactgory);
             std::cout << "Created client." << std::endl;
             std::cout << "Connecting ..." << std::endl;
-            clients.RunClient("localhost", "5555");
+            auto client = std::static_pointer_cast<Mif::Remote::ProxyClient<SerializerTraits>>(clients.RunClient("localhost", "5555"));
+            auto manager = client->CreateObjectManager();
             std::cout << "Connected." << std::endl;
             std::cout << "Try use ObjectManager ..." << std::endl;
-            Mif::Remote::IObjectManager *m = (Mif::Remote::IObjectManager *)g_m;
-            auto id = m->CreateObject("123456");
-            for (int i = 0 ; i < 100 ; ++i)
-                m->CreateObject(std::to_string(i));
-            std::cout << "Created new object with id \"" << id << "\"" << std::endl;
-            m->DestroyObject(id);
+            for (int i = 0 ; i < 10 ; ++i)
+            {
+                auto id = manager->CreateObject(std::to_string(i));
+                manager->DestroyObject(id);
+            }
             std::cin.get();
-        }*/
+        }
         else
         {
             std::cerr << "Error: waiting --server or --client" << std::endl;
@@ -357,22 +316,3 @@ int main(int argc, char const **argv)
 	}
 	return 0;
 }
-
-/*
-
-int main()
-{
-    try
-    {
-        auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Net::Client>>();
-        auto server = std::make_shared<Mif::Net::TCPServer>(
-            "localhost", "5555", 4, clientFactgory);
-        Mif::Net::TCPClients clients(4, clientFactgory);
-        std::cin.get();
-    }
-    catch (std::exception const &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-}
-*/

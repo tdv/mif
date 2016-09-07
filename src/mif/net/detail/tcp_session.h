@@ -9,7 +9,7 @@
 
 // MIF
 #include "mif/common/thread_pool.h"
-#include "mif/net/isubscriber_factory.h"
+#include "mif/net/iclient_factory.h"
 
 namespace Mif
 {
@@ -25,15 +25,15 @@ namespace Mif
             {
             public:
                 TCPSession(boost::asio::ip::tcp::socket socket,
-                    Common::ThreadPool &workers, ISubscriberFactory &factory);
+                    Common::ThreadPool &workers, IClientFactory &factory);
 
-                void Start();
+                IClientFactory::ClientPtr Start();
 
             private:
                 boost::asio::ip::tcp::socket m_socket;
                 Common::ThreadPool &m_workers;
-                ISubscriberFactory &m_factory;
-                std::shared_ptr<ISubscriber> m_subscriber;
+                IClientFactory &m_factory;
+                IClientFactory::ClientPtr m_client;
 
                 //----------------------------------------------------------------------------
                 // IPublisher

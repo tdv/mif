@@ -11,8 +11,9 @@
     template <typename TSerializer> \
     class interface_ ## _PS \
     { \
-    private: \
+    public: \
         using InterfaceType = interface_; \
+    private: \
         static constexpr auto InterfaceId = #interface_; \
         class ProxyBase \
             : public InterfaceType \

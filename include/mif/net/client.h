@@ -26,10 +26,6 @@ namespace Mif
             {
             }
 
-        private:
-            std::weak_ptr<IControl> m_control;
-            std::weak_ptr<IPublisher> m_publisher;
-
             // ISubscriber
             virtual void OnData(Common::Buffer buffer) override final
             {
@@ -37,6 +33,10 @@ namespace Mif
                     throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
                 ProcessData(std::move(buffer));
             }
+
+        private:
+            std::weak_ptr<IControl> m_control;
+            std::weak_ptr<IPublisher> m_publisher;
 
         protected:
             bool CloseMe()

@@ -22,7 +22,7 @@ namespace Mif
         {
         public:
             Impl(std::string const &host, std::string const &port,
-                std::uint16_t workers, std::shared_ptr<ISubscriberFactory> factory)
+                std::uint16_t workers, std::shared_ptr<IClientFactory> factory)
             try
                 : m_factory{factory}
                 , m_workers{std::make_shared<Common::ThreadPool>(workers)}
@@ -92,7 +92,7 @@ namespace Mif
             }
 
         private:
-            std::shared_ptr<ISubscriberFactory> m_factory;
+            std::shared_ptr<IClientFactory> m_factory;
             std::shared_ptr<Common::ThreadPool> m_workers;
             std::unique_ptr<std::thread> m_thread;
             boost::asio::io_service m_ioService;
@@ -126,7 +126,7 @@ namespace Mif
         };
 
         TCPServer::TCPServer(std::string const &host, std::string const &port,
-            std::uint16_t workers, std::shared_ptr<ISubscriberFactory> factory)
+            std::uint16_t workers, std::shared_ptr<IClientFactory> factory)
             : m_impl{new Impl{host, port, workers, factory}}
         {
         }

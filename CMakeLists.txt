@@ -19,6 +19,7 @@ set(NET_SOURCE
     ${NET_SOURCE}
 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/thread_pool.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/uuid_generator.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_clients.cpp
