@@ -3,7 +3,7 @@
 #include <chrono>
 #include <map>
 #include <mutex>
-#include <ctime>
+#include <condition_variable>
 
 #include "mif/net/tcp_server.h"
 #include "mif/net/tcp_clients.h"
@@ -19,7 +19,8 @@
 #include "mif/remote/serialization/serialization.h"
 #include "mif/remote/serialization/boost/serialization.h"
 
-void *g_m = 0;
+#include <unistd.h>
+#include <signal.h>
 
 namespace Mif
 {
@@ -137,13 +138,14 @@ namespace Mif
             // IObjectManager
             virtual std::string CreateObject(std::string const &classId) override final
             {
-                std::cout << "CreateObject. ClassId: " << classId << std::endl;
+                std::this_thread::sleep_for(std::chrono::microseconds(50000));
+                //std::cout << "CreateObject. ClassId: " << classId << std::endl;
                 return "new_instance_" + classId;
             }
 
             virtual void DestroyObject(std::string const &instanceId) override final
             {
-                std::cout << "DestroyObject. InstanceId: " << instanceId << std::endl;
+                //std::cout << "DestroyObject. InstanceId: " << instanceId << std::endl;
             }
         };
 
@@ -154,8 +156,10 @@ namespace Mif
         public:
             using ThisType = ProxyClient<TSerializer>;
 
-            ProxyClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher)
-                : Client(control, publisher)
+            ProxyClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher,
+                std::chrono::microseconds const &timeout)
+                : Client{control, publisher}
+                , m_timeout{timeout}
             {
             }
 
@@ -174,8 +178,12 @@ namespace Mif
             using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::Proxy;
 
             using DeserializerPtr = std::unique_ptr<Deserializer>;
-            using Response = std::pair<std::time_t/*timestamp*/, DeserializerPtr>;
+            using Response = std::pair<std::chrono::microseconds/*timestamp*/, DeserializerPtr>;
             using Responses = std::map<std::string/*uuid*/, Response>;
+
+            std::chrono::microseconds const m_timeout;
+            std::condition_variable m_condVar;
+            std::mutex m_mtx;
             Responses m_responses;
 
             DeserializerPtr Send(std::string const &requestId, Serializer &serializer)
@@ -191,23 +199,41 @@ namespace Mif
                         "No channel for post data."};
                 }
 
-                // TODO: do other wait
-                for (int i = 0 ; i < 1000 ; ++i)
+                for (auto t = GetCurTime() ; (GetCurTime() - t) < m_timeout ; )
                 {
-                    auto iter = m_responses.find(requestId);
-                    if (iter != std::end(m_responses))
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+
                     {
-                        auto deserializer = std::move(iter->second.second);
-                        m_responses.erase(iter);
-                        return std::move(deserializer);
+                        std::unique_lock<std::mutex> lock(m_mtx);
+                        typename Responses::iterator iter = std::end(m_responses);
+                        auto waitResult = m_condVar.wait_for(lock, m_timeout,
+                                [this, &requestId, &iter] ()
+                                {
+                                    iter = m_responses.find(requestId);
+                                    return iter != std::end(m_responses);
+                                }
+                            );
+                        if (waitResult)
+                        {
+                            auto deserializer = std::move(iter->second.second);
+                            m_responses.erase(iter);
+
+                            CleanOldResponses();
+
+                            return std::move(deserializer);
+                        }
+
+                        CleanOldResponses();
                     }
-                    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+
+                    std::this_thread::sleep_for(std::chrono::microseconds(5));
                 }
 
                 throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to send data. "
                     "Expired response timeout from remote server."};
             }
 
+            // Client
             virtual void ProcessData(Common::Buffer buffer) override final
             {
                 try
@@ -238,8 +264,11 @@ namespace Mif
                         throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Response id "
                             "\"" + uuid + "\" not unique."};
                     }
-                    Response response{std::time(nullptr), std::move(deserializer)};
+                    Response response{GetCurTime(), std::move(deserializer)};
+                    std::lock_guard<std::mutex> lock(m_mtx);
+                    CleanOldResponses();
                     m_responses.insert(std::make_pair(uuid, std::move(response)));
+                    m_condVar.notify_all();
                 }
                 catch (Detail::ProxyStubException const &)
                 {
@@ -256,6 +285,24 @@ namespace Mif
                         "Failed to process data. Error: unknown."};
                 }
             }
+
+            std::chrono::microseconds GetCurTime() const
+            {
+                return std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::system_clock::now().time_since_epoch());
+            };
+
+            void CleanOldResponses()
+            {
+                auto const now = GetCurTime();
+                for (auto i = std::begin(m_responses) ; i != std::end(m_responses) ; )
+                {
+                    if (i->second.first < now && (now - i->second.first) > m_timeout)
+                        m_responses.erase(i++);
+                    else
+                        ++i;
+                }
+            }
         };
 
     }   // namespace Remote
@@ -263,6 +310,11 @@ namespace Mif
 
 int main(int argc, char const **argv)
 {
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+    {
+        throw std::runtime_error("[Application::onStart] Failed to set ignore SIGPIPE.");
+    }
+
     if (argc != 2)
     {
         std::cerr << "Bad params." << std::endl;
@@ -287,8 +339,9 @@ int main(int argc, char const **argv)
         }
         else if (argv[1] == std::string("--client"))
         {
+            std::chrono::microseconds timeout{10 * 1000 * 1000};
             std::cout << "Creating client ..." << std::endl;
-            auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::ProxyClient<SerializerTraits>>>();
+            auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::ProxyClient<SerializerTraits>>>(timeout);
             Mif::Net::TCPClients clients(4, clientFactgory);
             std::cout << "Created client." << std::endl;
             std::cout << "Connecting ..." << std::endl;
@@ -296,11 +349,38 @@ int main(int argc, char const **argv)
             auto manager = client->CreateObjectManager();
             std::cout << "Connected." << std::endl;
             std::cout << "Try use ObjectManager ..." << std::endl;
-            for (int i = 0 ; i < 10 ; ++i)
+            std::vector<std::thread> threads;
+            for (int j = 0 ; j < 10 ; ++j)
             {
-                auto id = manager->CreateObject(std::to_string(i));
-                manager->DestroyObject(id);
+                std::thread t([&] ()
+                        {
+                            auto const tid = std::this_thread::get_id();
+                            std::cout << "Begin " << tid << std::endl;
+                            for (int i = 0 ; i < 10000 ; ++i)
+                            {
+                                try
+                                {
+                                    std::cout << tid << " Creating object ... " << std::endl;
+                                    auto id = manager->CreateObject(std::to_string(i));
+                                    std::cout << tid << " Created new object, Id: " << id << std::endl;
+                                    std::cout << tid << " Destroing object, Id: " << id << std::endl;
+                                    manager->DestroyObject(id);
+                                    std::cout << tid << " Destroyed object, Id: " << id << std::endl;
+                                }
+                                catch (std::exception const &e)
+                                {
+                                    std::cerr << tid << " Error: " << e.what() << std::endl;
+                                }
+                            }
+                            std::cout << "End " << tid << std::endl;
+                        }
+                    );
+                threads.push_back(std::move(t));
             }
+
+            for (auto &t : threads)
+                t.join();
+            std::cout << "Finish" << std::endl;
             std::cin.get();
         }
         else
