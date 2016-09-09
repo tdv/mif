@@ -4,6 +4,9 @@
 // STD
 #include <string>
 
+// MIF
+#include "mif/service/iservice.h"
+
 namespace Mif
 {
     namespace Remote
@@ -12,9 +15,10 @@ namespace Mif
         {
 
             struct IObjectManager
+                : public Service::IService
             {
                 virtual ~IObjectManager() = default;
-                virtual std::string CreateObject(std::string const &classId) = 0;
+                virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) = 0;
                 virtual void DestroyObject(std::string const &instanceId) = 0;
             };
 

@@ -13,8 +13,8 @@
     { \
     public: \
         using InterfaceType = interface_; \
-    private: \
         static constexpr auto InterfaceId = #interface_; \
+    private: \
         class ProxyBase \
             : public InterfaceType \
         { \
