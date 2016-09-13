@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <utility>
 
 // MIF
@@ -22,12 +23,16 @@ namespace Mif
     namespace Remote
     {
 
-        template <typename TSerializer>
+        template
+        <
+            typename TSerializer,
+            template <typename> class ... TProxyStubs
+        >
         class ProxyClient
             : public Net::Client
         {
         public:
-            using ThisType = ProxyClient<TSerializer>;
+            using ThisType = ProxyClient<TSerializer, TProxyStubs ... >;
 
             ProxyClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher,
                 std::chrono::microseconds const &timeout)
@@ -43,6 +48,14 @@ namespace Mif
                 auto proxy = std::make_shared<ObjectManagerProxy>(std::string{"0"}, std::bind(&ThisType::Send,
                     std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2));
                 return std::static_pointer_cast<Detail::IObjectManager>(proxy);
+            }
+
+            template <typename TInterface>
+            std::shared_ptr<TInterface> CreateService(std::string const &id)
+            {
+                using PSTuple = std::tuple<TProxyStubs<TSerializer> ... >;
+                return std::static_pointer_cast<TInterface>(Create<TInterface, PSTuple>(id,
+                    reinterpret_cast<std::integral_constant<std::size_t, std::tuple_size<PSTuple>::value> const *>(0)));
             }
 
         private:
@@ -163,7 +176,7 @@ namespace Mif
             {
                 return std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now().time_since_epoch());
-            };
+            }
 
             void CleanOldResponses()
             {
@@ -175,6 +188,53 @@ namespace Mif
                     else
                         ++i;
                 }
+            }
+
+            template
+            <
+                typename TInterface,
+                typename TPSList,
+                std::size_t I, typename = typename std::enable_if
+                    <
+                        I &&
+                        !std::is_same<TInterface, typename std::tuple_element<I - 1, TPSList>::type::InterfaceType>::value
+                    >::type
+            >
+            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *)
+            {
+                return Create<TInterface, TPSList>(serviceId,
+                    reinterpret_cast<std::integral_constant<std::size_t, I - 1> const *>(0));
+            }
+
+            template
+            <
+                typename TInterface,
+                typename TPSList,
+                std::size_t I, typename = typename std::enable_if
+                    <
+                        I &&
+                        std::is_same<TInterface, typename std::tuple_element<I - 1, TPSList>::type::InterfaceType>::value
+                    >::type
+            >
+            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *) volatile
+            {
+                auto self = std::static_pointer_cast<ThisType>(const_cast<ThisType *>(this)->shared_from_this());
+                using PSType = typename std::tuple_element<I - 1, TPSList>::type;
+                auto manager = self->CreateObjectManager();
+                auto const instanceId = manager->CreateObject(serviceId, PSType::InterfaceId);
+                auto proxy = std::make_shared<typename PSType::Proxy>(instanceId, std::bind(&ThisType::Send,
+                    self, std::placeholders::_1, std::placeholders::_2));
+                return std::static_pointer_cast<Service::IService>(proxy);
+            }
+
+            template
+            <
+                typename TInterface,
+                typename TPSList
+            >
+            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, 0> const *)
+            {
+                throw std::runtime_error{"Proxy for service with id \"" + serviceId + "\" not found."};
             }
         };
 

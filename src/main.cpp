@@ -37,6 +37,16 @@ struct ITest2
 class Test1 final
     : public ITest1
 {
+public:
+    Test1()
+    {
+        std::cout << "Test1" << std::endl;
+    }
+    ~Test1()
+    {
+        std::cout << "~Test1" << std::endl;
+    }
+
 private:
     std::string m_text;
 
@@ -54,6 +64,16 @@ private:
 class Test2
     : public ITest2
 {
+public:
+    Test2()
+    {
+        std::cout << "Test2" << std::endl;
+    }
+    ~Test2()
+    {
+        std::cout << "~Test2" << std::endl;
+    }
+
 private:
     std::string m_name = "default name";
     std::size_t m_major = 0;
@@ -131,47 +151,20 @@ int main(int argc, char const **argv)
         }
         else if (argv[1] == std::string("--client"))
         {
-            std::chrono::microseconds timeout{10 * 1000 * 1000};
-            std::cout << "Creating client ..." << std::endl;
-            auto clientFactgory = std::make_shared<Mif::Net::ClientFactory<Mif::Remote::ProxyClient<SerializerTraits>>>(timeout);
-            Mif::Net::TCPClients clients(4, clientFactgory);
-            std::cout << "Created client." << std::endl;
-            std::cout << "Connecting ..." << std::endl;
-            auto client = std::static_pointer_cast<Mif::Remote::ProxyClient<SerializerTraits>>(clients.RunClient("localhost", "5555"));
-            auto manager = client->CreateObjectManager();
-            std::cout << "Connected." << std::endl;
-            std::cout << "Try use ObjectManager ..." << std::endl;
-            std::vector<std::thread> threads;
-            for (int j = 0 ; j < 10 ; ++j)
-            {
-                std::thread t([&] ()
-                        {
-                            auto const tid = std::this_thread::get_id();
-                            std::cout << "Begin " << tid << std::endl;
-                            for (int i = 0 ; i < 10000 ; ++i)
-                            {
-                                try
-                                {
-                                    std::cout << tid << " Creating object ... " << std::endl;
-                                    auto id = manager->CreateObject(std::to_string(i), "");
-                                    std::cout << tid << " Created new object, Id: " << id << std::endl;
-                                    std::cout << tid << " Destroing object, Id: " << id << std::endl;
-                                    manager->DestroyObject(id);
-                                    std::cout << tid << " Destroyed object, Id: " << id << std::endl;
-                                }
-                                catch (std::exception const &e)
-                                {
-                                    std::cerr << tid << " Error: " << e.what() << std::endl;
-                                }
-                            }
-                            std::cout << "End " << tid << std::endl;
-                        }
-                    );
-                threads.push_back(std::move(t));
-            }
+            using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, ITest1_PS, ITest2_PS>;
+            using ProxyFactory = Mif::Net::ClientFactory<ProxyClient>;
 
-            for (auto &t : threads)
-                t.join();
+            std::chrono::microseconds timeout{10 * 1000 * 1000};
+
+            auto clientFactgory = std::make_shared<ProxyFactory>(timeout);
+            Mif::Net::TCPClients clients(4, clientFactgory);
+
+            auto client = std::static_pointer_cast<ProxyClient>(clients.RunClient("localhost", "5555"));
+
+            auto test1 = client->CreateService<ITest1>("Test1");
+            test1->SetText("New test text !!!");
+            std::cout << "Text from test1 service: " << test1->GetText() << std::endl;
+
             std::cout << "Finish" << std::endl;
             std::cin.get();
         }
