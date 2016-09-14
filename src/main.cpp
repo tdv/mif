@@ -162,6 +162,7 @@ int main(int argc, char const **argv)
             auto client = std::static_pointer_cast<ProxyClient>(clients.RunClient("localhost", "5555"));
 
             auto test1 = client->CreateService<ITest1>("Test1");
+
             test1->SetText("New test text !!!");
             std::cout << "Text from test1 service: " << test1->GetText() << std::endl;
 

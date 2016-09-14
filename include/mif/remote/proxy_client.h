@@ -5,6 +5,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -28,7 +29,7 @@ namespace Mif
             typename TSerializer,
             template <typename> class ... TProxyStubs
         >
-        class ProxyClient
+        class ProxyClient final
             : public Net::Client
         {
         public:
@@ -41,14 +42,10 @@ namespace Mif
             {
             }
 
-            using IObjectManagerPtr = std::shared_ptr<Detail::IObjectManager>;
-
-            IObjectManagerPtr CreateObjectManager()
-            {
-                auto proxy = std::make_shared<ObjectManagerProxy>(std::string{"0"}, std::bind(&ThisType::Send,
-                    std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2));
-                return std::static_pointer_cast<Detail::IObjectManager>(proxy);
-            }
+            ProxyClient(ProxyClient const &) = delete;
+            ProxyClient(ProxyClient &&) = delete;
+            ProxyClient& operator = (ProxyClient const &) = delete;
+            ProxyClient& operator = (ProxyClient &&) = delete;
 
             template <typename TInterface>
             std::shared_ptr<TInterface> CreateService(std::string const &id)
@@ -66,6 +63,8 @@ namespace Mif
             using DeserializerPtr = std::unique_ptr<Deserializer>;
             using Response = std::pair<std::chrono::microseconds/*timestamp*/, DeserializerPtr>;
             using Responses = std::map<std::string/*uuid*/, Response>;
+
+            using IObjectManagerPtr = std::shared_ptr<Detail::IObjectManager>;
 
             std::chrono::microseconds const m_timeout;
             std::condition_variable m_condVar;
@@ -190,6 +189,13 @@ namespace Mif
                 }
             }
 
+            IObjectManagerPtr CreateObjectManager()
+            {
+                auto proxy = std::make_shared<ObjectManagerProxy>(std::string{"0"}, std::bind(&ThisType::Send,
+                    std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2));
+                return std::static_pointer_cast<Detail::IObjectManager>(proxy);
+            }
+
             template
             <
                 typename TInterface,
@@ -200,9 +206,9 @@ namespace Mif
                         !std::is_same<TInterface, typename std::tuple_element<I - 1, TPSList>::type::InterfaceType>::value
                     >::type
             >
-            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *)
+            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *) volatile
             {
-                return Create<TInterface, TPSList>(serviceId,
+                return const_cast<ThisType *>(this)->Create<TInterface, TPSList>(serviceId,
                     reinterpret_cast<std::integral_constant<std::size_t, I - 1> const *>(0));
             }
 
@@ -216,15 +222,43 @@ namespace Mif
                         std::is_same<TInterface, typename std::tuple_element<I - 1, TPSList>::type::InterfaceType>::value
                     >::type
             >
-            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *) volatile
+            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *)
             {
-                auto self = std::static_pointer_cast<ThisType>(const_cast<ThisType *>(this)->shared_from_this());
+                auto self = std::static_pointer_cast<ThisType>(shared_from_this());
+                auto sender = std::bind(&ThisType::Send, self, std::placeholders::_1, std::placeholders::_2);
+
                 using PSType = typename std::tuple_element<I - 1, TPSList>::type;
+                using ProxyType = typename PSType::Proxy;
+
+                Service::IServicePtr service;
+
                 auto manager = self->CreateObjectManager();
                 auto const instanceId = manager->CreateObject(serviceId, PSType::InterfaceId);
-                auto proxy = std::make_shared<typename PSType::Proxy>(instanceId, std::bind(&ThisType::Send,
-                    self, std::placeholders::_1, std::placeholders::_2));
-                return std::static_pointer_cast<Service::IService>(proxy);
+                try
+                {
+                    service = std::make_shared<Holder<ProxyType>>(
+                            std::move(sender), manager, instanceId);
+                }
+                catch (std::exception const &e)
+                {
+                    try
+                    {
+                        manager->DestroyObject(instanceId);
+                    }
+                    catch (std::exception const &nestedEx)
+                    {
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Create] "
+                            "Failed to create service with id \"" + serviceId + "\". "
+                            "Error: " + std::string{e.what()} + ". "
+                            "Also failed to destroy new instance with id \"" + instanceId + "\". "
+                            "Error: " + std::string{nestedEx.what()}};
+                    }
+                    throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Create] "
+                        "Failed to create service with id \"" + serviceId + "\". "
+                        "Error: " + std::string{e.what()}};
+                }
+
+                return std::static_pointer_cast<Service::IService>(service);
             }
 
             template
@@ -236,6 +270,43 @@ namespace Mif
             {
                 throw std::runtime_error{"Proxy for service with id \"" + serviceId + "\" not found."};
             }
+
+            template <typename TProxy>
+            class Holder final
+                : public TProxy
+            {
+            public:
+                template <typename TSender>
+                Holder(TSender sender, IObjectManagerPtr manager, std::string const &instanceId)
+                    : TProxy(instanceId, std::move(sender))
+                    , m_manager(manager)
+                    , m_instanceId(instanceId)
+                {
+                }
+
+                ~Holder()
+                {
+                    try
+                    {
+                        m_manager->DestroyObject(m_instanceId);
+                    }
+                    catch (std::exception const &e)
+                    {
+                        std::cerr << "[Mif::Remote::ProxyClient::Holder::~Holder] "
+                            << "Failed to destroy service with instance id "
+                            << "\"" << m_instanceId + "\". Error: " << e.what();
+                    }
+                }
+
+                Holder(Holder const &) = delete;
+                Holder(Holder &&) = delete;
+                Holder& operator = (Holder const &) = delete;
+                Holder& operator = (Holder &&) = delete;
+
+            private:
+                IObjectManagerPtr m_manager;
+                std::string m_instanceId;
+            };
         };
 
     }   // namespace Remote
