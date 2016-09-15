@@ -13,8 +13,6 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
-set(MIF_FULL_NAME "${PROJECT_LC}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
-
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE INTERNAL "")
 endif(NOT CMAKE_BUILD_TYPE)
@@ -24,12 +22,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 set( CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-#set (SOURCE
-#	${CMAKE_CURRENT_SOURCE_DIR}/src/*
-#)
 
-find_package( Boost REQUIRED COMPONENTS system serialization thread)
-include_directories( ${Boost_INCLUDE_DIRS} )
+find_package(Boost REQUIRED COMPONENTS system serialization thread)
+include_directories(${Boost_INCLUDE_DIRS} )
 include_directories(include)
 
 set(MIF_SOURCES
@@ -60,14 +55,12 @@ set(MIF_HEADERS
 
 
 
-#add_executable (${PROJECT_NAME} ${NET_SOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-#target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+add_library(${PROJECT_LC} STATIC ${MIF_SOURCES})
+target_link_libraries(${PROJECT_LC} PUBLIC ${Boost_LIBRARIES})
 
-add_library(${MIF_FULL_NAME} STATIC ${MIF_SOURCES})
-target_link_libraries(${MIF_FULL_NAME} PUBLIC ${Boost_LIBRARIES})
+#https://cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
 
-
-install (TARGETS ${MIF_FULL_NAME}
+install (TARGETS ${PROJECT_LC} EXPORT ${PROJECT_LC}
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
          RUNTIME DESTINATION bin)
