@@ -3,10 +3,9 @@
 
 // STD
 #include <memory>
-#include <exception>
 
 // MIF
-#include "mif/net/isubscriber.h"
+#include "mif/net/ihandler.h"
 #include "mif/net/icontrol.h"
 #include "mif/net/ipublisher.h"
 
@@ -17,51 +16,23 @@ namespace Mif
 
         class Client
             : public std::enable_shared_from_this<Client>
-            , public ISubscriber
+            , public IHandler
         {
         public:
-            Client(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher)
-                : m_control{control}
-                , m_publisher{publisher}
-            {
-            }
+            Client(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher);
 
-            // ISubscriber
-            virtual void OnData(Common::Buffer buffer) override final
-            {
-                if (!buffer.first || !buffer.second)
-                    throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
-                ProcessData(std::move(buffer));
-            }
+            // IHandler
+            virtual void OnData(Common::Buffer buffer) override final;
 
         private:
             std::weak_ptr<IControl> m_control;
             std::weak_ptr<IPublisher> m_publisher;
 
         protected:
-            bool CloseMe()
-            {
-                if (auto control = m_control.lock())
-                {
-                    control->CloseMe();
-                    return true;
-                }
-                return false;
-            }
+            bool CloseMe();
+            bool Post(Common::Buffer &&buffer);
 
-            bool Post(Common::Buffer &&buffer)
-            {
-                if (auto publisher = m_publisher.lock())
-                {
-                    publisher->Publish(std::move(buffer));
-                    return true;
-                }
-                return false;
-            }
-
-            virtual void ProcessData(Common::Buffer /*buffer*/)
-            {
-            }
+            virtual void ProcessData(Common::Buffer /*buffer*/);
         };
 
     }   // namespace Net
