@@ -7,6 +7,11 @@
 
 // MIF
 #include <mif/net/client_factory.h>
+#include <mif/net/clients_chain.h>
+#include "mif/net/clients/frame_reader.h"
+#include "mif/net/clients/frame_writer.h"
+#include "mif/net/clients/gzip_compressor.h"
+#include "mif/net/clients/gzip_decompressor.h"
 #include <mif/net/tcp_clients.h>
 #include <mif/remote/proxy_client.h>
 #include <mif/remote/serialization/serialization.h>
@@ -29,16 +34,32 @@ int main(int argc, char const **argv)
         using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
 
         using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, IFace_PS>;
-        using ProxyFactory = Mif::Net::ClientFactory<ProxyClient>;
+
+        using ClientsChain = Mif::Net::ClientsChain
+            <
+                Mif::Net::Clients::FrameReader,
+                Mif::Net::Clients::GZipDecompressor,
+                ProxyClient,
+                Mif::Net::Clients::GZipCompressor,
+                Mif::Net::Clients::FrameWriter
+            >;
+
+        using ProxyFactory = Mif::Net::ClientFactory<ClientsChain>;
 
         std::chrono::microseconds timeout{10 * 1000 * 1000};
 
         std::cout << "Starting client on \"" << argv[1] << ":" << argv[2] << "\"" << std::endl;
 
-        auto clientFactgory = std::make_shared<ProxyFactory>(timeout);
+        auto clientFactgory = std::make_shared<ProxyFactory>
+            (
+                Mif::Common::MakeCreator<ProxyClient>(timeout)
+            );
+
         Mif::Net::TCPClients clients(4, clientFactgory);
 
-        auto client = std::static_pointer_cast<ProxyClient>(clients.RunClient(argv[1], argv[2]));
+        auto proxy = std::static_pointer_cast<ClientsChain>(clients.RunClient(argv[1], argv[2]));
+
+        auto client = proxy->GetClientItem<ProxyClient>();
 
         auto service = client->CreateService<IFace>("Service");
 

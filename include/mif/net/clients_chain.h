@@ -6,6 +6,7 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
 // MIF
@@ -31,6 +32,16 @@ namespace Mif
         {
         }
 
+        template <typename TClient>
+        typename std::enable_if<std::is_base_of<Client, TClient>::value, std::shared_ptr<TClient>>::type
+        GetClientItem()
+        {
+            auto *item = dynamic_cast<TClient *>(m_client->GetClient(typeid(TClient)));
+            if (!item)
+                throw std::bad_cast{};
+            return std::shared_ptr<TClient>(this->shared_from_this(), item);
+        }
+
     private:
         using ThisType = ClientsChain<TClients ... >;
 
@@ -41,6 +52,7 @@ namespace Mif
             , public IControl
         {
             virtual ~IHolder() = default;
+            virtual Client* GetClient(std::type_info const &info) = 0;
         };
 
         std::shared_ptr<IHolder> m_client;
@@ -89,6 +101,13 @@ namespace Mif
 
         private:
             ThisType &m_owner;
+
+            // IHolder
+            virtual Client* GetClient(std::type_info const &info) override final
+            {
+                (void)info;
+                throw std::runtime_error{"[Mif::Net::ClientsChain::ChainClient::GetClient] Client item not found."};
+            }
 
             // IHandler
             virtual void OnData(Common::Buffer buffer) override final
@@ -167,6 +186,12 @@ namespace Mif
             virtual void OnData(Common::Buffer buffer) override final
             {
                 m_client->OnData(std::move(buffer));
+            }
+
+            // IHolder
+            virtual Client* GetClient(std::type_info const &info) override final
+            {
+                return typeid(TClient) == info ? m_client.get() : m_next->GetClient(info);
             }
 
             // IPublisher
