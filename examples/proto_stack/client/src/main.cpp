@@ -7,11 +7,6 @@
 
 // MIF
 #include <mif/net/client_factory.h>
-#include <mif/net/clients_chain.h>
-#include "mif/net/clients/frame_reader.h"
-#include "mif/net/clients/frame_writer.h"
-#include "mif/net/clients/gzip_compressor.h"
-#include "mif/net/clients/gzip_decompressor.h"
 #include <mif/net/tcp_clients.h>
 #include <mif/remote/proxy_client.h>
 #include <mif/remote/serialization/serialization.h>
@@ -19,6 +14,7 @@
 
 // COMMON
 #include "common/ps/iface.h"
+#include "common/protocol_chain.h"
 
 int main(int argc, char const **argv)
 {
@@ -35,14 +31,7 @@ int main(int argc, char const **argv)
 
         using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, IFace_PS>;
 
-        using ClientsChain = Mif::Net::ClientsChain
-            <
-                Mif::Net::Clients::FrameReader,
-                Mif::Net::Clients::GZipDecompressor,
-                ProxyClient,
-                Mif::Net::Clients::GZipCompressor,
-                Mif::Net::Clients::FrameWriter
-            >;
+        using ClientsChain = ProtocolChain<ProxyClient>;
 
         using ProxyFactory = Mif::Net::ClientFactory<ClientsChain>;
 

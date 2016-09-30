@@ -7,12 +7,7 @@
 
 // MIF
 #include <mif/net/client_factory.h>
-#include <mif/net/clients_chain.h>
 #include <mif/net/tcp_server.h>
-#include "mif/net/clients/frame_reader.h"
-#include "mif/net/clients/frame_writer.h"
-#include "mif/net/clients/gzip_compressor.h"
-#include "mif/net/clients/gzip_decompressor.h"
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost/serialization.h>
 #include <mif/remote/stub_client.h>
@@ -23,6 +18,7 @@
 
 // THIS
 #include "service.h"
+#include "common/protocol_chain.h"
 
 int main(int argc, char const **argv)
 {
@@ -41,17 +37,7 @@ int main(int argc, char const **argv)
         serviceFactory->AddClass<Service>("Service");
 
         using StubClient = Mif::Remote::StubClient<SerializerTraits, IFace_PS>;
-        using StubFactory = Mif::Net::ClientFactory
-            <
-                Mif::Net::ClientsChain
-                <
-                    Mif::Net::Clients::FrameReader,
-                    Mif::Net::Clients::GZipDecompressor,
-                    StubClient,
-                    Mif::Net::Clients::GZipCompressor,
-                    Mif::Net::Clients::FrameWriter
-                >
-            >;
+        using StubFactory = Mif::Net::ClientFactory<ProtocolChain<StubClient>>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;
 
