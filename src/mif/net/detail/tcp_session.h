@@ -25,13 +25,13 @@ namespace Mif
             {
             public:
                 TCPSession(boost::asio::ip::tcp::socket socket,
-                    Common::ThreadPool &workers, IClientFactory &factory);
+                    std::shared_ptr<Common::IThreadPool> workers, IClientFactory &factory);
 
                 IClientFactory::ClientPtr Start();
 
             private:
                 boost::asio::ip::tcp::socket m_socket;
-                Common::ThreadPool &m_workers;
+                std::shared_ptr<Common::IThreadPool> m_workers;
                 IClientFactory &m_factory;
                 IClientFactory::ClientPtr m_client;
 

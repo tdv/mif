@@ -16,7 +16,8 @@ set( CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_library(MIF_LIBRARY mif)
-find_package(Boost REQUIRED COMPONENTS system serialization thread)
+find_package(Boost REQUIRED COMPONENTS system serialization thread iostreams)
+find_package(ZLIB REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${Mif_INCLUDE_DIRS})
@@ -51,6 +52,7 @@ set(CLIENT_SOURCES
 set(LIBRARIES
     ${LIBRARIES}
     ${MIF_LIBRARY}
+    ${ZLIB_LIBRARIES}
     ${Boost_LIBRARIES}
     pthread
 )

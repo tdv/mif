@@ -2,18 +2,14 @@
 #define __MIF_COMMON_TYPES_H__
 
 // STD
-#include <cstdint>
-
-// BOOST
-#include <boost/shared_array.hpp>
+#include <vector>
 
 namespace Mif
 {
     namespace Common
     {
 
-        using CharArray = boost::shared_array<char>;
-        using Buffer = std::pair<std::size_t, CharArray>;
+        using Buffer = std::vector<char>;
 
     }   // namespace Common
 }   // namespace Mif

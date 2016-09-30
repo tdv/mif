@@ -17,7 +17,7 @@ namespace Mif
 
         void Client::OnData(Common::Buffer buffer)
         {
-            if (!buffer.first || !buffer.second)
+            if (buffer.empty())
                 throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
             ProcessData(std::move(buffer));
         }
@@ -32,7 +32,7 @@ namespace Mif
             return false;
         }
 
-        bool Client::Post(Common::Buffer &&buffer)
+        bool Client::Post(Common::Buffer buffer)
         {
             if (auto publisher = m_publisher.lock())
             {

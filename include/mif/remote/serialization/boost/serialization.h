@@ -72,41 +72,49 @@ namespace Mif
                         std::string const &instanceId, std::string const &interfaceId,
                         std::string const &methodId, TParams && ... params)
                         : m_stream(boost::iostreams::back_inserter(m_result))
-                        , m_archive(m_stream)
+                        , m_archive(new TArchive(m_stream))
                     {
-                        m_archive << boost::serialization::make_nvp(Detail::Tag::Uuid, uuid);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Uuid, uuid);
                         std::string type = isReques ? Detail::Tag::Request : Detail::Tag::Response;
-                        m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
-                        m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
-                        m_archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
-                        m_archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
                         SaveParams(1, std::forward<TParams>(params) ... );
                     }
 
                     template <typename ... TParams>
                     void PutParams(TParams && ... params)
                     {
+                        if (!m_archive)
+                        {
+                            throw std::runtime_error{"[Mif::Remote::Serialization::Boost::Serializar::PutParams] "
+                                "Failed to put params. Archive closed."};
+                        }
                         SaveParams(1, std::forward<TParams>(params) ... );
                     }
 
                     Common::Buffer GetBuffer()
                     {
+                        if (!m_archive)
+                        {
+                            throw std::runtime_error{"[Mif::Remote::Serialization::Boost::Serializar::GetBuffer] "
+                                "Failed to get buffer. Archive closed."};
+                        }
+                        m_archive.reset();
                         m_stream.flush();;
-                        auto const length = m_result.size();
-                        Common::CharArray buffer{new char [length]};
-                        std::memcpy(buffer.get(), &m_result.front(), length);
-                        return std::make_pair(length, buffer);
+                        return std::move(m_result);
                     }
 
                 private:
                     std::vector<char> m_result;
                     boost::iostreams::filtering_ostream m_stream;
-                    TArchive m_archive;
+                    std::unique_ptr<TArchive> m_archive;
 
                     template <typename TParam, typename ... TParams>
                     void SaveParams(std::size_t index, TParam && param, TParams && ... params)
                     {
-                        m_archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
+                        *m_archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
                         SaveParams(index + 1, std::forward<TParams>(params) ... );
                     }
 
@@ -119,13 +127,13 @@ namespace Mif
                 class Deserializer final
                 {
                 public:
-                    Deserializer(Common::Buffer && buffer)
+                    Deserializer(Common::Buffer buffer)
                         : m_buffer(std::move(buffer))
-                        , m_source(m_buffer.first ? m_buffer.second.get() : nullptr, m_buffer.first)
+                        , m_source(!m_buffer.empty() ? m_buffer.data() : nullptr, m_buffer.size())
                         , m_stream(m_source)
                         , m_archive(m_stream)
                     {
-                        if (!m_buffer.first)
+                        if (m_buffer.empty())
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Boost::Deserializer] Empty buffer."};
                         m_archive >> boost::serialization::make_nvp(Detail::Tag::Uuid, m_uuid);
                         m_archive >> boost::serialization::make_nvp(Detail::Tag::Type, m_type);

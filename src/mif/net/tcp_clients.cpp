@@ -24,7 +24,7 @@ namespace Mif
             Impl(std::uint16_t workers, std::shared_ptr<IClientFactory> factory)
             try
                 : m_factory(factory)
-                , m_workers(std::make_shared<Common::ThreadPool>(workers))
+                , m_workers(Common::CreateThreadPool(workers))
                 , m_work(m_ioService)
             {
                 std::exception_ptr exception{};
@@ -91,7 +91,7 @@ namespace Mif
                     boost::asio::ip::tcp::socket socket{m_ioService};
                     boost::asio::ip::tcp::resolver resolver{m_ioService};
                     boost::asio::connect(socket, resolver.resolve({host, port}));
-                    return std::make_shared<Detail::TCPSession>(std::move(socket), *m_workers, *m_factory)->Start();
+                    return std::make_shared<Detail::TCPSession>(std::move(socket), m_workers, *m_factory)->Start();
                 }
                 catch (std::exception const &e)
                 {
@@ -102,7 +102,7 @@ namespace Mif
 
         private:
             std::shared_ptr<IClientFactory> m_factory;
-            std::shared_ptr<Common::ThreadPool> m_workers;
+            std::shared_ptr<Common::IThreadPool> m_workers;
             boost::asio::io_service m_ioService;
             std::unique_ptr<std::thread> m_thread;
             boost::asio::io_service::work m_work;

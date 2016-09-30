@@ -5,6 +5,7 @@
 
 // BOOST
 #include <boost/asio/io_service.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/thread.hpp>
 
 // MIF
@@ -14,96 +15,126 @@ namespace Mif
 {
     namespace Common
     {
-
-        class ThreadPool::Impl final
+        namespace Detail
         {
-        public:
-            Impl(std::uint16_t count)
-                : m_work{new boost::asio::io_service::work{m_ioService}}
+            namespace
             {
-                if (!count)
-                    throw std::invalid_argument{"[Mif::Common::ThreadPool::Impl] Thread count must be more than 0."};
 
-                std::exception_ptr exception{};
-                for ( ; count ; --count)
+                class OrderedPoster final
+                    : public IThreadPool
                 {
-                    m_threads.create_thread([this, &exception] ()
+                public:
+                    OrderedPoster(std::shared_ptr<IThreadPool> threadPool, boost::asio::io_service &ioService)
+                        : m_threadPool{threadPool}
+                        , m_strand{ioService}
+                    {
+                    }
+
+                private:
+                    std::shared_ptr<IThreadPool> m_threadPool;
+                    boost::asio::io_service::strand m_strand;
+
+                    // IThreadPool
+                    virtual void Post(Task task) override final
+                    {
+                        m_strand.post(std::move(task));
+                    }
+
+                    virtual std::shared_ptr<IThreadPool> CreateOrderedPoster() override final
+                    {
+                        return m_threadPool->CreateOrderedPoster();
+                    }
+                };
+
+                class ThreadPool final
+                    : public IThreadPool
+                {
+                public:
+                    ThreadPool(std::uint16_t count)
+                        : m_work{new boost::asio::io_service::work{m_ioService}}
+                    {
+                        if (!count)
+                            throw std::invalid_argument{"[Mif::Common::ThreadPool] Thread count must be more than 0."};
+
+                        std::exception_ptr exception{};
+                        for ( ; count ; --count)
+                        {
+                            m_threads.create_thread([this, &exception] ()
+                                    {
+                                        try
+                                        {
+                                            m_ioService.run();
+                                        }
+                                        catch (std::exception const &)
+                                        {
+                                            exception = std::current_exception();
+                                        }
+                                    }
+                                );
+
+                            if (exception)
+                                break;
+                        }
+
+                        if (exception)
+                        {
+                            if (count)
+                                Stop();
+
+                            try
                             {
-                                try
-                                {
-                                    m_ioService.run();
-                                }
-                                catch (std::exception const &)
-                                {
-                                    exception = std::current_exception();
-                                }
+                                std::rethrow_exception(exception);
                             }
-                        );
+                            catch (std::exception const &e)
+                            {
+                                throw std::runtime_error{"[Mif::Common::ThreadPool] Failed to run thread pool. "
+                                    "Error: " + std::string{e.what()}};
+                            }
+                        }
+                    }
 
-                    if (exception)
-                        break;
-                }
-
-                if (exception)
-                {
-                    if (count)
+                    ~ThreadPool()
+                    {
                         Stop();
-
-                    try
-                    {
-                        std::rethrow_exception(exception);
                     }
-                    catch (std::exception const &e)
+
+                private:
+                    boost::asio::io_service m_ioService;
+                    std::unique_ptr<boost::asio::io_service::work> m_work;
+                    boost::thread_group m_threads;
+
+                    void Stop()
                     {
-                        throw std::runtime_error{"[Mif::Common::ThreadPool::Impl] Failed to run thread pool. "
-                            "Error: " + std::string{e.what()}};
+                        try
+                        {
+                            m_work.reset();
+                            m_ioService.post([this] () { m_ioService.stop(); });
+                            m_threads.join_all();
+                        }
+                        catch (std::exception const &e)
+                        {
+                            std::cerr << "[Mif::Common::ThreadPool::Stop] Failed to stop thread pool. Error: " << e.what() << std::endl;
+                        }
                     }
-                }
-            }
 
-            ~Impl()
-            {
-                Stop();
-            }
+                    // IThreadPool
+                    virtual void Post(Task task) override final
+                    {
+                        m_ioService.post(std::move(task));
+                    }
 
-            void Post(Task task)
-            {
-                m_ioService.post(task);
-            }
+                    virtual std::shared_ptr<IThreadPool> CreateOrderedPoster() override final
+                    {
+                        return std::make_shared<OrderedPoster>(std::static_pointer_cast<ThreadPool>(shared_from_this()), m_ioService);
+                    }
+                };
 
-        private:
-            boost::asio::io_service m_ioService;
-            std::unique_ptr<boost::asio::io_service::work> m_work;
-            boost::thread_group m_threads;
+            }   // namespace
+        }   // namespace Detail
 
-            void Stop()
-            {
-                try
-                {
-                    m_work.reset();
-                    m_ioService.post([this] () { m_ioService.stop(); });
-                    m_threads.join_all();
-                }
-                catch (std::exception const &e)
-                {
-                    std::cerr << "[Mif::Common::ThreadPool::Impl::Stop] Failed to stop thread pool. Error: " << e.what() << std::endl;
-                }
-            }
-        };
-
-
-        ThreadPool::ThreadPool(std::uint16_t count)
-            : m_impl{new Impl{count}}
+        std::shared_ptr<IThreadPool> CreateThreadPool(std::uint16_t threadCount)
         {
-        }
-
-        ThreadPool::~ThreadPool()
-        {
-        }
-
-        void ThreadPool::Post(Task task)
-        {
-            m_impl->Post(std::move(task));
+            return std::make_shared<Detail::ThreadPool>(threadCount);
         }
 
     }   // namespace Common

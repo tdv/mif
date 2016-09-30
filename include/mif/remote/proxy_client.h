@@ -123,7 +123,7 @@ namespace Mif
             {
                 try
                 {
-                    if (!buffer.first)
+                    if (buffer.empty())
                         throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] Empty data."};
                     DeserializerPtr deserializer{new Deserializer(std::move(buffer))};
                     if (!deserializer->IsResponse())

@@ -25,7 +25,7 @@ namespace Mif
                 std::uint16_t workers, std::shared_ptr<IClientFactory> factory)
             try
                 : m_factory{factory}
-                , m_workers{std::make_shared<Common::ThreadPool>(workers)}
+                , m_workers{Common::CreateThreadPool(workers)}
                 , m_acceptor{m_ioService,
                         [this, &host, &port] () -> boost::asio::ip::tcp::endpoint
                         {
@@ -93,7 +93,7 @@ namespace Mif
 
         private:
             std::shared_ptr<IClientFactory> m_factory;
-            std::shared_ptr<Common::ThreadPool> m_workers;
+            std::shared_ptr<Common::IThreadPool> m_workers;
             std::unique_ptr<std::thread> m_thread;
             boost::asio::io_service m_ioService;
             boost::asio::ip::tcp::acceptor m_acceptor;
@@ -108,7 +108,7 @@ namespace Mif
                             try
                             {
                                 if (!error)
-                                    std::make_shared<Detail::TCPSession>(std::move(m_socket), *m_workers, *m_factory)->Start();
+                                    std::make_shared<Detail::TCPSession>(std::move(m_socket), m_workers, *m_factory)->Start();
                                 else
                                 {
                                     std::cerr << "[Mif::Net::TCPServer::Impl::DoAccept] Failed tp accept connection. "

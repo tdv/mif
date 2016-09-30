@@ -1,6 +1,14 @@
 // STD
 #include <utility>
 
+// BOOST
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/stream.hpp>
+
 // MIF
 #include "mif/net/clients/gzip_decompressor.h"
 
@@ -18,7 +26,21 @@ namespace Mif
 
             void GZipDecompressor::ProcessData(Common::Buffer buffer)
             {
-                Post(std::move(buffer));
+                Common::Buffer result;
+
+                {
+                    using SourceType = boost::iostreams::basic_array_source<char>;
+                    SourceType source{buffer.data(), buffer.size()};
+                    boost::iostreams::stream<SourceType> iStream{source};
+
+                    boost::iostreams::filtering_ostream oStream;
+                    oStream.push(boost::iostreams::gzip_decompressor{});
+                    oStream.push(boost::iostreams::back_inserter(result));
+
+                    boost::iostreams::copy(iStream, oStream);
+                }
+
+                Post(std::move(result));
             }
 
         }   // namespace Clients

@@ -19,8 +19,12 @@ namespace Mif
             {
             public:
                 FrameReader(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher);
+                ~FrameReader();
 
-            protected:
+            private:
+                class Impl;
+                std::unique_ptr<Impl> m_impl;
+
                 // Client
                 virtual void ProcessData(Common::Buffer buffer) override final;
             };

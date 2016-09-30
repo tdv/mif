@@ -68,7 +68,7 @@ namespace Mif
             {
                 try
                 {
-                    if (!buffer.first)
+                    if (buffer.empty())
                         throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty data."};
                     Deserializer deserializer(std::move(buffer));
                     if (!deserializer.IsRequest())
@@ -97,7 +97,7 @@ namespace Mif
                         throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty method name of interface \"" + interfaceId  + "\""};
                     Serializer serializer(false, deserializer.GetUuid(), instanceId, interfaceId, method);
                     stub->Call(service.get(), deserializer, serializer);
-                    if (!Post(serializer.GetBuffer()))
+                    if (!Post(std::move(serializer.GetBuffer())))
                     {
                         if (!CloseMe())
                         {

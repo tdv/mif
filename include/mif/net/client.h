@@ -30,7 +30,7 @@ namespace Mif
 
         protected:
             bool CloseMe();
-            bool Post(Common::Buffer &&buffer);
+            bool Post(Common::Buffer buffer);
 
             virtual void ProcessData(Common::Buffer /*buffer*/);
         };

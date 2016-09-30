@@ -20,7 +20,7 @@ namespace Mif
             public:
                 FrameWriter(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher);
 
-            protected:
+            private:
                 // Client
                 virtual void ProcessData(Common::Buffer buffer) override final;
             };

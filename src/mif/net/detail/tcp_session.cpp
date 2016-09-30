@@ -18,9 +18,9 @@ namespace Mif
         {
 
             TCPSession::TCPSession(boost::asio::ip::tcp::socket socket,
-                Common::ThreadPool &workers, IClientFactory &factory)
+                std::shared_ptr<Common::IThreadPool> workers, IClientFactory &factory)
                 : m_socket{std::move(socket)}
-                , m_workers{workers}
+                , m_workers{workers->CreateOrderedPoster()}
                 , m_factory{factory}
             {
             }
@@ -44,7 +44,7 @@ namespace Mif
 
                     m_socket.get_io_service().post([self, buffer] ()
                             {
-                                boost::asio::async_write(self->m_socket, boost::asio::buffer(buffer.second.get(), buffer.first),
+                                boost::asio::async_write(self->m_socket, boost::asio::buffer(buffer),
                                         [self, buffer] (boost::system::error_code error, std::size_t /*length*/)
                                         {
                                             if (error)
@@ -87,21 +87,23 @@ namespace Mif
 
             void TCPSession::DoRead()
             {
-                std::size_t const bytes = 4096; // TODO: from params
-                auto buffer = std::make_pair(bytes, boost::shared_array<char>{new char [bytes]});
+                auto buffer = std::make_shared<Common::Buffer>(8192);   // TODO: parametrize it
                 auto self(shared_from_this());
-                m_socket.async_read_some(boost::asio::buffer(buffer.second.get(), buffer.first),
+                m_socket.async_read_some(boost::asio::buffer(*buffer),
                     [self, buffer] (boost::system::error_code error, std::size_t length)
                     {
                         try
                         {
                             if (!error)
                             {
-                                self->m_workers.Post([self, length, buffer] ()
+                                self->m_workers->Post([self, length, buffer] ()
                                         {
                                             try
                                             {
-                                                self->m_client->OnData(std::make_pair(length, std::move(buffer.second)));
+                                                auto begin = std::begin(*buffer);
+                                                auto end = begin;
+                                                std::advance(end, length);
+                                                self->m_client->OnData({begin, end});
                                             }
                                             catch (std::exception const &e)
                                             {

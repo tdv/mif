@@ -11,20 +11,18 @@ namespace Mif
     namespace Common
     {
 
-        class ThreadPool final
+        struct IThreadPool
+            : public std::enable_shared_from_this<IThreadPool>
         {
-        public:
             using Task = std::function<void ()>;
 
-            ThreadPool(std::uint16_t count);
-            ~ThreadPool();
+            virtual ~IThreadPool() = default;
 
-            void Post(Task task);
-
-        private:
-            class Impl;
-            std::unique_ptr<Impl> m_impl;
+            virtual void Post(Task task) = 0;
+            virtual std::shared_ptr<IThreadPool> CreateOrderedPoster() = 0;
         };
+
+        std::shared_ptr<IThreadPool> CreateThreadPool(std::uint16_t threadCount);
 
     }   // namespace Common
 }   // namespace Mif

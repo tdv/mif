@@ -23,7 +23,8 @@ set( CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
-find_package(Boost REQUIRED COMPONENTS system serialization thread)
+find_package(Boost REQUIRED COMPONENTS system serialization thread iostreams)
+find_package(ZLIB REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS} )
 include_directories(include)
 
@@ -61,7 +62,7 @@ set(MIF_HEADERS
 
 
 add_library(${PROJECT_LC} STATIC ${MIF_SOURCES})
-target_link_libraries(${PROJECT_LC} PUBLIC ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_LC} PUBLIC ${Boost_LIBRARIES} ${ZLIB_LIBRARIES})
 
 #https://cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
 
