@@ -1,3 +1,10 @@
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     10.2016
+//  Copyright (C) 2016 tdv
+//-------------------------------------------------------------------
+
 #ifndef __MIF_REFLECTION_REFLECT_TYPE_H__
 #define __MIF_REFLECTION_REFLECT_TYPE_H__
 
