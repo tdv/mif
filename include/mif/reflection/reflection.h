@@ -11,6 +11,10 @@
 // STD
 #include <cstdint>
 
+// MIF
+#include "mif/common/static_string.h"
+#include "mif/common/detail/hierarchy.h"
+
 namespace Mif
 {
     namespace Reflection
@@ -22,26 +26,42 @@ namespace Mif
             {
             };
 
-            struct Field
+            template <typename T>
+            struct FieldItem
             {
-                using Name = void;
-                static constexpr std::size_t Id = 0;
-                using Type = void;
+                using Name = Common::MakeStaticString<typename T::TypeNameProvider>;
+                using Type = typename T::FieldType;
+                static auto Access() -> decltype(T::Access())
+                {
+                    return T::Access();
+                }
             };
 
             template <typename T>
-            struct FieldsList
+            class FieldsList
             {
-                static constexpr std::size_t Count = {0};
+            private:
+                using RegItemType = Registry::Registry<T>;
+                using MetaType = typename RegItemType::Type;
+
+            public:
+                static constexpr std::size_t Count = MetaType::FieldsCount - 1;
+                template <std::size_t Index>
+                using Field = FieldItem<decltype(MetaType::GetFieldInfo(Common::Detail::Hierarchy<Index>{}))>;
             };
 
             template <typename T>
-            struct Class
+            class Class
             {
-                using Namespace = void;
-                using Name = typename Registry::Registry<T>::Type::TypeNameProvider;
-                using Base = void;
-                using Type = void;
+            private:
+                using RegItemType = Registry::Registry<T>;
+                using MetaType = typename RegItemType::Type;
+
+            public:
+                using FullName = Common::MakeStaticString<typename RegItemType::TypeFullNameProvider>;
+                using Name = Common::MakeStaticString<typename MetaType::TypeNameProvider>;
+                using Base = typename MetaType::BaseTypes;
+                using Type = typename MetaType::ClassType;
                 using Fields = FieldsList<T>;
             };
 
