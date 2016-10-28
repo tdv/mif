@@ -1,3 +1,10 @@
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     09.2016
+//  Copyright (C) 2016 tdv
+//-------------------------------------------------------------------
+
 #ifndef __MIF_REMOTE_PS_H__
 #define __MIF_REMOTE_PS_H__
 

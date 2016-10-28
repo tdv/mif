@@ -1,3 +1,10 @@
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     09.2016
+//  Copyright (C) 2016 tdv
+//-------------------------------------------------------------------
+
 // STD
 #include <cstdint>
 #include <iostream>

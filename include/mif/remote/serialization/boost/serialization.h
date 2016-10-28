@@ -1,3 +1,10 @@
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     09.2016
+//  Copyright (C) 2016 tdv
+//-------------------------------------------------------------------
+
 #ifndef __MIF_REMOTE_SERIALIZATION_BOOST_SERIALIZATION_H__
 #define __MIF_REMOTE_SERIALIZATION_BOOST_SERIALIZATION_H__
 
@@ -15,25 +22,25 @@
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/device/array.hpp>
 #include <boost/serialization/array.hpp>
-//#include <boost/serialization/bitset.hpp>
+#include <boost/serialization/bitset.hpp>
 //#include <boost/serialization/boost_unordered_map.hpp>
 //#include <boost/serialization/boost_unordered_set.hpp>
-//#include <boost/serialization/deque.hpp>
-//#include <boost/serialization/list.hpp>
-//#include <boost/serialization/map.hpp>
-//#include <boost/serialization/optional.hpp>
-//#include <boost/serialization/queue.hpp>
-//#include <boost/serialization/scoped_ptr.hpp>
-//#include <boost/serialization/set.hpp>
-//#include <boost/serialization/shared_ptr.hpp>
-//#include <boost/serialization/stack.hpp>
+#include <boost/serialization/deque.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/queue.hpp>
+#include <boost/serialization/scoped_ptr.hpp>
+#include <boost/serialization/set.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/stack.hpp>
 #include <boost/serialization/string.hpp>
-//#include <boost/serialization/unique_ptr.hpp>
-//#include <boost/serialization/unordered_map.hpp>
-//#include <boost/serialization/unordered_set.hpp>
-//#include <boost/serialization/variant.hpp>
-//#include <boost/serialization/vector.hpp>
-//#include <boost/serialization/weak_ptr.hpp>
+#include <boost/serialization/unique_ptr.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/unordered_set.hpp>
+#include <boost/serialization/variant.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/weak_ptr.hpp>
 
 // MIF
 #include "mif/common/types.h"
