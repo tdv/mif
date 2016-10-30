@@ -1,5 +1,12 @@
-#ifndef __HELLO_WORLD_SERVER_SERVICE_H__
-#define __HELLO_WORLD_SERVER_SERVICE_H__
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     09.2016
+//  Copyright (C) 2016 tdv
+//-------------------------------------------------------------------
+
+#ifndef __PROTO_STACK_SERVER_SERVICE_H__
+#define __PROTO_STACK_SERVER_SERVICE_H__
 
 // STD
 #include <mutex>
@@ -24,4 +31,4 @@ private:
     virtual std::string SayHello(std::string const &text) override final;
 };
 
-#endif  // !__HELLO_WORLD_SERVER_SERVICE_H__
+#endif  // !__PROTO_STACK_SERVER_SERVICE_H__

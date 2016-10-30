@@ -16,12 +16,10 @@
 #include <mif/net/client_factory.h>
 #include <mif/net/tcp_clients.h>
 #include <mif/remote/proxy_client.h>
-#include <mif/reflection/serialization/boost/serialization.h>
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost/serialization.h>
 
 // COMMON
-#include "common/meta/data.h"
 #include "common/ps/imy_company.h"
 #include "common/protocol_chain.h"
 

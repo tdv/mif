@@ -1,3 +1,10 @@
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     09.2016
+//  Copyright (C) 2016 tdv
+//-------------------------------------------------------------------
+
 #ifndef __HELLO_WORLD_COMMON_PS_IHELLO_WORLD_H__
 #define __HELLO_WORLD_COMMON_PS_IHELLO_WORLD_H__
 

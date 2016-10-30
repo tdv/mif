@@ -44,6 +44,7 @@
 
 // MIF
 #include "mif/common/types.h"
+#include <mif/reflection/serialization/boost/serialization.h>
 
 namespace Mif
 {

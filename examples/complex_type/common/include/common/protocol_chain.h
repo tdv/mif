@@ -25,9 +25,9 @@ template <typename T>
 using ProtocolChain = Mif::Net::ClientsChain
     <
         Mif::Net::Clients::FrameReader,
-        /*Mif::Net::Clients::GZipDecompressor,*/
+        Mif::Net::Clients::GZipDecompressor,
         T,
-        /*Mif::Net::Clients::GZipCompressor,*/
+        Mif::Net::Clients::GZipCompressor,
         Mif::Net::Clients::FrameWriter
     >;
 

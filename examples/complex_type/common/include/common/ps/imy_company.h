@@ -8,14 +8,12 @@
 #ifndef __COMPLEX_TYPE_COMMON_PS_IMYCOMPANY_H__
 #define __COMPLEX_TYPE_COMMON_PS_IMYCOMPANY_H__
 
-// STD
-#include <string>
-
 // MIF
 #include <mif/remote/ps.h>
 
 // THIS
 #include "common/interface/imy_company.h"
+#include "common/meta/data.h"
 
 MIF_REMOTE_PS_BEGIN(IMyCompany)
     MIF_REMOTE_METHOD(AddEmployee)
