@@ -14,6 +14,7 @@
 // MIF
 #include "mif/common/static_string.h"
 #include "mif/common/detail/hierarchy.h"
+#include "mif/reflection/reflect_type.h"
 
 namespace Mif
 {
