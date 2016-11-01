@@ -7,12 +7,14 @@
 
 // STD
 #include <cstdint>
-#include <iostream>
 #include <stdexcept>
 #include <utility>
 
 // BOOST
 #include <boost/asio.hpp>
+
+// MIF
+#include "mif/common/log.h"
 
 // THIS
 #include "tcp_session.h"
@@ -56,9 +58,8 @@ namespace Mif
                                         {
                                             if (error)
                                             {
-                                                std::cerr << "[Mif::Net::Detail::TCPSession::Publisher]. "
-                                                    << "Failed to write data. Error: " << error.message()
-                                                    << std::endl;
+                                                MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::Publisher]. "
+                                                    << "Failed to write data. Error: " << error.message();
                                                 self->CloseMe();
                                             }
                                         }
@@ -69,8 +70,8 @@ namespace Mif
                 catch (std::exception const &e)
                 {
                     CloseMe();
-                    std::cerr << "[Mif::Net::Detail::TCPSession::Publisher]. "
-                        << "Failed to publish data. Error: " << e.what() << std::endl;
+                    MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::Publisher]. "
+                        << "Failed to publish data. Error: " << e.what();
                 }
             }
 
@@ -85,8 +86,8 @@ namespace Mif
                             }
                             catch (std::exception const &e)
                             {
-                                std::cerr << "[Mif::Net::Detail::TCPSession::CloseMe]. "
-                                    << "Failed to post 'stop'. Error: " << e.what() << std::endl;
+                                MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::CloseMe]. "
+                                    << "Failed to post 'stop'. Error: " << e.what();
                             }
                         }
                     );
@@ -114,8 +115,8 @@ namespace Mif
                                             }
                                             catch (std::exception const &e)
                                             {
-                                                std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
-                                                    << "Failed to process data. Error: " << e.what() << std::endl;
+                                                MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                                    << "Failed to process data. Error: " << e.what();
                                             }
                                         }
                                     );
@@ -126,16 +127,16 @@ namespace Mif
                                 self->CloseMe();
                                 if (error.value() != boost::asio::error::eof)
                                 {
-                                    std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
-                                        << "Failed to read data. Error: " << error.message() << std::endl;
+                                    MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                        << "Failed to read data. Error: " << error.message();
                                 }
                             }
                         }
                         catch (std::exception const &e)
                         {
                             self->CloseMe();
-                            std::cerr << "[Mif::Net::Detail::TCPSession::DoRead]. "
-                                << "Failed to post task on data processing. Error: " << e.what() << std::endl;
+                            MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::DoRead]. "
+                                << "Failed to post task on data processing. Error: " << e.what();
                         }
                     }
                 );

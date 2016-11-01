@@ -8,13 +8,13 @@
 // STD
 #include <cstdint>
 #include <stdexcept>
-#include <iostream>
 #include <thread>
 
 // BOOST
 #include <boost/asio.hpp>
 
 // MIF
+#include "mif/common/log.h"
 #include "mif/net/tcp_server.h"
 
 // THIS
@@ -85,7 +85,7 @@ namespace Mif
                                 }
                                 catch (std::exception const &e)
                                 {
-                                    std::cerr << "[Mif::Net::~TCPServer::Impl] Failed to post 'stop' to server object. Error: " << e.what() << std::endl;
+                                    MIF_LOG(Error) << "[Mif::Net::~TCPServer::Impl] Failed to post 'stop' to server object. Error: " << e.what();
                                 }
                             }
                         );
@@ -94,7 +94,7 @@ namespace Mif
                 }
                 catch (std::exception const &e)
                 {
-                    std::cerr << "[Mif::Net::~TCPServer::Impl] Failed to stop server. Error: " << e.what() << std::endl;
+                    MIF_LOG(Error) << "[Mif::Net::~TCPServer::Impl] Failed to stop server. Error: " << e.what();
                 }
             }
 
@@ -118,14 +118,14 @@ namespace Mif
                                     std::make_shared<Detail::TCPSession>(std::move(m_socket), m_workers, *m_factory)->Start();
                                 else
                                 {
-                                    std::cerr << "[Mif::Net::TCPServer::Impl::DoAccept] Failed tp accept connection. "
-                                              << "Error: " << error.message() << std::endl;
+                                    MIF_LOG(Warning) << "[Mif::Net::TCPServer::Impl::DoAccept] Failed tp accept connection. "
+                                              << "Error: " << error.message();
                                 }
                                 DoAccept();
                             }
                             catch (std::exception const &e)
                             {
-                                std::cerr << "[Mif::Net::TCPServer::Impl::DoAccept] Failed to accept connection. Error: " << e.what() << std::endl;
+                                MIF_LOG(Warning) << "[Mif::Net::TCPServer::Impl::DoAccept] Failed to accept connection. Error: " << e.what();
                             }
                         }
                     );

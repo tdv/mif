@@ -15,8 +15,11 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 set( CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(Boost_USE_STATIC_LIBS ON)  
+set(Boost_USE_MULTITHREADED ON)
+
 find_library(MIF_LIBRARY mif)
-find_package(Boost REQUIRED COMPONENTS system serialization thread iostreams)
+find_package(Boost COMPONENTS log log_setup thread date_time filesystem system serialization iostreams REQUIRED)
 find_package(ZLIB REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
@@ -55,6 +58,7 @@ set(LIBRARIES
     ${ZLIB_LIBRARIES}
     ${Boost_LIBRARIES}
     pthread
+    z
 )
 
 add_executable(${PROJECT_SERVER_NAME} ${SERVER_HEADERS} ${SERVER_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/server/src/main.cpp)

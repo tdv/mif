@@ -6,7 +6,6 @@
 //-------------------------------------------------------------------
 
 // STD
-#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -16,6 +15,7 @@
 #include <boost/thread.hpp>
 
 // MIF
+#include "mif/common/log.h"
 #include "mif/common/thread_pool.h"
 
 namespace Mif
@@ -120,7 +120,7 @@ namespace Mif
                         }
                         catch (std::exception const &e)
                         {
-                            std::cerr << "[Mif::Common::ThreadPool::Stop] Failed to stop thread pool. Error: " << e.what() << std::endl;
+                            MIF_LOG(Error) << "[Mif::Common::ThreadPool::Stop] Failed to stop thread pool. Error: " << e.what();
                         }
                     }
 

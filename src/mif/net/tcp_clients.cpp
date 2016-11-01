@@ -7,7 +7,6 @@
 
 // STD
 #include <stdexcept>
-#include <iostream>
 #include <thread>
 #include <utility>
 
@@ -18,6 +17,7 @@
 #include "mif/net/tcp_clients.h"
 
 // THIS
+#include "mif/common/log.h"
 #include "detail/tcp_session.h"
 
 namespace Mif
@@ -73,8 +73,8 @@ namespace Mif
                             }
                             catch (std::exception const &e)
                             {
-                                std::cerr << "[Mif::Net::TCPClients::Impl] Failed tp post 'stop' to clients. "
-                                    << "Error: " << e.what() << std::endl;
+                                MIF_LOG(Error) << "[Mif::Net::TCPClients::Impl] Failed tp post 'stop' to clients. "
+                                    << "Error: " << e.what();
                             }
                         }
                     );
@@ -83,12 +83,12 @@ namespace Mif
             }
             catch (std::exception const &e)
             {
-                std::cerr << "[Mif::Net::TCPClients::Impl] Failed tp stop clients. "
-                    << "Error: " << e.what() << std::endl;
+                MIF_LOG(Error) << "[Mif::Net::TCPClients::Impl] Failed tp stop clients. "
+                    << "Error: " << e.what();
             }
             catch (...)
             {
-                std::cerr << "[Mif::Net::TCPClients::Impl] Failed tp stop clients. Error: unknown." << std::endl;
+                MIF_LOG(Error) << "[Mif::Net::TCPClients::Impl] Failed tp stop clients. Error: unknown.";
             }
 
             IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port)

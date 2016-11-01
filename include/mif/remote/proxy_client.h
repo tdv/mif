@@ -12,7 +12,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -23,6 +22,7 @@
 #include <utility>
 
 // MIF
+#include "mif/common/log.h"
 #include "mif/net/client.h"
 #include "mif/remote/detail/iobject_manager_ps.h"
 
@@ -299,7 +299,7 @@ namespace Mif
                     }
                     catch (std::exception const &e)
                     {
-                        std::cerr << "[Mif::Remote::ProxyClient::Holder::~Holder] "
+                        MIF_LOG(Warning) << "[Mif::Remote::ProxyClient::Holder::~Holder] "
                             << "Failed to destroy service with instance id "
                             << "\"" << m_instanceId + "\". Error: " << e.what();
                     }

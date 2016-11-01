@@ -22,8 +22,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 set( CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(Boost_USE_STATIC_LIBS ON)  
+set(Boost_USE_MULTITHREADED ON)
 
-find_package(Boost REQUIRED COMPONENTS system serialization thread iostreams)
+find_package(Boost COMPONENTS log log_setup thread date_time filesystem system serialization iostreams REQUIRED)
 find_package(ZLIB REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS} )
 include_directories(include)
@@ -32,6 +34,7 @@ set(MIF_SOURCES
     ${MIF_SOURCES}
     
     #Common
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/thread_pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/uuid_generator.cpp
 
@@ -49,14 +52,7 @@ set(MIF_SOURCES
 set(MIF_HEADERS
     ${MIF_HEADERS}
 
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/thread_pool.h
-
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_server.h
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_clients.h
-
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/tcp_session.h
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/tcp_server.h
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/tcp_clients.h
+#    ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
 
@@ -64,11 +60,10 @@ set(MIF_HEADERS
 add_library(${PROJECT_LC} STATIC ${MIF_SOURCES})
 target_link_libraries(${PROJECT_LC} PUBLIC ${Boost_LIBRARIES} ${ZLIB_LIBRARIES})
 
-#https://cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
-
 install (TARGETS ${PROJECT_LC} EXPORT ${PROJECT_LC}
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
-         RUNTIME DESTINATION bin)
+         RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY include/${PROJECT_LC} DESTINATION include)
