@@ -3,7 +3,7 @@ set (MIF_ZLIB_GITHUB_URL "https://github.com/madler/zlib.git")
 set (MIF_ZLIB_GITHUB_TAG "v1.2.8")
 
 # boost
-set (MIF_BOOST_GITHUB_URL https://github.com/boostorg/boost.git)
+set (MIF_BOOST_GITHUB_URL "https://github.com/boostorg/boost.git")
 set (MIF_BOOST_GITHUB_TAG "boost-1.62.0")
 
 # jsoncpp
