@@ -33,6 +33,6 @@ if (MIF_STATIC_LIBS)
 endif()
 
 if (MIF_SHARED_LIBS)
-    add_library (${PROJECT_LC}_s SHARED $<TARGET_OBJECTS:${PROJECT_LC}_obj>)
-    target_link_libraries (${PROJECT_LC}_s ${MIF_DEPENDENCIES_LIBRARIES})
+    add_library (${PROJECT_LC}${MIF_SHARED_LIB_SUFFIX} SHARED $<TARGET_OBJECTS:${PROJECT_LC}_obj>)
+    target_link_libraries (${PROJECT_LC}${MIF_SHARED_LIB_SUFFIX} ${MIF_DEPENDENCIES_LIBRARIES})
 endif()
