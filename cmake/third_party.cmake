@@ -6,7 +6,7 @@ set (MIF_THIRD_PARTY_LIBS
     ${MIF_THIRD_PARTY_LIBS}
     zlib
     jsoncpp
-    event
+#    event
 )
 
 set (JSONCPP_LIBRARIES
@@ -25,7 +25,7 @@ set (BOOST_LIBRARIES
     "filesystem"
     "system"
     "serialization"
-    "iostreams"
+#    "iostreams"
 )
 
 set (EVENT_LIBRARIES
@@ -78,7 +78,6 @@ function (mif_add_third_party_project
     unset (MIF_LIB_LIBRARIES_DIR)
 
     set (MIF_THIRD_PARTY_PROJECT ${project_name}-project)
-    set (MIF_THIRD_PARTY_PROJECTS "${MIF_THIRD_PARTY_PROJECTS} ${MIF_THIRD_PARTY_PROJECT}")
 
     if (${from_git})
         ExternalProject_Add (${MIF_THIRD_PARTY_PROJECT}
@@ -141,9 +140,7 @@ function (mif_add_boost_project from_git)
             CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${BOOST_LIBRARIES}
             BUILD_COMMAND ./b2
                 variant=release
-                #cxxflags="-std=c++11 -stdlib=libc++"
-                cxxflags=-std=c++11
-                #linkflags="-stdlib=libc++"
+                "cxxflags=-std=c++11 -fPIC "
                 link=static
                 threading=multi
                 runtime-link=shared
@@ -158,9 +155,7 @@ function (mif_add_boost_project from_git)
             CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${BOOST_LIBRARIES}
             BUILD_COMMAND ./b2
                 variant=release
-                #cxxflags="-std=c++11 -stdlib=libc++"
-                cxxflags=-std=c++11
-                #linkflags="-stdlib=libc++"
+                "cxxflags=-std=c++11 -fPIC "
                 link=static
                 threading=multi
                 runtime-link=shared
@@ -190,8 +185,14 @@ endif()
 
 set (BOOST_LIBS_LIST "")
 foreach (boost_lib ${BOOST_LIBRARIES})
-    set (BOOST_LIBS_LIST "${BOOST_LIBS_LIST}boost_${boost_lib} ")
+    list (APPEND BOOST_LIBS_LIST boost_${boost_lib})
 endforeach()
 unset (BOOST_LIBRARIES)
 set (BOOST_LIBRARIES ${BOOST_LIBS_LIST})
 unset (BOOST_LIBS_LIST)
+
+foreach (lib ${MIF_THIRD_PARTY_LIBS})
+    list (APPEND MIF_THIRD_PARTY_PROJECTS ${lib}-project)
+endforeach()
+
+list (APPEND MIF_THIRD_PARTY_PROJECTS boost-project)
