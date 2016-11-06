@@ -18,14 +18,13 @@ set (ZLIB_LIBRARIES
 )
 
 set (BOOST_LIBRARIES
-    "log"
-    "log_setup"
-    "thread"
-    "date_time"
-    "filesystem"
-    "system"
-    "serialization"
-#    "iostreams"
+    log
+    thread
+    date_time
+    filesystem
+    system
+    serialization
+    iostreams
 )
 
 set (EVENT_LIBRARIES
@@ -131,20 +130,20 @@ function (mif_add_boost_project from_git)
     set (BOOST_LIBRARIES_DIR ${BOSST_INSTALL_DIR}/lib)
     include_directories (SYSTEM ${BOOST_INCLUDE_DIR})
     link_directories(${BOOST_LIBRARIES_DIR})
+    foreach (lib ${BOOST_LIBRARIES})
+        if (DEFINED MIF_LIB_BOOST_LIB_LIST)
+            set (MIF_LIB_BOOST_LIB_LIST "${MIF_LIB_BOOST_LIB_LIST},")
+        endif()
+        set (MIF_LIB_BOOST_LIB_LIST "${MIF_LIB_BOOST_LIB_LIST}${lib}")
+    endforeach()
     if (from_git)
         ExternalProject_Add(boost-project
             GIT_REPOSITORY ${MIF_BOOST_GITHUB_URL}
             GIT_TAG ${MIF_BOOST_GITHUB_TAG}
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${BOOST_LIBRARIES}
-            BUILD_COMMAND ./b2
-                variant=release
-                "cxxflags=-std=c++11 -fPIC "
-                link=static
-                threading=multi
-                runtime-link=shared
-                install -j6
+            CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
+            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config cxxflags=-std=c++11 link=static threading=multi runtime-link=static
             INSTALL_COMMAND ""
         )
     else()
@@ -152,14 +151,8 @@ function (mif_add_boost_project from_git)
             SOURCE_DIR ${MIF_BOOST_LOCAL_PATH}
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${BOOST_LIBRARIES}
-            BUILD_COMMAND ./b2
-                variant=release
-                "cxxflags=-std=c++11 -fPIC "
-                link=static
-                threading=multi
-                runtime-link=shared
-                install -j6
+            CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
+            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config cxxflags=-std=c++11 link=static threading=multi runtime-link=static
             INSTALL_COMMAND ""
         )
     endif()

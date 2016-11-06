@@ -25,6 +25,9 @@ set (MIF_DEPENDENCIES_LIBRARIES
 #    ${EVENT_LIBRARIES}
 )
 
+include_directories (include)
+include_directories (MIF_SOURCES)
+
 add_library ("${PROJECT_LC}_obj" OBJECT ${MIF_SOURCES})
 add_dependencies ("${PROJECT_LC}_obj" ${MIF_THIRD_PARTY_PROJECTS})
 
