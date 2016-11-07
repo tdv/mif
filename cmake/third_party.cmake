@@ -18,13 +18,12 @@ set (ZLIB_LIBRARIES
 )
 
 set (BOOST_LIBRARIES
-    log
-    thread
-    date_time
-    filesystem
-    system
-    serialization
     iostreams
+    serialization
+    log
+    filesystem
+    thread
+    system
 )
 
 set (EVENT_LIBRARIES
@@ -143,7 +142,7 @@ function (mif_add_boost_project from_git)
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
             CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
-            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config cxxflags=-std=c++11 link=static threading=multi runtime-link=static
+            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=c++11 -fPIC" link=static threading=multi runtime-link=static
             INSTALL_COMMAND ""
         )
     else()
@@ -152,7 +151,7 @@ function (mif_add_boost_project from_git)
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
             CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
-            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config cxxflags=-std=c++11 link=static threading=multi runtime-link=static
+            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=c++11 -fPIC" link=static threading=multi runtime-link=static
             INSTALL_COMMAND ""
         )
     endif()
