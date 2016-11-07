@@ -1,0 +1,11 @@
+# zlib
+set (MIF_ZLIB_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/zlib/")
+
+# boost
+set (MIF_BOOST_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/boost/")
+
+# jsoncpp
+set (MIF_JSONCPP_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/jsoncpp/")
+
+# libevent
+set (MIF_EVENT_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/libevent/")
