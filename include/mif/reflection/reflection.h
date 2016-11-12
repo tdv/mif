@@ -71,6 +71,12 @@ namespace Mif
         template <typename T>
         using Reflect = Detail::Class<T>;
 
+        template <typename T>
+        inline constexpr bool IsReflectable()
+        {
+            return !std::is_same<typename Detail::Registry::Registry<T>::Type, Detail::Registry::None>::value;
+        }
+
     }   // namespace Reflection
 }   // namespace Mif
 

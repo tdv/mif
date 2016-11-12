@@ -38,7 +38,7 @@ namespace Mif
         {
             static std::string const GetString()
             {
-                return { Str ... };
+                return std::string{ Str ... }.c_str();
             }
         };
 
