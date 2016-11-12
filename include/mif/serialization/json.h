@@ -340,7 +340,8 @@ namespace Mif
                     if ((root.isNull() || !root.isMember(Tag::Id::GetString()) || !root.isMember(Tag::Value::GetString())) ||
                         (root.type() != ::Json::objectValue && !root.isConvertibleTo(::Json::objectValue)))
                     {
-                        throw std::invalid_argument{""};
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
+                            "Value is null or json has no pair type object."};
                     }
 
                     JsonToValue(root.get(Tag::Id::GetString(), ::Json::Value{}),
@@ -362,7 +363,8 @@ namespace Mif
                 {
                     if (root.isNull() || (root.type() != ::Json::arrayValue && !root.isConvertibleTo(::Json::arrayValue)))
                     {
-                        throw std::invalid_argument{""};
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
+                            "Value is null or json has no tuple type object."};
                     }
 
                     using TupleType = std::tuple<T ... >;
@@ -383,7 +385,8 @@ namespace Mif
                 {
                     if (root.isNull() || (root.type() != ::Json::arrayValue && !root.isConvertibleTo(::Json::arrayValue)))
                     {
-                        throw std::invalid_argument{""};
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
+                            "Value is null or json has no array type object."};
                     }
 
                     std::array<T, N> tmp;
