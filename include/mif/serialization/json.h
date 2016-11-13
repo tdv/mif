@@ -56,6 +56,56 @@ namespace Mif
                 struct BasesDeserializer;
 
                 template <typename T>
+                typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
+                ValueToJson(T const &object);
+
+                template <typename T>
+                typename std::enable_if<Reflection::IsReflectable<T>(), ::Json::Value>::type
+                ValueToJson(T const &object);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsSmartPointer<T>(), ::Json::Value>::type
+                ValueToJson(T const &ptr);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
+                ValueToJson(T const &array);
+
+                template <typename ... T>
+                ::Json::Value ValueToJson(std::tuple<T ... > const &tuple);
+
+                template <typename TFirst, typename TSecond>
+                ::Json::Value ValueToJson(std::pair<TFirst, TSecond> const &pair);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsSimple<T>(), T>::type&
+                JsonToValue(::Json::Value const &root, T &object);
+
+                template <typename T>
+                typename std::enable_if<Reflection::IsReflectable<T>(), T>::type&
+                JsonToValue(::Json::Value const &root, T &object);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsSmartPointer<T>(), T>::type&
+                JsonToValue(::Json::Value const &root, T &object);
+
+                template <typename TFirst, typename TSecond>
+                std::pair<TFirst, TSecond>&
+                JsonToValue(::Json::Value const &root, std::pair<TFirst, TSecond> &pair);
+
+                template <typename ... T>
+                std::tuple<T ... >&
+                JsonToValue(::Json::Value const &root, std::tuple<T ... > &tuple);
+
+                template <typename T, std::size_t N>
+                std::array<T, N>&
+                JsonToValue(::Json::Value const &root, std::array<T, N> &array);
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsIterable<T>(), T>::type&
+                JsonToValue(::Json::Value const &root, T &object);
+
+                template <typename T>
                 typename std::enable_if<std::is_pointer<T>::value, ::Json::Value>::type
                 inline ValueToJson(T const &)
                 {
@@ -89,28 +139,29 @@ namespace Mif
                     return ValueToJson(*ptr);
                 }
 
-                template <typename TFirst, typename TSecond>
-                inline ::Json::Value ValueToJson(std::pair<TFirst, TSecond> const &pair)
-                {
-                    ::Json::Value root{::Json::objectValue};
-
-                    root[Tag::Id::GetString()] = ValueToJson(pair.first);
-                    root[Tag::Value::GetString()] = ValueToJson(pair.second);
-
-                    return root;
-                }
-
                 template <typename ... T>
                 inline void Unused(T && ...)
                 {
                 }
 
+                template <typename T>
+                typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
+                inline ValueToJson(T const &array)
+                {
+                    ::Json::Value root{::Json::arrayValue};
+
+                    for (auto const &i : array)
+                        root.append(ValueToJson(i));
+
+                    return root;
+                }
+
                 template <typename T, std::size_t ... Indexes>
-                ::Json::Value TupleToJson(T const &tuple, Common::IndexSequence<Indexes ... > const *)
+                inline ::Json::Value TupleToJson(T const &tuple, Common::IndexSequence<Indexes ... > const *)
                 {
                     ::Json::Value root(::Json::arrayValue);
 
-                    Unused(root[static_cast<::Json::Value::ArrayIndex>(Indexes)] = std::get<Indexes>(tuple) ... );
+                    Unused(root[static_cast<::Json::Value::ArrayIndex>(Indexes)] = ValueToJson(std::get<Indexes>(tuple)) ... );
 
                     return root;
                 }
@@ -122,14 +173,13 @@ namespace Mif
                     return TupleToJson(tuple, static_cast<Common::MakeIndexSequence<std::tuple_size<TupleType>::value> const *>(nullptr));
                 }
 
-                template <typename T>
-                typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
-                inline ValueToJson(T const &array)
+                template <typename TFirst, typename TSecond>
+                inline ::Json::Value ValueToJson(std::pair<TFirst, TSecond> const &pair)
                 {
-                    ::Json::Value root{::Json::arrayValue};
+                    ::Json::Value root{::Json::objectValue};
 
-                    for (auto const &i : array)
-                        root.append(ValueToJson(i));
+                    root[Tag::Id::GetString()] = ValueToJson(pair.first);
+                    root[Tag::Value::GetString()] = ValueToJson(pair.second);
 
                     return root;
                 }

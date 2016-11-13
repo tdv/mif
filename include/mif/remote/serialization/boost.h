@@ -5,8 +5,8 @@
 //  Copyright (C) 2016 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_REMOTE_SERIALIZATION_BOOST_SERIALIZATION_H__
-#define __MIF_REMOTE_SERIALIZATION_BOOST_SERIALIZATION_H__
+#ifndef __MIF_REMOTE_SERIALIZATION_BOOST_H__
+#define __MIF_REMOTE_SERIALIZATION_BOOST_H__
 
 // STD
 #include <cstdint>
@@ -44,6 +44,7 @@
 
 // MIF
 #include "mif/common/types.h"
+#include "mif/remote/serialization/detail/tag.h"
 #include "mif/serialization/boost.h"
 
 namespace Mif
@@ -54,22 +55,6 @@ namespace Mif
         {
             namespace Boost
             {
-                namespace Detail
-                {
-
-                    struct Tag
-                    {
-                        static constexpr auto Uuid = "uuid";
-                        static constexpr auto Type = "type";
-                        static constexpr auto Request = "request";
-                        static constexpr auto Response = "response";
-                        static constexpr auto Instsnce = "instance";
-                        static constexpr auto Interface = "interface";
-                        static constexpr auto Method = "method";
-                        static constexpr auto Param = "prm";
-                    };
-
-                }   // namespace Detail
 
                 template <typename TArchive>
                 class Serializer final
@@ -82,12 +67,12 @@ namespace Mif
                         : m_stream(boost::iostreams::back_inserter(m_result))
                         , m_archive(new TArchive(m_stream))
                     {
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Uuid, uuid);
-                        std::string type = isReques ? Detail::Tag::Request : Detail::Tag::Response;
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Type, type);
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce, instanceId);
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Interface, interfaceId);
-                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Method, methodId);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Uuid::GetString(), uuid);
+                        std::string type = isReques ? Detail::Tag::Request::GetString() : Detail::Tag::Response::GetString();
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Type::GetString(), type);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Instsnce::GetString(), instanceId);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Interface::GetString(), interfaceId);
+                        *m_archive << boost::serialization::make_nvp(Detail::Tag::Method::GetString(), methodId);
                         SaveParams(1, std::forward<TParams>(params) ... );
                     }
 
@@ -122,7 +107,7 @@ namespace Mif
                     template <typename TParam, typename ... TParams>
                     void SaveParams(std::size_t index, TParam && param, TParams && ... params)
                     {
-                        *m_archive << boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(index)).c_str(), param);
+                        *m_archive << boost::serialization::make_nvp((Detail::Tag::Param::GetString() + std::to_string(index)).c_str(), param);
                         SaveParams(index + 1, std::forward<TParams>(params) ... );
                     }
 
@@ -143,11 +128,11 @@ namespace Mif
                     {
                         if (m_buffer.empty())
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Boost::Deserializer] Empty buffer."};
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Uuid, m_uuid);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Type, m_type);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Instsnce, m_instance);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Interface, m_interface);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Method, m_method);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Uuid::GetString(), m_uuid);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Type::GetString(), m_type);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Instsnce::GetString(), m_instance);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Interface::GetString(), m_interface);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Method::GetString(), m_method);
                     }
 
                     std::string const& GetUuid() const
@@ -157,12 +142,12 @@ namespace Mif
 
                     bool IsRequest() const
                     {
-                        return GetType() == Detail::Tag::Request;
+                        return GetType() == Detail::Tag::Request::GetString();
                     }
 
                     bool IsResponse() const
                     {
-                        return GetType() == Detail::Tag::Response;
+                        return GetType() == Detail::Tag::Response::GetString();
                     }
 
                     std::string const& GetType() const
@@ -218,7 +203,7 @@ namespace Mif
                                    TParams &params) const
                     {
                         auto &param = std::get<std::tuple_size<TParams>::value - Index>(params);
-                        m_archive >> boost::serialization::make_nvp((Detail::Tag::Param + std::to_string(Index)).c_str(), param);
+                        m_archive >> boost::serialization::make_nvp((Detail::Tag::Param::GetString() + std::to_string(Index)).c_str(), param);
                         LoadParams(reinterpret_cast
                                     <
                                         std::integral_constant
@@ -240,4 +225,4 @@ namespace Mif
 }   // namespace Mif
 
 
-#endif  // !__MIF_REMOTE_SERIALIZATION_BOOST_SERIALIZATION_H__
+#endif  // !__MIF_REMOTE_SERIALIZATION_BOOST_H__

@@ -16,7 +16,7 @@
 #include <mif/net/client_factory.h>
 #include <mif/net/tcp_server.h>
 #include <mif/remote/serialization/serialization.h>
-#include <mif/remote/serialization/boost/serialization.h>
+#include <mif/remote/serialization/boost.h>
 #include <mif/remote/stub_client.h>
 #include <mif/service/service_factory.h>
 

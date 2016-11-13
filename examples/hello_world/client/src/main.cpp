@@ -17,7 +17,7 @@
 #include <mif/net/tcp_clients.h>
 #include <mif/remote/proxy_client.h>
 #include <mif/remote/serialization/serialization.h>
-#include <mif/remote/serialization/boost/serialization.h>
+#include <mif/remote/serialization/boost.h>
 
 // COMMON
 #include "common/ps/ihello_world.h"
