@@ -103,6 +103,16 @@ int main(int argc, char const **argv)
             std::cout << "Removed account " << id << std::endl;
             auto const &employees = service->GetEmployees();
             ShowEmployees(employees);
+
+            try
+            {
+                std::cout << "Removed again account " << id << std::endl;
+                service->RemoveAccount(id);
+            }
+            catch (std::exception const &e)
+            {
+                std::cerr << "Error: " << e.what() << std::endl;
+            }
         }
 
         std::cout << "Press Enter for quit." << std::endl;

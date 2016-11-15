@@ -61,6 +61,25 @@ namespace Mif
                         m_value[Detail::Tag::Param::GetString()] = ::Mif::Serialization::Json::Detail::ValueToJson(tuple);
                     }
 
+                    void PutException(std::exception_ptr ex)
+                    {
+                        if (m_value.isMember(Detail::Tag::Exception::GetString()))
+                            m_value.removeMember(Detail::Tag::Exception::GetString());
+
+                        try
+                        {
+                            std::rethrow_exception(ex);
+                        }
+                        catch (std::exception const &e)
+                        {
+                            m_value[Detail::Tag::Exception::GetString()] = e.what();
+                        }
+                        catch (...)
+                        {
+                            m_value[Detail::Tag::Exception::GetString()] = "Unknown exception.";
+                        }
+                    }
+
                     Common::Buffer GetBuffer()
                     {
                         ::Json::FastWriter writer;
@@ -143,6 +162,31 @@ namespace Mif
                     std::tuple<typename std::decay<TParams>::type ... > GetParams() const
                     {
                         return GetParamsIfExists<TParams ... >();
+                    }
+
+                    bool HasException() const
+                    {
+                        return m_value.isMember(Detail::Tag::Exception::GetString());
+                    }
+
+                    std::exception_ptr GetException() const
+                    {
+                        std::exception_ptr ex{};
+
+                        if (HasException())
+                        {
+                            try
+                            {
+                                auto message = m_value.get(Detail::Tag::Exception::GetString(), "").asString();
+                                throw std::runtime_error{std::move(message)};
+                            }
+                            catch (...)
+                            {
+                                ex = std::current_exception();
+                            }
+                        }
+
+                        return ex;
                     }
 
                 private:

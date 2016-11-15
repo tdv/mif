@@ -121,6 +121,9 @@ namespace Mif
                                 "not found. Needed method \"" + method + "\""};
                         }
 
+                        if (deserializer->HasException())
+                            std::rethrow_exception(deserializer->GetException());
+
                         return ResultExtractor<TResult>::Extract(*deserializer);
                     }
                     catch (std::exception const &e)
@@ -169,13 +172,9 @@ namespace Mif
                         auto const &method = request.GetMethod();
                         InvokeMethod(instance, method, &request, &response);
                     }
-                    catch (ProxyStubException const &)
+                    catch (...)
                     {
-                        throw;
-                    }
-                    catch (std::exception const &e)
-                    {
-                        throw ProxyStubException{"[Mif::Remote::Stub::Call] Failed to call method Error: " + std::string{e.what()}};
+                        response.PutException(std::current_exception());
                     }
                 }
 

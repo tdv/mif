@@ -47,6 +47,7 @@ void MyCompanyService::RemoveAccount(Data::ID const &id)
     {
         std::cout << "RemoveAccount. "
             << "Employee with id " << id << " not found." << std::endl;
+        throw std::runtime_error{"RemoveAccount. Employee with id " + id + " not found."};
     }
     else
     {

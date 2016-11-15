@@ -30,6 +30,7 @@ namespace Mif
                     MIF_DECLARE_SRTING_PROVIDER(Interface, "interface")
                     MIF_DECLARE_SRTING_PROVIDER(Method, "method")
                     MIF_DECLARE_SRTING_PROVIDER(Param, "prm")
+                    MIF_DECLARE_SRTING_PROVIDER(Exception, "exception")
 
                 }   // namespace Tag
             }   // namespace Detail

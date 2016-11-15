@@ -24,6 +24,7 @@
 // MIF
 #include "mif/common/index_sequence.h"
 #include "mif/common/static_string.h"
+#include "mif/common/unused.h"
 #include "mif/reflection/reflection.h"
 #include "mif/serialization/traits.h"
 
@@ -139,11 +140,6 @@ namespace Mif
                     return ValueToJson(*ptr);
                 }
 
-                template <typename ... T>
-                inline void Unused(T && ...)
-                {
-                }
-
                 template <typename T>
                 typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
                 inline ValueToJson(T const &array)
@@ -161,7 +157,7 @@ namespace Mif
                 {
                     ::Json::Value root(::Json::arrayValue);
 
-                    Unused(root[static_cast<::Json::Value::ArrayIndex>(Indexes)] = ValueToJson(std::get<Indexes>(tuple)) ... );
+                    Common::Unused(root[static_cast<::Json::Value::ArrayIndex>(Indexes)] = ValueToJson(std::get<Indexes>(tuple)) ... );
 
                     return root;
                 }
@@ -404,7 +400,7 @@ namespace Mif
                 template <typename T, std::size_t ... Indexes>
                 inline void JsonToTuple(::Json::Value const &root, T &tuple, Common::IndexSequence<Indexes ... > const *)
                 {
-                    Unused(JsonToValue(root.get(static_cast<::Json::Value::ArrayIndex>(Indexes), ::Json::Value{}), std::get<Indexes>(tuple)) ... );
+                    Common::Unused(JsonToValue(root.get(static_cast<::Json::Value::ArrayIndex>(Indexes), ::Json::Value{}), std::get<Indexes>(tuple)) ... );
                 }
 
                 template <typename ... T>
@@ -426,7 +422,7 @@ namespace Mif
                 template <typename T, std::size_t ... Indexes>
                 inline void JsonToArray(::Json::Value const &root, std::array<T, sizeof ... (Indexes)> &array, Common::IndexSequence<Indexes ... > const *)
                 {
-                    Unused(JsonToValue(root.get(static_cast<::Json::Value::ArrayIndex>(Indexes), ::Json::Value{}), array[Indexes]) ... );
+                    Common::Unused(JsonToValue(root.get(static_cast<::Json::Value::ArrayIndex>(Indexes), ::Json::Value{}), array[Indexes]) ... );
                 }
 
                 template <typename T, std::size_t N>
