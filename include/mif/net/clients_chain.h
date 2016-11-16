@@ -70,6 +70,11 @@ namespace Mif
             m_client->OnData(std::move(buffer));
         }
 
+        virtual void Close() override final
+        {
+            m_client->OnClose();
+        }
+
         template <typename ... T, typename ... TCreators>
         typename std::enable_if<sizeof ... (T) == 1, std::shared_ptr<IHolder>>::type
         CreateChain(std::shared_ptr<IHolder> prev, TCreators && ... creators)
@@ -120,6 +125,10 @@ namespace Mif
             virtual void OnData(Common::Buffer buffer) override final
             {
                 m_owner.Post(std::move(buffer));
+            }
+
+            virtual void OnClose() override final
+            {
             }
 
             // IPublisher
@@ -193,6 +202,12 @@ namespace Mif
             virtual void OnData(Common::Buffer buffer) override final
             {
                 m_client->OnData(std::move(buffer));
+            }
+
+            virtual void OnClose() override final
+            {
+                m_client->OnClose();
+                m_next->OnClose();
             }
 
             // IHolder

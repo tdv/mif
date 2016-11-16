@@ -20,6 +20,7 @@ namespace Mif
         {
             virtual ~IHandler() = default;
             virtual void OnData(Common::Buffer buffer) = 0;
+            virtual void OnClose() = 0;
         };
 
     }   // namespace Net

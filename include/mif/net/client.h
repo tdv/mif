@@ -9,6 +9,7 @@
 #define __MIF_NET_CLIENT_H__
 
 // STD
+#include <atomic>
 #include <memory>
 
 // MIF
@@ -30,16 +31,20 @@ namespace Mif
 
             // IHandler
             virtual void OnData(Common::Buffer buffer) override final;
+            virtual void OnClose() override final;
 
         private:
+            std::atomic<bool> m_makredAsClosed{false};
             std::weak_ptr<IControl> m_control;
             std::weak_ptr<IPublisher> m_publisher;
 
         protected:
             bool CloseMe();
             bool Post(Common::Buffer buffer);
+            bool IsClosed() const;
 
             virtual void ProcessData(Common::Buffer /*buffer*/);
+            virtual void Close();
         };
 
     }   // namespace Net

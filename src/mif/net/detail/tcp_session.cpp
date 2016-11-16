@@ -82,12 +82,22 @@ namespace Mif
                         {
                             try
                             {
+                                self->m_client->OnClose();
+                            }
+                            catch (std::exception const &e)
+                            {
+                                MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::CloseMe]. "
+                                    << "Failed to call OnClose for client. Error: " << e.what();
+                            }
+
+                            try
+                            {
                                 self->m_socket.close();
                             }
                             catch (std::exception const &e)
                             {
                                 MIF_LOG(Warning) << "[Mif::Net::Detail::TCPSession::CloseMe]. "
-                                    << "Failed to post 'stop'. Error: " << e.what();
+                                    << "Failed to close client socket. Error: " << e.what();
                             }
                         }
                     );

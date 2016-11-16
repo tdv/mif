@@ -84,7 +84,7 @@ namespace Mif
                 {
                     if (!CloseMe())
                     {
-                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to post request."
+                        throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to post request. "
                             "No channel for post data and failed to close self."};
                     }
                     throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to post request. "
@@ -102,9 +102,14 @@ namespace Mif
                                 [this, &requestId, &iter] ()
                                 {
                                     iter = m_responses.find(requestId);
-                                    return iter != std::end(m_responses);
+                                    return iter != std::end(m_responses) || IsClosed();
                                 }
                             );
+                        if (IsClosed())
+                        {
+                            throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::Send] Failed to send data. "
+                                "Connection was closed by remote server."};
+                        }
                         if (waitResult)
                         {
                             auto deserializer = std::move(iter->second.second);
@@ -176,6 +181,11 @@ namespace Mif
                     throw Detail::ProxyStubException{"[Mif::Remote::ProxyClient::ProcessData] "
                         "Failed to process data. Error: unknown."};
                 }
+            }
+
+            virtual void Close() override final
+            {
+                m_condVar.notify_all();
             }
 
             std::chrono::microseconds GetCurTime() const

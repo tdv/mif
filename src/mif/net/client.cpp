@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 // MIF
+#include "mif/common/log.h"
 #include "mif/net/client.h"
 
 namespace Mif
@@ -24,13 +25,28 @@ namespace Mif
 
         void Client::OnData(Common::Buffer buffer)
         {
+            if (m_makredAsClosed)
+            {
+                MIF_LOG(Warning) << "[Mif::Net::Client::OnData] Data will not be processed. Client is closed.";
+                return;
+            }
+
             if (buffer.empty())
                 throw std::invalid_argument{"[Mif::Net::Client::OnData] No data."};
             ProcessData(std::move(buffer));
         }
 
+        void Client::OnClose()
+        {
+            m_makredAsClosed = true;
+            Close();
+        }
+
         bool Client::CloseMe()
         {
+            if (m_makredAsClosed)
+                return false;
+
             if (auto control = m_control.lock())
             {
                 control->CloseMe();
@@ -41,6 +57,9 @@ namespace Mif
 
         bool Client::Post(Common::Buffer buffer)
         {
+            if (m_makredAsClosed)
+                return false;
+
             if (auto publisher = m_publisher.lock())
             {
                 publisher->Publish(std::move(buffer));
@@ -49,7 +68,16 @@ namespace Mif
             return false;
         }
 
+        bool Client::IsClosed() const
+        {
+            return m_makredAsClosed;
+        }
+
         void Client::ProcessData(Common::Buffer /*buffer*/)
+        {
+        }
+
+        void Client::Close()
         {
         }
 
