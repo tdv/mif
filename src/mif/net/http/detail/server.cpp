@@ -12,7 +12,13 @@
 #include "mif/common/log.h"
 
 // THIS
+#include "request.h"
+#include "response.h"
 #include "server.h"
+
+// TODO: delete this
+#include <event2/buffer.h>
+#include <iostream>
 
 namespace Mif
 {
@@ -205,9 +211,9 @@ namespace Mif
                 {
                     try
                     {
-                        /*HTTPRequest request{req};
-                        HTTPResponse response{req};
-                        m_handler(request, response);*/
+                        Request request{req};
+                        Response response{req};
+                        m_handler(request, response);
                     }
                     catch (std::invalid_argument const &e)
                     {
@@ -233,13 +239,12 @@ namespace Mif
                         std::cout << "Failed to add data to buffer." << std::endl;
                         return;
                     }*/
-                    // TODO: to response object
-                    /*if (evbuffer_add_printf(responseBuffer, "Response from server.\n") == -1)
+                    if (evbuffer_add_printf(responseBuffer, "Response from server.\n") == -1)
                     {
-                        //std::cout << "Failed to add data to buffer." << std::endl;
+                        std::cout << "Failed to add data to buffer." << std::endl;
                         return;
                     }
-                    evhttp_send_reply(req, HTTP_OK, "", responseBuffer);*/
+                    evhttp_send_reply(req, HTTP_OK, "", responseBuffer);
                 }
 
             } // namespace Detail
