@@ -6,6 +6,7 @@
 //-------------------------------------------------------------------
 
 // STD
+#include <cstdlib>
 #include <stdexcept>
 
 // EVENT
@@ -38,7 +39,6 @@ namespace Mif
                 {
                     if (!m_request)
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Request] Empty request pointer."};
-
                     auto const *uri = evhttp_request_get_uri(m_request);
                     if (!uri)
                         throw std::runtime_error{"[Mif::Net::Http::Detail::Request] Failed to get uri."};
@@ -91,14 +91,22 @@ namespace Mif
                 {
                     if (!m_uri)
                         return {};
-                    return ToString(evhttp_uri_get_path(m_uri.get()));
+                    auto const *path = evhttp_uri_get_path(m_uri.get());
+                    if (!path)
+                        return {};
+                    std::unique_ptr<char, decltype(&std::free)> decoded{evhttp_uridecode(path, 0, nullptr), &std::free};
+                    return ToString(decoded.get());
                 }
 
                 std::string Request::GetQuery() const
                 {
                     if (!m_uri)
                         return {};
-                    return ToString(evhttp_uri_get_query(m_uri.get()));
+                    auto const *query = evhttp_uri_get_query(m_uri.get());
+                    if (!query)
+                        return {};
+                    std::unique_ptr<char, decltype(&std::free)> decoded{evhttp_uridecode(query, 0, nullptr), &std::free};
+                    return ToString(decoded.get());
                 }
 
                 std::string Request::GetFragment() const
@@ -156,53 +164,6 @@ namespace Mif
                 {
                     throw std::runtime_error{"[Mif::Net::Http::Detail::Request::Send] Not implemented."};
                 }
-
-                /*int Request::ConvertCode(Code code) const
-                {
-                    enum class Code
-                    {
-                        Ok,
-                        NoContent,
-                        MovePerm,
-                        MoveTemp,
-                        NotModified,
-                        BadRequest,
-                        NotFound,
-                        BadMethod,
-                        Internal,
-                        NotImplemented,
-                        Unavaliable
-                    };
-                    switch (code)
-                    {
-                    case Code::Ok :
-                        return HTTP_OK;
-                    case Code::NoContent :
-                        return HTTP_NOCONTENT;
-                    case Code::MovePerm :
-                        return HTTP_MOVEPERM;
-                    case Code::MoveTemp :
-                        return HTTP_MOVETEMP;
-                    case Code::NotModified :
-                        return HTTP_NOTMODIFIED;
-                    case Code::BadRequest :
-                        return HTTP_BADREQUEST;
-                    case Code::NotFound :
-                        return HTTP_NOTFOUND;
-                    case Code::BadMethod :
-                        return HTTP_BADMETHOD;
-                    case Code::Internal :
-                        return HTTP_INTERNAL;
-                    case Code::NotImplemented :
-                        return HTTP_NOTIMPLEMENTED;
-                    case Code::Unavaliable :
-                        return HTTP_SERVUNAVAIL;
-                    default :
-                        break;
-                    }
-
-                    throw std::invalid_argument{"[Mif::Net::Http::Detail::Request::ConvertCode] Unknowd HTTP code."};
-                }*/
 
             }   // namespace Detail
         }   // namespace Http

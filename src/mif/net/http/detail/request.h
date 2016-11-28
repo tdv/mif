@@ -9,7 +9,6 @@
 #define __MIF_NET_HTTP_DETAIL_REQUEST_H__
 
 // STD
-#include <cstdlib>
 #include <memory>
 #include <string>
 
@@ -40,7 +39,7 @@ namespace Mif
 
                 private:
                     evhttp_request *m_request;
-                    std::unique_ptr<evhttp_uri, decltype(&std::free)> m_uri{nullptr, &std::free};
+                    std::unique_ptr<evhttp_uri, decltype(&evhttp_uri_free)> m_uri{nullptr, &evhttp_uri_free};
 
                     // IRequest
                     virtual Type GetType() const override final;
