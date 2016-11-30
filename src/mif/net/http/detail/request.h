@@ -18,9 +18,6 @@
 // MIF
 #include "mif/net/http/irequest.h"
 
-// THIS
-#include "isender.h"
-
 namespace Mif
 {
     namespace Net
@@ -32,7 +29,6 @@ namespace Mif
 
                 class Request final
                     : public IRequest
-                    , public ISender
                 {
                 public:
                     Request(evhttp_request *request);
@@ -51,9 +47,6 @@ namespace Mif
                     virtual Params GetParams() const override final;
                     virtual Headers GetHeaders() const override final;
                     virtual Common::Buffer GetData() const override final;
-
-                    // ISender
-                    virtual void Send() override final;
                 };
 
             }   // namespace Detail

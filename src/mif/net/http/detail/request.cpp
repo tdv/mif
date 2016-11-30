@@ -160,11 +160,6 @@ namespace Mif
                     return buffer;
                 }
 
-                void Request::Send()
-                {
-                    throw std::runtime_error{"[Mif::Net::Http::Detail::Request::Send] Not implemented."};
-                }
-
             }   // namespace Detail
         }   // namespace Http
     }   // namespace Net

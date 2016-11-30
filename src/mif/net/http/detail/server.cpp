@@ -16,10 +16,6 @@
 #include "response.h"
 #include "server.h"
 
-// TODO: delete this
-#include <event2/buffer.h>
-#include <iostream>
-
 namespace Mif
 {
     namespace Net
@@ -214,6 +210,7 @@ namespace Mif
                         Request request{req};
                         Response response{req};
                         m_handler(request, response);
+                        response.Send();
                     }
                     catch (std::invalid_argument const &e)
                     {
@@ -227,24 +224,6 @@ namespace Mif
                         reason += e.what();
                         evhttp_send_error(req, HTTP_INTERNAL, reason.c_str());
                     }
-
-                    auto responseBuffer = evhttp_request_get_output_buffer(req);
-                    if (!responseBuffer)
-                    {
-                        //std::cout << "Failed to get response buffer." << std::endl;
-                        return;
-                    }
-                    /*if (evbuffer_add_reference(responseBuffer, data.data(), data.size(), &CleanUpData, nullptr))
-                    {
-                        std::cout << "Failed to add data to buffer." << std::endl;
-                        return;
-                    }*/
-                    if (evbuffer_add_printf(responseBuffer, "Response from server.\n") == -1)
-                    {
-                        std::cout << "Failed to add data to buffer." << std::endl;
-                        return;
-                    }
-                    evhttp_send_reply(req, HTTP_OK, "", responseBuffer);
                 }
 
             } // namespace Detail
