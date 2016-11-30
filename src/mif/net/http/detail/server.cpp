@@ -12,8 +12,8 @@
 #include "mif/common/log.h"
 
 // THIS
-#include "request.h"
-#include "response.h"
+#include "input_pack.h"
+#include "output_pack.h"
 #include "server.h"
 
 namespace Mif
@@ -25,7 +25,7 @@ namespace Mif
             namespace Detail
             {
 
-                Server::Server(RequestHandler const &handler)
+                Server::Server(ServerHandler const &handler)
                     : m_handler{handler}
                 {
                     {
@@ -72,7 +72,7 @@ namespace Mif
                     }
                 }
 
-                Server::Server(std::string const &host, std::string const &port, RequestHandler const &handler)
+                Server::Server(std::string const &host, std::string const &port, ServerHandler const &handler)
                     : Server{handler}
                 {
                     if (host.empty())
@@ -87,7 +87,7 @@ namespace Mif
                     m_socket = evhttp_bound_socket_get_fd(info);
                 }
 
-                Server::Server(evutil_socket_t socket, RequestHandler const &handler)
+                Server::Server(evutil_socket_t socket, ServerHandler const &handler)
                     : Server{handler}
                 {
                     if (socket == -1)
@@ -207,10 +207,10 @@ namespace Mif
                 {
                     try
                     {
-                        Request request{req};
-                        Response response{req};
-                        m_handler(request, response);
-                        response.Send();
+                        InputPack in{req};
+                        OutputPack out{req};
+                        m_handler(in, out);
+                        out.Send();
                     }
                     catch (std::invalid_argument const &e)
                     {

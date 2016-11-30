@@ -5,8 +5,8 @@
 //  Copyright (C) 2016 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_NET_HTTP_IREQUEST_H__
-#define __MIF_NET_HTTP_IREQUEST_H__
+#ifndef __MIF_NET_HTTP_IINPUT_PACK_H__
+#define __MIF_NET_HTTP_IINPUT_PACK_H__
 
 // STD
 #include <map>
@@ -22,7 +22,7 @@ namespace Mif
         namespace Http
         {
 
-            struct IRequest
+            struct IInputPack
             {
                 enum class Type
                 {
@@ -40,7 +40,7 @@ namespace Mif
                 using Params = std::map<std::string, std::string>;
                 using Headers = std::map<std::string, std::string>;
 
-                virtual ~IRequest() = default;
+                virtual ~IInputPack() = default;
 
                 virtual Type GetType() const = 0;
 
@@ -62,4 +62,4 @@ namespace Mif
     }   // namespace Net
 }   // namespace Mif
 
-#endif  // !__MIF_NET_HTTP_IREQUEST_H__
+#endif  // !__MIF_NET_HTTP_IINPUT_PACK_H__

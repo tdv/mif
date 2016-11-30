@@ -27,7 +27,7 @@ namespace Mif
             {
             public:
                 Server(std::string const &host, std::string const &port,
-                    std::uint16_t workers, RequestHandler const &handler);
+                    std::uint16_t workers, ServerHandler const &handler);
 
                 ~Server();
 

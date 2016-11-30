@@ -5,8 +5,8 @@
 //  Copyright (C) 2016 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_NET_HTTP_IRESPONSE_H__
-#define __MIF_NET_HTTP_IRESPONSE_H__
+#ifndef __MIF_NET_HTTP_IOUTPUT_PACK_H__
+#define __MIF_NET_HTTP_IOUTPUT_PACK_H__
 
 // STD
 #include <string>
@@ -21,7 +21,7 @@ namespace Mif
         namespace Http
         {
 
-            struct IResponse
+            struct IOutputPack
             {
                 enum class Code
                 {
@@ -38,7 +38,7 @@ namespace Mif
                     Unavaliable
                 };
 
-                virtual ~IResponse() = default;
+                virtual ~IOutputPack() = default;
 
                 virtual void SetCode(Code code) = 0;
                 virtual void SetReason(std::string const &reason) = 0;
@@ -51,4 +51,4 @@ namespace Mif
     }   // namespace Net
 }   // namespace Mif
 
-#endif  // !__MIF_NET_HTTP_IRESPONSE_H__
+#endif  // !__MIF_NET_HTTP_IOUTPUT_PACK_H__

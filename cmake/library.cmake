@@ -19,8 +19,8 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server_thread.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/lib_event_initializer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/request.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/response.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/input_pack.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/output_pack.cpp
 )
 
 set (MIF_DEPENDENCIES_LIBRARIES

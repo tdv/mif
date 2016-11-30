@@ -38,8 +38,8 @@ namespace Mif
                     Server(Server &&) = delete;
                     Server& operator = (Server &&) = delete;
 
-                    Server(std::string const &host, std::string const &port, RequestHandler const &handler);
-                    Server(evutil_socket_t socket, RequestHandler const &handler);
+                    Server(std::string const &host, std::string const &port, ServerHandler const &handler);
+                    Server(evutil_socket_t socket, ServerHandler const &handler);
 
                     ~Server() noexcept;
 
@@ -48,7 +48,7 @@ namespace Mif
                     void Stop();
 
                 private:
-                    RequestHandler m_handler;
+                    ServerHandler m_handler;
                     evutil_socket_t m_socket = -1;
 
                     using EventPtr = std::unique_ptr<event, decltype(&event_free)>;
@@ -64,7 +64,7 @@ namespace Mif
                     EventPtr m_timer{nullptr, &event_free};
                     HttpPtr m_http{nullptr, &evhttp_free};
 
-                    Server(RequestHandler const &handler);
+                    Server(ServerHandler const &handler);
 
                     static void OnTimer(evutil_socket_t, short, void *arg);
                     static void OnRequest(evhttp_request *req, void *arg);

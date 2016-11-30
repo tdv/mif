@@ -20,7 +20,7 @@ namespace Mif
             namespace Detail
             {
 
-                ServerThread::ServerThread(std::string const &host, std::string const &port, RequestHandler const &handler)
+                ServerThread::ServerThread(std::string const &host, std::string const &port, ServerHandler const &handler)
                 {
                     m_thread.reset(new std::thread{[this, &host, &port, &handler]()
                             {
@@ -43,7 +43,7 @@ namespace Mif
                         std::rethrow_exception(m_exception);
                 }
 
-                ServerThread::ServerThread(evutil_socket_t socket, RequestHandler const &handler)
+                ServerThread::ServerThread(evutil_socket_t socket, ServerHandler const &handler)
                 {
                     m_thread.reset(new std::thread{[this, &socket, &handler]()
                             {

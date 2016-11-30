@@ -12,8 +12,8 @@
 #include <functional>
 
 // MIF
-#include "mif/net/http/irequest.h"
-#include "mif/net/http/iresponse.h"
+#include "mif/net/http/iinput_pack.h"
+#include "mif/net/http/ioutput_pack.h"
 
 namespace Mif
 {
@@ -22,7 +22,8 @@ namespace Mif
         namespace Http
         {
 
-            using RequestHandler = std::function<void (IRequest const &, IResponse &)>;
+            using ServerHandler = std::function<void (IInputPack const &, IOutputPack &)>;
+            using ClientHandler = std::function<void (IOutputPack &, IInputPack const &)>;
 
         }   // namespace Http
     }   // namespace Net

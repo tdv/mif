@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 // THIS
-#include "response.h"
+#include "output_pack.h"
 
 namespace Mif
 {
@@ -21,28 +21,28 @@ namespace Mif
             namespace Detail
             {
 
-                Response::Response(evhttp_request *request)
+                OutputPack::OutputPack(evhttp_request *request)
                     : m_request{request}
                 {
                     if (!m_request)
-                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Response] Empty request pointer."};
+                        throw std::invalid_argument{"[Mif::Net::Http::Detail::OutputPack] Empty request pointer."};
 
                     if (!(m_responseBuffer = evhttp_request_get_output_buffer(m_request)))
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Response] Failed to get output buffer."};
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to get output buffer."};
 
                     if (!(m_headers = evhttp_request_get_output_headers(m_request)))
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Response] Failed to get output headers."};
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to get output headers."};
                 }
 
-                void Response::Send()
+                void OutputPack::Send()
                 {
                     {
                         std::unique_ptr<Common::Buffer> buffer{!m_buffer.empty() ? new Common::Buffer{std::move(m_buffer)} : nullptr};
                         auto *data = buffer ? buffer->data() : nullptr;
                         auto const size = buffer ? buffer->size() : 0;
-                        if (evbuffer_add_reference(m_responseBuffer, data, size, &Response::CleanUpData, buffer.get()))
+                        if (evbuffer_add_reference(m_responseBuffer, data, size, &OutputPack::CleanUpData, buffer.get()))
                         {
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::Response] Failed to set data."};
+                            throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to set data."};
                         }
                         buffer.release();
                     }
@@ -51,43 +51,43 @@ namespace Mif
                     evhttp_send_reply(m_request, code, m_reason.c_str(), m_responseBuffer);
                 }
 
-                void Response::SetCode(Code code)
+                void OutputPack::SetCode(Code code)
                 {
                     m_code = code;
                 }
 
-                void Response::SetReason(std::string const &reason)
+                void OutputPack::SetReason(std::string const &reason)
                 {
                     m_reason = reason;
                 }
 
-                void Response::SetHeader(std::string const &key, std::string const &value)
+                void OutputPack::SetHeader(std::string const &key, std::string const &value)
                 {
                     if (key.empty())
-                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Response::AddHeader] Key must not be empty."};
+                        throw std::invalid_argument{"[Mif::Net::Http::Detail::OutputPack::AddHeader] Key must not be empty."};
                     if (value.empty())
-                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Response::AddHeader] Value must not be empty."};
+                        throw std::invalid_argument{"[Mif::Net::Http::Detail::OutputPack::AddHeader] Value must not be empty."};
 
                     if (evhttp_add_header(m_headers, key.c_str(), value.c_str()))
                     {
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Response::AddHeader] Failed to set header. "
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack::AddHeader] Failed to set header. "
                             "Key: \"" + key + "\"\tValue: \"" + value + "\""};
                     }
                 }
 
-                void Response::SetData(Common::Buffer buffer)
+                void OutputPack::SetData(Common::Buffer buffer)
                 {
                     m_buffer = std::move(buffer);
                 }
 
-                void Response::CleanUpData(void const *data, size_t datalen, void *extra)
+                void OutputPack::CleanUpData(void const *data, size_t datalen, void *extra)
                 {
                     (void)data;
                     (void)datalen;
                     delete reinterpret_cast<Common::Buffer *>(extra);
                 }
 
-                int Response::ConvertCode(Code code) const
+                int OutputPack::ConvertCode(Code code) const
                 {
                     switch (code)
                     {
@@ -117,7 +117,7 @@ namespace Mif
                         break;
                     }
 
-                    throw std::invalid_argument{"[Mif::Net::Http::Detail::Response::ConvertCode] Unknowd HTTP code."};
+                    throw std::invalid_argument{"[Mif::Net::Http::Detail::OutputPack::ConvertCode] Unknowd HTTP code."};
                 }
 
             }   // namespace Detail

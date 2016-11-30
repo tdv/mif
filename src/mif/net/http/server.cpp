@@ -25,7 +25,7 @@ namespace Mif
             class Server::Impl final
             {
             public:
-                Impl(std::string const &host, std::string const &port, std::uint16_t workers, RequestHandler const &handler)
+                Impl(std::string const &host, std::string const &port, std::uint16_t workers, ServerHandler const &handler)
                 {
                     Detail::LibEventInitializer::Init();
 
@@ -56,7 +56,7 @@ namespace Mif
             };
 
 
-            Server::Server(std::string const &host, std::string const &port, std::uint16_t workers, RequestHandler const &handler)
+            Server::Server(std::string const &host, std::string const &port, std::uint16_t workers, ServerHandler const &handler)
                 : m_impl{new Impl{host, port, workers, handler}}
             {
             }

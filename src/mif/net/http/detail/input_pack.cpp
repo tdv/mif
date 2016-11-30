@@ -14,7 +14,7 @@
 #include <event2/keyvalq_struct.h>
 
 // THIS
-#include "request.h"
+#include "input_pack.h"
 
 namespace Mif
 {
@@ -34,20 +34,20 @@ namespace Mif
 
                 }   // namespace
 
-                Request::Request(evhttp_request *request)
+                InputPack::InputPack(evhttp_request *request)
                     : m_request{request}
                 {
                     if (!m_request)
-                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Request] Empty request pointer."};
+                        throw std::invalid_argument{"[Mif::Net::Http::Detail::InputPack] Empty request pointer."};
                     auto const *uri = evhttp_request_get_uri(m_request);
                     if (!uri)
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Request] Failed to get uri."};
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to get uri."};
                     m_uri.reset(evhttp_uri_parse(uri));
                     if (!m_uri)
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Request] Failed to parse uri."};
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to parse uri."};
                 }
 
-                Request::Type Request::GetType() const
+                InputPack::Type InputPack::GetType() const
                 {
                     switch (evhttp_request_get_command(m_request))
                     {
@@ -75,19 +75,19 @@ namespace Mif
                     return {};
                 }
 
-                std::string Request::GetHost() const
+                std::string InputPack::GetHost() const
                 {
                     return ToString(evhttp_request_get_host(m_request));
                 }
 
-                std::string Request::GetSchema() const
+                std::string InputPack::GetSchema() const
                 {
                     if (!m_uri)
                         return {};
                     return ToString(evhttp_uri_get_scheme(m_uri.get()));
                 }
 
-                std::string Request::GetPath() const
+                std::string InputPack::GetPath() const
                 {
                     if (!m_uri)
                         return {};
@@ -98,7 +98,7 @@ namespace Mif
                     return ToString(decoded.get());
                 }
 
-                std::string Request::GetQuery() const
+                std::string InputPack::GetQuery() const
                 {
                     if (!m_uri)
                         return {};
@@ -109,14 +109,14 @@ namespace Mif
                     return ToString(decoded.get());
                 }
 
-                std::string Request::GetFragment() const
+                std::string InputPack::GetFragment() const
                 {
                     if (!m_uri)
                         return {};
                     return ToString(evhttp_uri_get_fragment(m_uri.get()));
                 }
 
-                Request::Params Request::GetParams() const
+                InputPack::Params InputPack::GetParams() const
                 {
                     auto const &query = GetQuery();
                     if (query.empty())
@@ -124,7 +124,7 @@ namespace Mif
 
                     evkeyvalq params;
                     if (evhttp_parse_query_str(query.c_str(), &params))
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Request] Failed to parse query."};
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to parse query."};
 
                     Params result;
                     for (evkeyval *i = params.tqh_first ; i ; i = i->next.tqe_next)
@@ -133,7 +133,7 @@ namespace Mif
                     return result;
                 }
 
-                Request::Headers Request::GetHeaders() const
+                InputPack::Headers InputPack::GetHeaders() const
                 {
                     auto const *headers = evhttp_request_get_input_headers(m_request);
                     if (!headers)
@@ -146,7 +146,7 @@ namespace Mif
                     return result;
                 }
 
-                Common::Buffer Request::GetData() const
+                Common::Buffer InputPack::GetData() const
                 {
                     auto *inputBuffer = evhttp_request_get_input_buffer(m_request);
                     if (!inputBuffer)
@@ -156,7 +156,7 @@ namespace Mif
                         return {};
                     Common::Buffer buffer(length);
                     if (evbuffer_copyout(inputBuffer, &buffer[0], length) != static_cast<ev_ssize_t>(length))
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::Request::GetData] Failed to copy buffer."};
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack::GetData] Failed to copy buffer."};
                     return buffer;
                 }
 

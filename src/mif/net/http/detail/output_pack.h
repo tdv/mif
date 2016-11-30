@@ -5,15 +5,15 @@
 //  Copyright (C) 2016 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_NET_HTTP_DETAIL_RESPONSE_H__
-#define __MIF_NET_HTTP_DETAIL_RESPONSE_H__
+#ifndef __MIF_NET_HTTP_DETAIL_OUTPUT_PACK_H__
+#define __MIF_NET_HTTP_DETAIL_OUTPUT_PACK_H__
 
 // EVENT
 #include <event2/buffer.h>
 #include <event2/http.h>
 
 // MIF
-#include "mif/net/http/iresponse.h"
+#include "mif/net/http/ioutput_pack.h"
 
 namespace Mif
 {
@@ -24,11 +24,11 @@ namespace Mif
             namespace Detail
             {
 
-                class Response final
-                    : public IResponse
+                class OutputPack final
+                    : public IOutputPack
                 {
                 public:
-                    Response(evhttp_request *request);
+                    OutputPack(evhttp_request *request);
 
                     void Send();
 
@@ -44,7 +44,7 @@ namespace Mif
                     static void CleanUpData(void const *data, size_t datalen, void *extra);
                     int ConvertCode(Code code) const;
 
-                    // IResponse
+                    // IOutputPack
                     virtual void SetCode(Code code) override final;
                     virtual void SetReason(std::string const &reason) override final;
 
@@ -57,4 +57,4 @@ namespace Mif
     }   // namespace Net
 }   // namespace Mif
 
-#endif  // !__MIF_NET_HTTP_DETAIL_RESPONSE_H__
+#endif  // !__MIF_NET_HTTP_DETAIL_OUTPUT_PACK_H__
