@@ -9,11 +9,13 @@
 #define __MIF_NET_HTTP_IINPUT_PACK_H__
 
 // STD
+#include <cstdint>
 #include <map>
 #include <string>
 
 // MIF
 #include "mif/common/types.h"
+#include "mif/net/http/methods.h"
 
 namespace Mif
 {
@@ -24,29 +26,18 @@ namespace Mif
 
             struct IInputPack
             {
-                enum class Type
-                {
-                    Get,
-                    Post,
-                    Head,
-                    Put,
-                    Delete,
-                    Options,
-                    Trqce,
-                    Connect,
-                    Patch
-                };
-
                 using Params = std::map<std::string, std::string>;
                 using Headers = std::map<std::string, std::string>;
 
                 virtual ~IInputPack() = default;
 
-                virtual Type GetType() const = 0;
+                virtual Method::Type GetType() const = 0;
 
                 virtual std::string GetHost() const = 0;
+                virtual std::uint16_t GetPort() const = 0;
 
                 virtual std::string GetSchema() const = 0;
+                virtual std::string GetUserInfo() const = 0;
                 virtual std::string GetPath() const = 0;
                 virtual std::string GetQuery() const = 0;
                 virtual std::string GetFragment() const = 0;

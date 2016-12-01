@@ -19,6 +19,7 @@
 #include <event2/http.h>
 
 // MIF
+#include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
 
 namespace Mif
@@ -38,8 +39,10 @@ namespace Mif
                     Server(Server &&) = delete;
                     Server& operator = (Server &&) = delete;
 
-                    Server(std::string const &host, std::string const &port, ServerHandler const &handler);
-                    Server(evutil_socket_t socket, ServerHandler const &handler);
+                    Server(std::string const &host, std::string const &port, ServerHandler const &handler,
+                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize);
+                    Server(evutil_socket_t socket, ServerHandler const &handler, Methods const &allowedMethods,
+                        std::size_t headersSize, std::size_t bodySize);
 
                     ~Server() noexcept;
 
@@ -64,7 +67,8 @@ namespace Mif
                     EventPtr m_timer{nullptr, &event_free};
                     HttpPtr m_http{nullptr, &evhttp_free};
 
-                    Server(ServerHandler const &handler);
+                    Server(ServerHandler const &handler, Methods const &allowedMethods,
+                        std::size_t headersSize, std::size_t bodySize);
 
                     static void OnTimer(evutil_socket_t, short, void *arg);
                     static void OnRequest(evhttp_request *req, void *arg);

@@ -15,6 +15,7 @@
 #include "input_pack.h"
 #include "output_pack.h"
 #include "server.h"
+#include "utility.h"
 
 namespace Mif
 {
@@ -25,7 +26,8 @@ namespace Mif
             namespace Detail
             {
 
-                Server::Server(ServerHandler const &handler)
+                Server::Server(ServerHandler const &handler, Methods const &allowedMethods,
+                               std::size_t headersSize, std::size_t bodySize)
                     : m_handler{handler}
                 {
                     {
@@ -54,9 +56,14 @@ namespace Mif
                         if (!http)
                             throw std::runtime_error{"[Mif::Net::Http::Detail::Server] Failed to create http object."};
 
-                        // TODO: get methods from params
-                        evhttp_set_allowed_methods(http.get(), EVHTTP_REQ_GET | EVHTTP_REQ_POST);
+                        auto const methods = Utility::ConvertAllowedMethods(allowedMethods);
+                        evhttp_set_allowed_methods(http.get(), methods);
                         evhttp_set_gencb(http.get(), &Server::OnRequest, this);
+
+                        if (headersSize != static_cast<decltype(headersSize)>(-1))
+                            evhttp_set_max_headers_size(http.get(), headersSize);
+                        if (bodySize != static_cast<decltype(bodySize)>(-1))
+                            evhttp_set_max_body_size(http.get(), bodySize);
 
                         std::swap(http, m_http);
                     }
@@ -72,8 +79,9 @@ namespace Mif
                     }
                 }
 
-                Server::Server(std::string const &host, std::string const &port, ServerHandler const &handler)
-                    : Server{handler}
+                Server::Server(std::string const &host, std::string const &port, ServerHandler const &handler,
+                               Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize)
+                    : Server{handler, allowedMethods, headersSize, bodySize}
                 {
                     if (host.empty())
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Server] Host must not be empty."};
@@ -87,8 +95,9 @@ namespace Mif
                     m_socket = evhttp_bound_socket_get_fd(info);
                 }
 
-                Server::Server(evutil_socket_t socket, ServerHandler const &handler)
-                    : Server{handler}
+                Server::Server(evutil_socket_t socket, ServerHandler const &handler,
+                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize)
+                    : Server{handler, allowedMethods, headersSize, bodySize}
                 {
                     if (socket == -1)
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Server] Invalid input socket."};

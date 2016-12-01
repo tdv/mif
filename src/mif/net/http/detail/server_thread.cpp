@@ -20,13 +20,15 @@ namespace Mif
             namespace Detail
             {
 
-                ServerThread::ServerThread(std::string const &host, std::string const &port, ServerHandler const &handler)
+                ServerThread::ServerThread(std::string const &host, std::string const &port,
+                    ServerHandler const &handler, Methods const &allowedMethods,
+                    std::size_t headersSize, std::size_t bodySize)
                 {
-                    m_thread.reset(new std::thread{[this, &host, &port, &handler]()
+                    m_thread.reset(new std::thread{[this, &host, &port, &handler, &allowedMethods, &headersSize, &bodySize]()
                             {
                                 try
                                 {
-                                    m_server.reset(new Server{host, port, handler});
+                                    m_server.reset(new Server{host, port, handler, allowedMethods, headersSize, bodySize});
                                     m_server->Run();
                                 }
                                 catch (...)
@@ -43,13 +45,14 @@ namespace Mif
                         std::rethrow_exception(m_exception);
                 }
 
-                ServerThread::ServerThread(evutil_socket_t socket, ServerHandler const &handler)
+                ServerThread::ServerThread(evutil_socket_t socket, ServerHandler const &handler,
+                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize)
                 {
-                    m_thread.reset(new std::thread{[this, &socket, &handler]()
+                    m_thread.reset(new std::thread{[this, &socket, &handler, &allowedMethods, &headersSize, &bodySize]()
                             {
                                 try
                                 {
-                                    m_server.reset(new Server{socket, handler});
+                                    m_server.reset(new Server{socket, handler, allowedMethods, headersSize, bodySize});
                                     m_server->Run();
                                 }
                                 catch (...)

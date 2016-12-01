@@ -10,7 +10,6 @@
 
 // STD
 #include <memory>
-#include <string>
 
 // EVENT
 #include <event2/http.h>
@@ -38,9 +37,11 @@ namespace Mif
                     std::unique_ptr<evhttp_uri, decltype(&evhttp_uri_free)> m_uri{nullptr, &evhttp_uri_free};
 
                     // IInputPack
-                    virtual Type GetType() const override final;
+                    virtual Method::Type GetType() const override final;
                     virtual std::string GetHost() const override final;
+                    virtual std::uint16_t GetPort() const override final;
                     virtual std::string GetSchema() const override final;
+                    virtual std::string GetUserInfo() const override final;
                     virtual std::string GetPath() const override final;
                     virtual std::string GetQuery() const override final;
                     virtual std::string GetFragment() const override final;

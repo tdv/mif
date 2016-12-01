@@ -47,32 +47,36 @@ namespace Mif
                         throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to parse uri."};
                 }
 
-                InputPack::Type InputPack::GetType() const
+                Method::Type InputPack::GetType() const
                 {
-                    switch (evhttp_request_get_command(m_request))
+                    auto const type = evhttp_request_get_command(m_request);
+
+                    switch (type)
                     {
                     case EVHTTP_REQ_GET :
-                        return Type::Get;
+                        return Method::Type::Get;
                     case EVHTTP_REQ_POST :
-                        return Type::Post;
+                        return Method::Type::Post;
                     case EVHTTP_REQ_HEAD :
-                        return Type::Head;
+                        return Method::Type::Head;
                     case EVHTTP_REQ_PUT :
-                        return Type::Put;
+                        return Method::Type::Put;
                     case EVHTTP_REQ_DELETE :
-                        return Type::Delete;
+                        return Method::Type::Delete;
                     case EVHTTP_REQ_OPTIONS :
-                        return Type::Options;
+                        return Method::Type::Options;
                     case EVHTTP_REQ_TRACE :
-                        return Type::Trqce;
+                        return Method::Type::Trqce;
                     case EVHTTP_REQ_CONNECT :
-                        return Type::Connect;
+                        return Method::Type::Connect;
                     case EVHTTP_REQ_PATCH :
-                        return Type::Patch;
+                        return Method::Type::Patch;
                     default :
                         break;
                     }
-                    return {};
+
+                    throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack::GetType] Unknown ty0e \""
+                        + std::to_string(type) + "\""};
                 }
 
                 std::string InputPack::GetHost() const
@@ -80,11 +84,25 @@ namespace Mif
                     return ToString(evhttp_request_get_host(m_request));
                 }
 
+                std::uint16_t InputPack::GetPort() const
+                {
+                    if (!m_uri)
+                        return -1;
+                    return evhttp_uri_get_port(m_uri.get());
+                }
+
                 std::string InputPack::GetSchema() const
                 {
                     if (!m_uri)
                         return {};
                     return ToString(evhttp_uri_get_scheme(m_uri.get()));
+                }
+
+                std::string InputPack::GetUserInfo() const
+                {
+                    if (!m_uri)
+                        return {};
+                    return ToString(evhttp_uri_get_userinfo(m_uri.get()));
                 }
 
                 std::string InputPack::GetPath() const

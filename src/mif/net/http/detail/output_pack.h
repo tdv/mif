@@ -42,7 +42,6 @@ namespace Mif
                     Common::Buffer m_buffer;
 
                     static void CleanUpData(void const *data, size_t datalen, void *extra);
-                    int ConvertCode(Code code) const;
 
                     // IOutputPack
                     virtual void SetCode(Code code) override final;

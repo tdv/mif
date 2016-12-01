@@ -36,8 +36,10 @@ namespace Mif
                 class ServerThread final
                 {
                 public:
-                    ServerThread(std::string const &host, std::string const &port, ServerHandler const &handler);
-                    ServerThread(evutil_socket_t socket, ServerHandler const &handler);
+                    ServerThread(std::string const &host, std::string const &port, ServerHandler const &handler,
+                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize);
+                    ServerThread(evutil_socket_t socket, ServerHandler const &handler,
+                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize);
 
                     ~ServerThread();
 

@@ -14,6 +14,7 @@
 #include <string>
 
 // MIF
+#include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
 
 namespace Mif
@@ -27,7 +28,11 @@ namespace Mif
             {
             public:
                 Server(std::string const &host, std::string const &port,
-                    std::uint16_t workers, ServerHandler const &handler);
+                    std::uint16_t workers,
+                    Methods const &allowedMethods,
+                    ServerHandler const &handler,
+                    std::size_t headersSize = -1,
+                    std::size_t bodySize = -1);
 
                 ~Server();
 
