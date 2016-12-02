@@ -22,6 +22,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/input_pack.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/output_pack.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/utility.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/connection.cpp
 )
 
 set (MIF_DEPENDENCIES_LIBRARIES

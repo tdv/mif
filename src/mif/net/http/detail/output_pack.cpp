@@ -6,7 +6,6 @@
 //-------------------------------------------------------------------
 
 // STD
-#include <memory>
 #include <stdexcept>
 
 // THIS
@@ -35,6 +34,13 @@ namespace Mif
                         throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to get output headers."};
                 }
 
+                OutputPack::OutputPack(RequestPtr request)
+                    : OutputPack{request.get()}
+                {
+                    m_newRequest = std::move(request);
+                }
+
+
                 void OutputPack::Send()
                 {
                     {
@@ -50,6 +56,16 @@ namespace Mif
 
                     auto const code = Utility::ConvertCode(m_code);
                     evhttp_send_reply(m_request, code, m_reason.empty() ? Utility::GetReasonString(m_code) : m_reason.c_str(), m_responseBuffer);
+                }
+
+                evhttp_request* OutputPack::GetRequest()
+                {
+                    return m_request;
+                }
+
+                void OutputPack::ReleaseNewRequest()
+                {
+                    m_newRequest.release();
                 }
 
                 void OutputPack::SetCode(Code code)

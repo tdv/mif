@@ -8,6 +8,9 @@
 #ifndef __MIF_NET_HTTP_DETAIL_OUTPUT_PACK_H__
 #define __MIF_NET_HTTP_DETAIL_OUTPUT_PACK_H__
 
+// STD
+#include <memory>
+
 // EVENT
 #include <event2/buffer.h>
 #include <event2/http.h>
@@ -28,11 +31,18 @@ namespace Mif
                     : public IOutputPack
                 {
                 public:
-                    OutputPack(evhttp_request *request);
+                    using RequestPtr = std::unique_ptr<evhttp_request, decltype(&evhttp_request_free)>;
+
+                    explicit OutputPack(evhttp_request *request);
+                    explicit OutputPack(RequestPtr request);
 
                     void Send();
+                    evhttp_request* GetRequest();
+                    void ReleaseNewRequest();
 
                 private:
+                    RequestPtr m_newRequest{nullptr, &evhttp_request_free};
+
                     evhttp_request *m_request = nullptr;
                     evbuffer *m_responseBuffer = nullptr;
                     evkeyvalq *m_headers = nullptr;

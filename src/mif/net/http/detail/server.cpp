@@ -15,7 +15,6 @@
 #include "input_pack.h"
 #include "output_pack.h"
 #include "server.h"
-#include "utility.h"
 
 namespace Mif
 {
@@ -29,28 +28,8 @@ namespace Mif
                 Server::Server(ServerHandler const &handler, Methods const &allowedMethods,
                                std::size_t headersSize, std::size_t bodySize)
                     : m_handler{handler}
+                    , m_base{Utility::CreateEventBase()}
                 {
-                    {
-                        using ConfigPtr = std::unique_ptr<event_config, decltype(&event_config_free)>;
-                        ConfigPtr config{event_config_new(), &event_config_free};
-                        if (!config)
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::Server] Failed to create configuration for creating event object."};
-
-                        if (event_config_set_flag(config.get(),
-                                EVENT_BASE_FLAG_EPOLL_USE_CHANGELIST |
-                                EVENT_BASE_FLAG_NO_CACHE_TIME |
-                                EVENT_BASE_FLAG_IGNORE_ENV)
-                            )
-                        {
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::Server] Failed to set base options."};
-                        }
-
-                        EventBasePtr base{event_base_new_with_config(config.get()), &event_base_free};
-                        if (!base)
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::Server] Failed to create base object."};
-                        std::swap(base, m_base);
-                    }
-
                     {
                         HttpPtr http{evhttp_new(m_base.get()), &evhttp_free};
                         if (!http)

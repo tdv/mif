@@ -22,6 +22,9 @@
 #include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
 
+// THIS
+#include "utility.h"
+
 namespace Mif
 {
     namespace Net
@@ -55,7 +58,6 @@ namespace Mif
                     evutil_socket_t m_socket = -1;
 
                     using EventPtr = std::unique_ptr<event, decltype(&event_free)>;
-                    using EventBasePtr = std::unique_ptr<event_base, decltype(&event_base_free)>;
                     using HttpPtr = std::unique_ptr<evhttp, decltype(&evhttp_free)>;
 
                     std::uint32_t const m_timerPeriod = 200000;
@@ -63,7 +65,7 @@ namespace Mif
                     std::atomic<bool> m_isActive{true};
                     std::atomic<bool> m_isRun{false};
 
-                    EventBasePtr m_base{nullptr, &event_base_free};
+                    Utility::EventBasePtr m_base;
                     EventPtr m_timer{nullptr, &event_free};
                     HttpPtr m_http{nullptr, &evhttp_free};
 

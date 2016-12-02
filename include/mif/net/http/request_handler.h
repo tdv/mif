@@ -10,6 +10,7 @@
 
 // STD
 #include <functional>
+#include <memory>
 
 // MIF
 #include "mif/net/http/iinput_pack.h"
@@ -23,7 +24,7 @@ namespace Mif
         {
 
             using ServerHandler = std::function<void (IInputPack const &, IOutputPack &)>;
-            using ClientHandler = std::function<void (IOutputPack &, IInputPack const &)>;
+            using ClientHandler = std::function<void (IInputPack const &)>;
 
         }   // namespace Http
     }   // namespace Net

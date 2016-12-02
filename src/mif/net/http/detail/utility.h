@@ -8,6 +8,12 @@
 #ifndef __MIF_NET_HTTP_DETAIL_UTILITY_H__
 #define __MIF_NET_HTTP_DETAIL_UTILITY_H__
 
+// STD
+#include <memory>
+
+// EVENT
+#include <event2/event.h>
+
 // MIF
 #include "mif/net/http/ioutput_pack.h"
 #include "mif/net/http/methods.h"
@@ -28,6 +34,10 @@ namespace Mif
 
                     char const* GetReasonString(IOutputPack::Code code);
                     int ConvertCode(IOutputPack::Code code);
+
+                    using EventBasePtr = std::unique_ptr<event_base, decltype(&event_base_free)>;
+
+                    EventBasePtr CreateEventBase();
 
                 }   // namespace Utility
 

@@ -131,6 +131,36 @@ namespace Mif
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Utility::ConvertCode] Unknowd HTTP code."};
                     }
 
+                    EventBasePtr CreateEventBase()
+                    {
+                        using ConfigPtr = std::unique_ptr<event_config, decltype(&event_config_free)>;
+                        ConfigPtr config{event_config_new(), &event_config_free};
+                        if (!config)
+                        {
+                            throw std::runtime_error{"[Mif::Net::Http::Detail::Utility::CreateEventBase] "
+                                "Failed to create configuration for creating event object."};
+                        }
+
+                        if (event_config_set_flag(config.get(),
+                                EVENT_BASE_FLAG_EPOLL_USE_CHANGELIST |
+                                EVENT_BASE_FLAG_NO_CACHE_TIME |
+                                EVENT_BASE_FLAG_IGNORE_ENV)
+                            )
+                        {
+                            throw std::runtime_error{"[Mif::Net::Http::Detail::Utility::CreateEventBase] "
+                                "Failed to set base options."};
+                        }
+
+                        EventBasePtr base{event_base_new_with_config(config.get()), &event_base_free};
+                        if (!base)
+                        {
+                            throw std::runtime_error{"[Mif::Net::Http::Detail::Utility::CreateEventBase] "
+                                "Failed to create base object."};
+                        }
+
+                        return base;
+                    }
+
                 }   // namespace Utility
 
             }   // namespace Detail
