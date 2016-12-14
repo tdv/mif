@@ -5,8 +5,12 @@
 //  Copyright (C) 2016 tdv
 //-------------------------------------------------------------------
 
+// STD
+#include <cstdlib>
+
 // EVENT
 #include <event2/event.h>
+#include <event2/thread.h>
 
 // MIF
 #include "mif/common/log.h"
@@ -32,6 +36,22 @@ namespace Mif
 
                 LibEventInitializer::LibEventInitializer()
                 {
+#if defined(__linux__) || defined(__unix__) || defined(_WIN32) || defined(_WIN32)
+                    if (
+#if defined(__linux__) || defined(__unix__)
+                        evthread_use_pthreads()
+#else
+                        evthread_use_windows_threads()
+#endif
+                        )
+                    {
+                        MIF_LOG(Fatal) << "[Mif::Net::Http] LibEvent failed to init multithreading mode.";
+                        std::exit(-1);
+                    }
+#else
+#error "[Mif::Net::Http::Detail::LibEventInitializer] Unsupported platform."
+#endif
+
                     event_set_fatal_callback(&LibEventInitializer::OnFatal);
                     event_set_log_callback(&LibEventInitializer::LogMessage);
                 }

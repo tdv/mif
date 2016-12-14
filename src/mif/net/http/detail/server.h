@@ -60,13 +60,12 @@ namespace Mif
                     using EventPtr = std::unique_ptr<event, decltype(&event_free)>;
                     using HttpPtr = std::unique_ptr<evhttp, decltype(&evhttp_free)>;
 
-                    std::uint32_t const m_timerPeriod = 200000;
+                    std::uint32_t const m_waitPeriod = 5000;
 
                     std::atomic<bool> m_isActive{true};
                     std::atomic<bool> m_isRun{false};
 
                     Utility::EventBasePtr m_base;
-                    EventPtr m_timer{nullptr, &event_free};
                     HttpPtr m_http{nullptr, &evhttp_free};
 
                     Server(ServerHandler const &handler, Methods const &allowedMethods,

@@ -117,6 +117,7 @@ namespace Mif
                         if (!session->NeedForClose())
                         {
                             response.SetData(std::move(responseData));
+                            response.SetHeader("X-Mif-Session", sessionId);
                             SetKeepAliveFromClient(headers, response);
                         }
                         else

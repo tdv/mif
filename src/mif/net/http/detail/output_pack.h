@@ -38,6 +38,7 @@ namespace Mif
 
                     void Send();
                     evhttp_request* GetRequest();
+                    void MoveDataToBuffer();
                     void ReleaseNewRequest();
 
                 private:

@@ -46,16 +46,6 @@ namespace Mif
 
                         std::swap(http, m_http);
                     }
-
-                    {
-                        EventPtr timer{event_new(m_base.get(), -1, EV_PERSIST, &Server::OnTimer, this), &event_free};
-                        if (!timer)
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::Server] Failed to create timer object."};
-                        timeval interval{0, m_timerPeriod};
-                        if (event_add(timer.get(), &interval))
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::Server] Failed to initialize timer."};
-                        std::swap(timer, m_timer);
-                    }
                 }
 
                 Server::Server(std::string const &host, std::string const &port, ServerHandler const &handler,
@@ -136,31 +126,14 @@ namespace Mif
 
                     m_isActive = false;
 
+                    if (event_base_loopbreak(m_base.get()))
+                    {
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::Server::Stop] "
+                            "Failed to post 'stop' to server."};
+                    }
+
                     while (m_isRun)
-                        std::this_thread::sleep_for(std::chrono::microseconds{m_timerPeriod});
-                }
-
-                void Server::OnTimer(evutil_socket_t, short, void *arg)
-                {
-                    if (!arg)
-                    {
-                        MIF_LOG(Error) << "[Mif::Net::Http::Detail::Server::OnTimer] "
-                            << "Failed to process timer event. No arguments.";
-                        return;
-                    }
-
-                    auto *self = reinterpret_cast<Server*>(arg);
-                    if (self->m_isActive)
-                        return;
-
-                    if (event_base_got_break(self->m_base.get()))
-                        return;
-
-                    if (event_base_loopbreak(self->m_base.get()))
-                    {
-                        MIF_LOG(Error) << "[Mif::Net::Http::Detail::Server::OnTimer] "
-                            << "Failed to post 'stop' to server.";
-                    }
+                        std::this_thread::sleep_for(std::chrono::microseconds{m_waitPeriod});
                 }
 
                 void Server::OnRequest(evhttp_request *req, void *arg)

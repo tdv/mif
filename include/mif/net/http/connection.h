@@ -35,8 +35,7 @@ namespace Mif
 
                 IOutputPackPtr CreateRequest() const;
                 void MakeRequest(Method::Type method, std::string const &request, IOutputPackPtr pack);
-                void Reconnect(std::string const &host, std::string const &port);
-                void Run();
+                bool IsClosed() const;
 
             private:
                 class Impl;

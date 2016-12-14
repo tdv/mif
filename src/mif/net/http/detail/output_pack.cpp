@@ -43,17 +43,7 @@ namespace Mif
 
                 void OutputPack::Send()
                 {
-                    {
-                        std::unique_ptr<Common::Buffer> buffer{!m_buffer.empty() ? new Common::Buffer{std::move(m_buffer)} : nullptr};
-                        auto *data = buffer ? buffer->data() : nullptr;
-                        auto const size = buffer ? buffer->size() : 0;
-                        if (evbuffer_add_reference(m_responseBuffer, data, size, &OutputPack::CleanUpData, buffer.get()))
-                        {
-                            throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to set data."};
-                        }
-                        buffer.release();
-                    }
-
+                    MoveDataToBuffer();
                     auto const code = Utility::ConvertCode(m_code);
                     evhttp_send_reply(m_request, code, m_reason.empty() ? Utility::GetReasonString(m_code) : m_reason.c_str(), m_responseBuffer);
                 }
@@ -61,6 +51,18 @@ namespace Mif
                 evhttp_request* OutputPack::GetRequest()
                 {
                     return m_request;
+                }
+
+                void OutputPack::MoveDataToBuffer()
+                {
+                    std::unique_ptr<Common::Buffer> buffer{!m_buffer.empty() ? new Common::Buffer{std::move(m_buffer)} : nullptr};
+                    auto *data = buffer ? buffer->data() : nullptr;
+                    auto const size = buffer ? buffer->size() : 0;
+                    if (evbuffer_add_reference(m_responseBuffer, data, size, &OutputPack::CleanUpData, buffer.get()))
+                    {
+                        throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to set data."};
+                    }
+                    buffer.release();
                 }
 
                 void OutputPack::ReleaseNewRequest()
