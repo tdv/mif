@@ -26,10 +26,11 @@ namespace Mif
             class Connection final
             {
             public:
+                using OnCloseHandler = std::function<void ()>;
                 using IOutputPackPtr = std::unique_ptr<IOutputPack>;
 
                 Connection(std::string const &host, std::string const &port,
-                    ClientHandler const &handler);
+                    ClientHandler const &handler, OnCloseHandler const &onClose = [] () {});
 
                 ~Connection();
 

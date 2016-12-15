@@ -8,6 +8,7 @@
 // STD
 #include <stdexcept>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <utility>
 
@@ -18,10 +19,6 @@
 // THIS
 #include "mif/common/log.h"
 #include "mif/net/http/connection.h"
-
-// TODO: delete this
-#include <thread>
-#include <chrono>
 
 namespace Mif
 {
@@ -38,10 +35,13 @@ namespace Mif
                     , public IControl
                 {
                 public:
-                    Session(std::string const &host, std::string const &port)
+                    using OnCloseHandler = std::function<void (std::string const &)>;
+
+                    Session(std::string const &host, std::string const &port, OnCloseHandler const &onCloseHandler)
                         : m_host{host}
                         , m_port{port}
                         , m_sessionId{Common::UuidGenerator{}.Generate()}
+                        , m_onCloseHandler{onCloseHandler}
                     {
                     }
 
@@ -69,6 +69,7 @@ namespace Mif
                     std::string m_host;
                     std::string m_port;
                     std::string m_sessionId;
+                    OnCloseHandler m_onCloseHandler;
 
                     bool m_needForClose{false};
 
@@ -87,8 +88,10 @@ namespace Mif
 
                             if (!m_connection || m_connection->IsClosed())
                             {
+                                auto self = shared_from_this();
                                 m_connection = std::make_shared<Http::Connection>(m_host, m_port,
-                                    std::bind(&Session::OnRequestDone, shared_from_this(), std::placeholders::_1));
+                                    std::bind(&Session::OnRequestDone, self, std::placeholders::_1),
+                                    std::bind(&Session::OnClose, self));
                             }
                             connection = m_connection;
                         }
@@ -133,6 +136,11 @@ namespace Mif
                         }
                     }
 
+                    void OnClose()
+                    {
+                        // TODO: may be try to reconnect
+                    }
+
                     //----------------------------------------------------------------------------
                     // IPublisher
                     virtual void Publish(Common::Buffer buffer) override final
@@ -169,9 +177,26 @@ namespace Mif
                     // IControl
                     virtual void CloseMe() override final
                     {
-                        LockGuard lock{m_lock};
-                        m_connection.reset();
+                        m_onCloseHandler(m_sessionId);
+
+                        try
+                        {
+                            m_client->OnClose();
+                        }
+                        catch (std::exception const &e)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::HTTPClients::Impl::CloseMe] Failed to call OnClose for client. "
+                                << "Error: " << e.what();
+                        }
+                        catch (...)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::HTTPClients::Impl::CloseMe] Failed to call OnClose for client. "
+                                << "Error: unknown";
+                        }
+
                         m_needForClose = true;
+
+                        OnClose();
                     }
 
                 };
@@ -189,28 +214,34 @@ namespace Mif
 
             ~Impl()
             {
-                try
-                {
-                    // TODO:
-                }
-                catch (std::exception const &e)
-                {
-                    MIF_LOG(Error) << "[Mif::Net::HTTPClients::Impl] Failed tp stop clients. "
-                        << "Error: " << e.what();
-                }
-                catch (...)
-                {
-                    MIF_LOG(Error) << "[Mif::Net::HTTPClients::Impl] Failed tp stop clients. Error: unknown.";
-                }
             }
 
             IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port)
             {
                 try
                 {
-                    auto session = std::make_shared<Detail::Session>(host, port);
+                    auto lock = m_lock;
+                    auto sessions = m_sessions;
+                    auto session = std::make_shared<Detail::Session>(host, port,
+                            [lock, sessions] (std::string const &id)
+                            {
+                                SessionPtr session;
+                                {
+                                    LockGuard guard{*lock};
+                                    auto iter = sessions->find(id);
+                                    if (iter == std::end(*sessions))
+                                        MIF_LOG(Warning) << "[Mif::Net::HTTPClients::Impl::RunClient] "
+                                            << "Session \"" + id + "\" not found.";
+                                    session = iter->second;
+                                    sessions->erase(iter);
+                                }
+                            }
+                        );
                     auto client = session->Init(*m_factory);
-                    m_sessions[session->GetId()] = session;
+                    {
+                        LockGuard lock{*m_lock};
+                        m_sessions->insert(std::make_pair(session->GetId(), session));
+                    }
                     return client;
                 }
                 catch (std::exception const &e)
@@ -225,7 +256,14 @@ namespace Mif
             std::shared_ptr<IClientFactory> m_factory;
             using SessionPtr = std::shared_ptr<Detail::Session>;
             using Sessions = std::map<std::string, SessionPtr>;
-            Sessions m_sessions;
+            using SessionsPtr = std::shared_ptr<Sessions>;
+
+            using LockType = std::mutex;
+            using LockTypePtr = std::shared_ptr<LockType>;
+            using LockGuard = std::lock_guard<LockType>;
+
+            LockTypePtr m_lock = std::make_shared<LockType>();
+            SessionsPtr m_sessions = std::make_shared<Sessions>();
         };
 
 

@@ -7,7 +7,7 @@
 
 // STD
 #include <atomic>
-#include <chrono>
+#include <cstdint>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -43,8 +43,10 @@ namespace Mif
                 Impl(Impl &&) = delete;
                 Impl& operator = (Impl &&) = delete;
 
-                Impl(std::string const &host, std::string const &port, ClientHandler const &handler)
+                Impl(std::string const &host, std::string const &port,
+                    ClientHandler const &handler, OnCloseHandler const &onClose)
                     : m_handler{handler}
+                    , m_onClose{onClose}
                     , m_host{host}
                     , m_port{port}
                     , m_base{Detail::Utility::CreateEventBase()}
@@ -63,7 +65,7 @@ namespace Mif
                         EventPtr timer{event_new(m_base.get(), -1, EV_PERSIST, &Impl::OnTimer, this), &event_free};
                         if (!timer)
                             throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] Failed to create timer object."};
-                        timeval interval{0, m_timerPeriod};
+                        timeval interval{0, m_period};
                         if (event_add(timer.get(), &interval))
                             throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] Failed to initialize timer."};
                         std::swap(timer, m_timer);
@@ -74,11 +76,16 @@ namespace Mif
 
                 ~Impl()
                 {
-                    MIF_LOG(Info) << "Delete connection.";
+                    if (event_del(m_timer.get()))
+                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::~Impl] Failed to destroy timer.";
                     if (!m_isClosed && event_base_loopbreak(m_base.get()))
                     {
                         MIF_LOG(Warning) << "[Mif::Net::Http::Connection::~Impl] "
                             << "Failed to post 'stop' to server.";
+                    }
+                    else
+                    {
+                        m_isClosed = true;
                     }
 
                     m_thread.reset();
@@ -120,12 +127,13 @@ namespace Mif
                 using ConnectionPtr = std::unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)>;
 
                 ClientHandler m_handler;
+                OnCloseHandler m_onClose;
                 std::string m_host;
                 std::string m_port;
 
                 Detail::Utility::EventBasePtr m_base;
 
-                std::uint32_t const m_timerPeriod = 200000;
+                std::uint32_t const m_period = 500;
                 using EventPtr = std::unique_ptr<event, decltype(&event_free)>;
                 EventPtr m_timer{nullptr, &event_free};
 
@@ -162,7 +170,7 @@ namespace Mif
                 void Run()
                 {
                     auto code = event_base_loop(m_base.get(), 0);
-                    //if (code < 0)
+                    if (code < 0)
                     {
                         MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::Run] "
                             << "Message loop was broken with code \"" << code << "\".";
@@ -171,10 +179,27 @@ namespace Mif
                     m_isClosed = true;
                 }
 
-                static void OnClose(evhttp_connection *connection, void *arg)
+                void OnClose()
                 {
-                    (void)connection;
-                    
+                    try
+                    {
+                        m_isClosed = true;
+                        m_onClose();
+                    }
+                    catch (std::exception const &e)
+                    {
+                        MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnClose] "
+                            << "Failed to call OnClose handler. Error: " << e.what();
+                    }
+                    catch (...)
+                    {
+                        MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnClose] "
+                            << "Failed to call OnClose handler. Error: unknown";
+                    }
+                }
+
+                static void OnClose(evhttp_connection *, void *arg)
+                {
                     if (!arg)
                     {
                         MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnClose] "
@@ -182,7 +207,8 @@ namespace Mif
                         return;
                     }
 
-                    reinterpret_cast<Impl *>(arg)->m_isClosed = true;
+                    auto *self = reinterpret_cast<Impl *>(arg);
+                    self->OnClose();
                 }
 
                 static void OnRequestDone(evhttp_request *request, void *arg)
@@ -198,10 +224,11 @@ namespace Mif
 
                     if (!request || !evhttp_request_get_response_code(request))
                     {
-                        self->m_isClosed = true;
+                        self->OnClose();
 
                         MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::OnRequestDone] "
-                            << "Connection to \"" << self->m_host << ":" << self->m_port << "\" was refused.";
+                            << "[" << self->m_host << ":" << self->m_port << "] Connection refused.";
+
                         return;
                     }
 
@@ -229,8 +256,9 @@ namespace Mif
             };
 
 
-            Connection::Connection(std::string const &host, std::string const &port, ClientHandler const &handler)
-                : m_impl{new Impl{host, port, handler}}
+            Connection::Connection(std::string const &host, std::string const &port,
+                ClientHandler const &handler, OnCloseHandler const &onClose)
+                : m_impl{new Impl{host, port, handler, onClose}}
             {
             }
 
