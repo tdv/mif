@@ -6,7 +6,7 @@ set (MIF_THIRD_PARTY_LIBS
     ${MIF_THIRD_PARTY_LIBS}
     zlib
     jsoncpp
-#    event
+    event
 )
 
 set (JSONCPP_LIBRARIES

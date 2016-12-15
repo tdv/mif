@@ -15,6 +15,17 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_clients.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/tcp_session.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server_thread.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/lib_event_initializer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/input_pack.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/output_pack.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/utility.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/connection.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http_server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http_clients.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/http_session.cpp
 )
 
 set (MIF_DEPENDENCIES_LIBRARIES
