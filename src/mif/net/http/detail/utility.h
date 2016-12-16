@@ -15,7 +15,7 @@
 #include <event2/event.h>
 
 // MIF
-#include "mif/net/http/ioutput_pack.h"
+#include "mif/net/http/codes.h"
 #include "mif/net/http/methods.h"
 
 namespace Mif
@@ -32,8 +32,9 @@ namespace Mif
                     int ConvertMethodType(Method::Type type);
                     int ConvertAllowedMethods(Methods const &allowedMethods);
 
-                    char const* GetReasonString(IOutputPack::Code code);
-                    int ConvertCode(IOutputPack::Code code);
+                    char const* GetReasonString(Code code);
+                    int ConvertCode(Code code);
+                    Code ConvertCode(int code);
 
                     using EventBasePtr = std::unique_ptr<event_base, decltype(&event_base_free)>;
 

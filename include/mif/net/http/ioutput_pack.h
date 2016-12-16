@@ -13,6 +13,7 @@
 
 // MIF
 #include "mif/common/types.h"
+#include "mif/net/http/codes.h"
 
 namespace Mif
 {
@@ -23,21 +24,6 @@ namespace Mif
 
             struct IOutputPack
             {
-                enum class Code
-                {
-                    Ok,
-                    NoContent,
-                    MovePerm,
-                    MoveTemp,
-                    NotModified,
-                    BadRequest,
-                    NotFound,
-                    BadMethod,
-                    Internal,
-                    NotImplemented,
-                    Unavaliable
-                };
-
                 virtual ~IOutputPack() = default;
 
                 virtual void SetCode(Code code) = 0;

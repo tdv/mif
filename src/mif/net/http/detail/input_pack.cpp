@@ -15,6 +15,7 @@
 
 // THIS
 #include "input_pack.h"
+#include "utility.h"
 
 namespace Mif
 {
@@ -77,6 +78,16 @@ namespace Mif
 
                     throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack::GetType] Unknown ty0e \""
                         + std::to_string(type) + "\""};
+                }
+
+                Code InputPack::GetCode() const
+                {
+                    return Utility::ConvertCode(evhttp_request_get_response_code(m_request));
+                }
+
+                std::string InputPack::GetReason() const
+                {
+                    return Utility::GetReasonString(GetCode());
                 }
 
                 std::string InputPack::GetHost() const
