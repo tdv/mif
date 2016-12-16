@@ -25,7 +25,6 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http_server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http_clients.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/http_session.cpp
 )
 
 set (MIF_DEPENDENCIES_LIBRARIES

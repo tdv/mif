@@ -38,6 +38,8 @@ namespace Mif
 
                     // IInputPack
                     virtual Method::Type GetType() const override final;
+                    virtual Code GetCode() const override final;
+                    virtual std::string GetReason() const override final;
                     virtual std::string GetHost() const override final;
                     virtual std::uint16_t GetPort() const override final;
                     virtual std::string GetSchema() const override final;

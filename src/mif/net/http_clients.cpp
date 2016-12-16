@@ -13,12 +13,13 @@
 #include <utility>
 
 // MIF
+#include "mif/common/log.h"
 #include "mif/common/uuid_generator.h"
 #include "mif/net/http_clients.h"
+#include "mif/net/http/connection.h"
 
 // THIS
-#include "mif/common/log.h"
-#include "mif/net/http/connection.h"
+#include "detail/http_constants.h"
 
 namespace Mif
 {
@@ -102,9 +103,18 @@ namespace Mif
                     {
                         try
                         {
+                            if (pack.GetCode() != Http::Code::Ok)
+                            {
+                                auto const data = pack.GetData();
+                                std::string extMsg;
+                                if (!data.empty())
+                                    extMsg = ". Message: \"" + std::string{data.data(), data.size()} + "\"";
+                                throw std::runtime_error{"The server returned an error \"" + pack.GetReason() + "\"" + extMsg};
+                            }
+
                             {
                                 auto const headers = pack.GetHeaders();
-                                auto const sessionIter = headers.find("X-Mif-Session");
+                                auto const sessionIter = headers.find(Detail::HttpConstants::Header::Session::GetString());
                                 if (sessionIter == std::end(headers))
                                     throw std::runtime_error{"No session from server."};
                                 if (sessionIter->second != m_sessionId)
@@ -150,8 +160,9 @@ namespace Mif
                             auto connection = GetConnection();
                             auto pack = connection->CreateRequest();
                             
-                            pack->SetHeader("Connection", "keep-alive");
-                            pack->SetHeader("X-Mif-Session", m_sessionId);
+                            pack->SetHeader(Detail::HttpConstants::Header::Connection::GetString(),
+                                Detail::HttpConstants::Value::Connection::KeepAlive::GetString());
+                            pack->SetHeader(Detail::HttpConstants::Header::Session::GetString(), m_sessionId);
 
                             pack->SetData(std::move(buffer));
 

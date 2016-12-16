@@ -15,6 +15,7 @@
 
 // MIF
 #include "mif/common/types.h"
+#include "mif/net/http/codes.h"
 #include "mif/net/http/methods.h"
 
 namespace Mif
@@ -32,6 +33,9 @@ namespace Mif
                 virtual ~IInputPack() = default;
 
                 virtual Method::Type GetType() const = 0;
+
+                virtual Code GetCode() const = 0;
+                virtual std::string GetReason() const = 0;
 
                 virtual std::string GetHost() const = 0;
                 virtual std::uint16_t GetPort() const = 0;

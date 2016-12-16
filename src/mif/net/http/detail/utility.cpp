@@ -65,31 +65,31 @@ namespace Mif
                         return methods;
                     }
 
-                    char const* GetReasonString(IOutputPack::Code code)
+                    char const* GetReasonString(Code code)
                     {
                         switch (code)
                         {
-                        case IOutputPack::Code::Ok :
+                        case Code::Ok :
                             return "OK";
-                        case IOutputPack::Code::NoContent :
+                        case Code::NoContent :
                             return "Request does not have content";
-                        case IOutputPack::Code::MovePerm :
+                        case Code::MovePerm :
                             return "The uri moved permanently";
-                        case IOutputPack::Code::MoveTemp :
+                        case Code::MoveTemp :
                             return "The uri moved temporarily";
-                        case IOutputPack::Code::NotModified :
+                        case Code::NotModified :
                             return "Page was not modified from last";
-                        case IOutputPack::Code::BadRequest :
+                        case Code::BadRequest :
                             return "Invalid http request was made";
-                        case IOutputPack::Code::NotFound :
+                        case Code::NotFound :
                             return "Could not find content for uri";
-                        case IOutputPack::Code::BadMethod :
+                        case Code::BadMethod :
                             return "Method not allowed for this uri";
-                        case IOutputPack::Code::Internal :
+                        case Code::Internal :
                             return "Internal error";
-                        case IOutputPack::Code::NotImplemented :
+                        case Code::NotImplemented :
                             return "Not implemented";
-                        case IOutputPack::Code::Unavaliable :
+                        case Code::Unavaliable :
                             return "The server is not available";
                         default :
                             break;
@@ -98,37 +98,70 @@ namespace Mif
                         return "";
                     }
 
-                    int ConvertCode(IOutputPack::Code code)
+                    int ConvertCode(Code code)
                     {
                         switch (code)
                         {
-                        case IOutputPack::Code::Ok :
+                        case Code::Ok :
                             return HTTP_OK;
-                        case IOutputPack::Code::NoContent :
+                        case Code::NoContent :
                             return HTTP_NOCONTENT;
-                        case IOutputPack::Code::MovePerm :
+                        case Code::MovePerm :
                             return HTTP_MOVEPERM;
-                        case IOutputPack::Code::MoveTemp :
+                        case Code::MoveTemp :
                             return HTTP_MOVETEMP;
-                        case IOutputPack::Code::NotModified :
+                        case Code::NotModified :
                             return HTTP_NOTMODIFIED;
-                        case IOutputPack::Code::BadRequest :
+                        case Code::BadRequest :
                             return HTTP_BADREQUEST;
-                        case IOutputPack::Code::NotFound :
+                        case Code::NotFound :
                             return HTTP_NOTFOUND;
-                        case IOutputPack::Code::BadMethod :
+                        case Code::BadMethod :
                             return HTTP_BADMETHOD;
-                        case IOutputPack::Code::Internal :
+                        case Code::Internal :
                             return HTTP_INTERNAL;
-                        case IOutputPack::Code::NotImplemented :
+                        case Code::NotImplemented :
                             return HTTP_NOTIMPLEMENTED;
-                        case IOutputPack::Code::Unavaliable :
+                        case Code::Unavaliable :
                             return HTTP_SERVUNAVAIL;
                         default :
                             break;
                         }
 
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Utility::ConvertCode] Unknowd HTTP code."};
+                    }
+
+                    Code ConvertCode(int code)
+                    {
+                        switch (code)
+                        {
+                        case HTTP_OK :
+                            return Code::Ok;
+                        case HTTP_NOCONTENT :
+                            return Code::NoContent;
+                        case HTTP_MOVEPERM :
+                            return Code::MovePerm;
+                        case HTTP_MOVETEMP :
+                            return Code::MoveTemp;
+                        case HTTP_NOTMODIFIED :
+                            return Code::NotModified;
+                        case HTTP_BADREQUEST :
+                            return Code::BadRequest;
+                        case HTTP_NOTFOUND :
+                            return Code::NotFound;
+                        case HTTP_BADMETHOD :
+                            return Code::BadMethod;
+                        case HTTP_INTERNAL :
+                            return Code::Internal;
+                        case HTTP_NOTIMPLEMENTED :
+                            return Code::NotImplemented;
+                        case HTTP_SERVUNAVAIL :
+                            return Code::Unavaliable;
+                        default :
+                            break;
+                        }
+
+                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Utility::ConvertCode] Unknowd HTTP code " + std::to_string(code)};
                     }
 
                     EventBasePtr CreateEventBase()
