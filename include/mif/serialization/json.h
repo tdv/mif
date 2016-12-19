@@ -57,6 +57,10 @@ namespace Mif
                 struct BasesDeserializer;
 
                 template <typename T>
+                typename std::enable_if<std::is_enum<T>::value, ::Json::Value>::type
+                inline ValueToJson(T const &object);
+
+                template <typename T>
                 typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
                 ValueToJson(T const &object);
 
@@ -80,6 +84,10 @@ namespace Mif
 
                 template <typename T>
                 typename std::enable_if<Traits::IsSimple<T>(), T>::type&
+                JsonToValue(::Json::Value const &root, T &object);
+
+                template <typename T>
+                inline typename std::enable_if<std::is_enum<T>::value, T>::type&
                 JsonToValue(::Json::Value const &root, T &object);
 
                 template <typename T>
