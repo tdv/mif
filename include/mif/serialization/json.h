@@ -114,6 +114,13 @@ namespace Mif
                 }
 
                 template <typename T>
+                typename std::enable_if<std::is_enum<T>::value, ::Json::Value>::type
+                inline ValueToJson(T const &object)
+                {
+                    return ValueToJson(static_cast<typename std::underlying_type<T>::type>(object));
+                }
+
+                template <typename T>
                 typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
                 inline ValueToJson(T const &object)
                 {
@@ -345,6 +352,16 @@ namespace Mif
                     if (root.isNull())
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
                     object = JsonValueConverter<T>::Convert(root);
+                    return object;
+                }
+
+                template <typename T>
+                inline typename std::enable_if<std::is_enum<T>::value, T>::type&
+                JsonToValue(::Json::Value const &root, T &object)
+                {
+                    if (root.isNull())
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
+                    object = static_cast<T>(JsonValueConverter<typename std::underlying_type<T>::type>::Convert(root));
                     return object;
                 }
 
