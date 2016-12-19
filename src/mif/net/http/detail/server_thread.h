@@ -37,9 +37,9 @@ namespace Mif
                 {
                 public:
                     ServerThread(std::string const &host, std::string const &port, ServerHandler const &handler,
-                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize);
+                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
                     ServerThread(evutil_socket_t socket, ServerHandler const &handler,
-                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize);
+                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
                     ~ServerThread();
 

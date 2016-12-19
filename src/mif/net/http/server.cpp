@@ -27,7 +27,7 @@ namespace Mif
             public:
                 Impl(std::string const &host, std::string const &port, std::uint16_t workers,
                      ServerHandler const &handler, Methods const &allowedMethods,
-                     std::size_t headersSize, std::size_t bodySize)
+                     std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
                 {
                     Detail::LibEventInitializer::Init();
 
@@ -40,14 +40,14 @@ namespace Mif
                         if (socket == -1)
                         {
                             ItemPtr item{new Detail::ServerThread{host, port, handler,
-                                allowedMethods, headersSize, bodySize}};
+                                allowedMethods, headersSize, bodySize, requestTimeout}};
                             socket = item->GetSocket();
                             m_items.push_back(std::move(item));
                         }
                         else
                         {
                             m_items.push_back(std::move(ItemPtr{new Detail::ServerThread{socket, handler,
-                                allowedMethods, headersSize, bodySize}}));
+                                allowedMethods, headersSize, bodySize, requestTimeout}}));
                         }
                     }
                 }
@@ -62,8 +62,8 @@ namespace Mif
 
             Server::Server(std::string const &host, std::string const &port, std::uint16_t workers,
                 Methods const &allowedMethods, ServerHandler const &handler,
-                std::size_t headersSize, std::size_t bodySize)
-                : m_impl{new Impl{host, port, workers, handler, allowedMethods, headersSize, bodySize}}
+                std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
+                : m_impl{new Impl{host, port, workers, handler, allowedMethods, headersSize, bodySize, requestTimeout}}
             {
             }
 

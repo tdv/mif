@@ -32,7 +32,8 @@ namespace Mif
                     Methods const &allowedMethods,
                     ServerHandler const &handler,
                     std::size_t headersSize = -1,
-                    std::size_t bodySize = -1);
+                    std::size_t bodySize = -1,
+                    std::size_t requestTimeout = -1);
 
                 ~Server();
 

@@ -22,13 +22,13 @@ namespace Mif
 
                 ServerThread::ServerThread(std::string const &host, std::string const &port,
                     ServerHandler const &handler, Methods const &allowedMethods,
-                    std::size_t headersSize, std::size_t bodySize)
+                    std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
                 {
-                    m_thread.reset(new std::thread{[this, &host, &port, &handler, &allowedMethods, &headersSize, &bodySize]()
+                    m_thread.reset(new std::thread{[this, &host, &port, &handler, &allowedMethods, &headersSize, &bodySize, &requestTimeout]()
                             {
                                 try
                                 {
-                                    m_server.reset(new Server{host, port, handler, allowedMethods, headersSize, bodySize});
+                                    m_server.reset(new Server{host, port, handler, allowedMethods, headersSize, bodySize, requestTimeout});
                                     m_server->Run();
                                 }
                                 catch (...)
@@ -46,13 +46,13 @@ namespace Mif
                 }
 
                 ServerThread::ServerThread(evutil_socket_t socket, ServerHandler const &handler,
-                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize)
+                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
                 {
-                    m_thread.reset(new std::thread{[this, &socket, &handler, &allowedMethods, &headersSize, &bodySize]()
+                    m_thread.reset(new std::thread{[this, &socket, &handler, &allowedMethods, &headersSize, &bodySize, &requestTimeout]()
                             {
                                 try
                                 {
-                                    m_server.reset(new Server{socket, handler, allowedMethods, headersSize, bodySize});
+                                    m_server.reset(new Server{socket, handler, allowedMethods, headersSize, bodySize, requestTimeout});
                                     m_server->Run();
                                 }
                                 catch (...)

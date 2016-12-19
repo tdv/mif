@@ -43,9 +43,9 @@ namespace Mif
                     Server& operator = (Server &&) = delete;
 
                     Server(std::string const &host, std::string const &port, ServerHandler const &handler,
-                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize);
+                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
                     Server(evutil_socket_t socket, ServerHandler const &handler, Methods const &allowedMethods,
-                        std::size_t headersSize, std::size_t bodySize);
+                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
                     ~Server() noexcept;
 
@@ -69,7 +69,7 @@ namespace Mif
                     HttpPtr m_http{nullptr, &evhttp_free};
 
                     Server(ServerHandler const &handler, Methods const &allowedMethods,
-                        std::size_t headersSize, std::size_t bodySize);
+                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
                     static void OnTimer(evutil_socket_t, short, void *arg);
                     static void OnRequest(evhttp_request *req, void *arg);

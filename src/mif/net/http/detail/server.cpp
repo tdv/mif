@@ -26,7 +26,7 @@ namespace Mif
             {
 
                 Server::Server(ServerHandler const &handler, Methods const &allowedMethods,
-                               std::size_t headersSize, std::size_t bodySize)
+                    std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
                     : m_handler{handler}
                     , m_base{Utility::CreateEventBase()}
                 {
@@ -43,14 +43,16 @@ namespace Mif
                             evhttp_set_max_headers_size(http.get(), headersSize);
                         if (bodySize != static_cast<decltype(bodySize)>(-1))
                             evhttp_set_max_body_size(http.get(), bodySize);
+                        if (requestTimeout != static_cast<decltype(requestTimeout)>(-1))
+                            evhttp_set_timeout(http.get(), requestTimeout);
 
                         std::swap(http, m_http);
                     }
                 }
 
                 Server::Server(std::string const &host, std::string const &port, ServerHandler const &handler,
-                               Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize)
-                    : Server{handler, allowedMethods, headersSize, bodySize}
+                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
+                    : Server{handler, allowedMethods, headersSize, bodySize, requestTimeout}
                 {
                     if (host.empty())
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Server] Host must not be empty."};
@@ -65,8 +67,8 @@ namespace Mif
                 }
 
                 Server::Server(evutil_socket_t socket, ServerHandler const &handler,
-                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize)
-                    : Server{handler, allowedMethods, headersSize, bodySize}
+                    Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
+                    : Server{handler, allowedMethods, headersSize, bodySize, requestTimeout}
                 {
                     if (socket == -1)
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Server] Invalid input socket."};
