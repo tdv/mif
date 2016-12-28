@@ -34,9 +34,7 @@ set(CLIENT_SOURCES
 include_directories(common/include)
 
 add_executable(${PROJECT_SERVER_NAME} ${SERVER_HEADERS} ${SERVER_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/server/src/main.cpp)
-add_dependencies(${PROJECT_SERVER_NAME} ${MIF_LIB_PROJECT})
 target_link_libraries(${PROJECT_SERVER_NAME} ${LIBRARIES})
 
 add_executable(${PROJECT_CLIENT_NAME} ${CLIENT_HEADERS} ${CLIENT_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/client/src/main.cpp)
-add_dependencies(${PROJECT_CLIENT_NAME} ${MIF_LIB_PROJECT})
 target_link_libraries(${PROJECT_CLIENT_NAME} ${LIBRARIES})

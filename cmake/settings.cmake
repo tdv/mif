@@ -25,10 +25,13 @@ if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE "Release" CACHE INTERNAL "")
 endif(NOT CMAKE_BUILD_TYPE)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++11")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -fPIC -std=c++11")
 set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
-set (CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
+set (CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+set (CMAKE_SHARED_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Boost_USE_STATIC_LIBS ON)  

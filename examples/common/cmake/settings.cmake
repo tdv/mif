@@ -14,8 +14,6 @@ set (CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 #set (CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set (THITD_PARTY_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/lib")
-
 set(LIBRARIES
     mif
     boost_iostreams

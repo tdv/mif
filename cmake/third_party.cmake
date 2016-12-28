@@ -14,7 +14,7 @@ set (JSONCPP_LIBRARIES
 )
 
 set (ZLIB_LIBRARIES
-    z
+    z.a
 )
 
 set (BOOST_LIBRARIES
@@ -41,7 +41,7 @@ set (MIF_BOOST_CMAKE_ARGS
 set (MIF_JSONCPP_CMAKE_ARGS "-DJSONCPP_WITH_TESTS=OFF"
     "-DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF"
     "-DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF"
-    "-DJSONCPP_WITH_CMAKE_PACKAGE=ON"
+    "-DJSONCPP_WITH_CMAKE_PACKAGE=OFF"
     "-DBUILD_SHARED_LIBS=OFF"
     "-DBUILD_STATIC_LIBS=ON"
 )
@@ -84,6 +84,7 @@ function (mif_add_third_party_project
             UPDATE_COMMAND ""
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_LIB_INSTALL_DIR} 
                 -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
+                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
                 ${MIF_LIB_CMAKE_ARGS}
         )
     else()
@@ -91,6 +92,7 @@ function (mif_add_third_party_project
             SOURCE_DIR ${source}
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_LIB_INSTALL_DIR} 
                 -DCMAKE_CXX_FLAGS:INTERNAL=${CMAKE_CXX_FLAGS} 
+                -DCMAKE_C_FLAGS:INTERNAL=${CMAKE_C_FLAGS} 
                 ${MIF_LIB_CMAKE_ARGS}
         )
     endif()
@@ -157,22 +159,46 @@ function (mif_add_boost_project from_git)
     endif()
 endfunction()
 
-if (MIF_THIRD_PARTY_GIT)
-    if (MIF_GITHUB_SOURCE)
-        include (cmake/github_source.cmake)
-        foreach (lib ${MIF_THIRD_PARTY_LIBS})
-            mif_add_git_third_party_project(${lib})
-        endforeach (lib)
-        mif_add_boost_project(TRUE)
+function (mif_add_third_party_paths lib)
+    string (TOUPPER ${lib} LIB_NAME_UP)
+    if (NOT DEFINED ${LIB_NAME_UP}_INCLUDE_DIR)
+        message(FATAL_ERROR "[MIF] The variable ${LIB_NAME_UP}_INCLUDE_DIR is not defined.")
     else()
-        message(FATAL_ERROR "[MIF] No support of getting third_party from not a github source")
+        message("[MIF] ${LIB_NAME_UP}_INCLUDE_DIR=${${LIB_NAME_UP}_INCLUDE_DIR}")
+        include_directories (SYSTEM ${${LIB_NAME_UP}_INCLUDE_DIR})
+    endif()
+    if (NOT DEFINED ${LIB_NAME_UP}_LIBRARIES_DIR)
+        message(FATAL_ERROR "[MIF] The variable ${LIB_NAME_UP}_LIBRARIES_DIR is not defined.")
+    else()
+        message("[MIF] ${LIB_NAME_UP}_LIBRARIES_DIR=${${LIB_NAME_UP}_LIBRARIES_DIR}")
+        link_directories(${${LIB_NAME_UP}_LIBRARIES_DIR})
+    endif()
+    unset (LIB_NAME_UP)
+endfunction()
+
+if (MIF_NEED_THIRD_PARTY_BUILD)
+    if (MIF_THIRD_PARTY_GIT)
+        if (MIF_GITHUB_SOURCE)
+            include (cmake/github_source.cmake)
+            foreach (lib ${MIF_THIRD_PARTY_LIBS})
+                mif_add_git_third_party_project(${lib})
+            endforeach (lib)
+            mif_add_boost_project(TRUE)
+        else()
+            message(FATAL_ERROR "[MIF] No support of getting third_party from not a github source")
+        endif()
+    else()
+        include (cmake/local_source.cmake)
+        foreach (lib ${MIF_THIRD_PARTY_LIBS})
+            mif_add_local_third_party_project(${lib})
+        endforeach (lib)
+        mif_add_boost_project(FALSE)
     endif()
 else()
-    include (cmake/local_source.cmake)
-    foreach (lib ${MIF_THIRD_PARTY_LIBS})
-        mif_add_local_third_party_project(${lib})
-    endforeach (lib)
-    mif_add_boost_project(FALSE)
+    mif_add_third_party_paths(zlib)
+    mif_add_third_party_paths(boost)
+    mif_add_third_party_paths(jsoncpp)
+    mif_add_third_party_paths(event)
 endif()
 
 set (BOOST_LIBS_LIST "")

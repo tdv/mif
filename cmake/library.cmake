@@ -32,14 +32,16 @@ set (MIF_DEPENDENCIES_LIBRARIES
     ${BOOST_LIBRARIES}
     ${JSONCPP_LIBRARIES}
     ${ZLIB_LIBRARIES}
-#    ${EVENT_LIBRARIES}
+    ${EVENT_LIBRARIES}
 )
 
 include_directories (include)
 include_directories (MIF_SOURCES)
 
 add_library ("${PROJECT_LC}_obj" OBJECT ${MIF_SOURCES})
-add_dependencies ("${PROJECT_LC}_obj" ${MIF_THIRD_PARTY_PROJECTS})
+if (MIF_NEED_THIRD_PARTY_BUILD)
+    add_dependencies ("${PROJECT_LC}_obj" ${MIF_THIRD_PARTY_PROJECTS})
+endif()
 
 if (MIF_STATIC_LIBS)
     add_library (${PROJECT_LC} STATIC $<TARGET_OBJECTS:${PROJECT_LC}_obj>)
