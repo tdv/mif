@@ -1,12 +1,15 @@
 set(MIF_SOURCES
     ${MIF_SOURCES}
     
-    #Common
+    # Common
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/thread_pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/uuid_generator.cpp
 
-    #Net
+    # Service
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/locator.cpp
+
+    # Net
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/client.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/frame_reader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/frame_writer.cpp

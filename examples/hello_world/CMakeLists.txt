@@ -14,12 +14,11 @@ set(COMMON_HEADERS
 set(SERVER_HEADERS
     ${SERVER_HEADERS}
     ${COMMON_HEADERS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/server/src/hello_world_service.h
 )
 
 set(SERVER_SOURCES
     ${SERVER_SOURCES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/server/src/hello_world_service.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/server/src/hello_world.cpp
 )
 
 set(CLIENT_HEADERS

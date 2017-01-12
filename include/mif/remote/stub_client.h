@@ -20,7 +20,8 @@
 // MIF
 #include "mif/common/uuid_generator.h"
 #include "mif/net/client.h"
-#include "mif/service/iservice_factory.h"
+#include "mif/service/ifactory.h"
+#include "mif/service/make.h"
 #include "mif/remote/detail/iobject_manager_ps.h"
 
 namespace Mif
@@ -45,12 +46,12 @@ namespace Mif
             StubClient& operator = (StubClient &&) = delete;
 
             StubClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher,
-                Service::IServiceFactoryPtr serviceFactory)
+                Service::IFactoryPtr factory)
                 : Client{control, publisher}
             {
-                m_stubs.insert(std::make_pair(std::string{"0"},
-                    std::make_pair(std::make_shared<ObjectManagerStub>(),
-                    std::make_shared<ObjectManager>(this, serviceFactory))));
+                auto stub = std::make_shared<ObjectManagerStub>();
+                auto manager = Service::Make<ObjectManager>(this, factory);
+                m_stubs.insert(std::make_pair(std::string{"0"}, std::make_pair(stub, manager)));
             }
 
             ~StubClient() = default;
@@ -131,7 +132,7 @@ namespace Mif
                 }
             }
 
-            class ObjectManager final
+            class ObjectManager
                 : public Detail::IObjectManager
             {
             public:
@@ -140,16 +141,16 @@ namespace Mif
                 ObjectManager& operator = (ObjectManager const &) = delete;
                 ObjectManager& operator = (ObjectManager &&) = delete;
 
-                ObjectManager(StubClientType *owner, Service::IServiceFactoryPtr serviceFactory)
+                ObjectManager(StubClientType *owner, Service::IFactoryPtr factory)
                     : m_owner{owner}
-                    , m_serviceFactory{serviceFactory}
+                    , m_factory{factory}
                 {
                 }
 
             private:
                 StubClientType *m_owner;
 
-                Service::IServiceFactoryPtr m_serviceFactory;
+                Service::IFactoryPtr m_factory;
                 Common::UuidGenerator m_idGenerator;
 
                 // IObjectManager
@@ -159,7 +160,7 @@ namespace Mif
                     using PSTuple = std::tuple<TProxyStubs<TSerializer> ... >;
                     auto stub = CreateStub<PSTuple>(interfaceId,
                         reinterpret_cast<std::integral_constant<std::size_t, std::tuple_size<PSTuple>::value> const *>(0));
-                    auto instance = m_serviceFactory->Create(serviceId);
+                    auto instance = m_factory->Create(serviceId);
                                         {
                         LockGuard lock(m_owner->m_lock);
                         m_owner->m_stubs.insert(std::make_pair(instanceId, std::make_pair(std::move(stub), std::move(instance))));

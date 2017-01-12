@@ -25,6 +25,7 @@
 #include "mif/common/log.h"
 #include "mif/net/client.h"
 #include "mif/remote/detail/iobject_manager_ps.h"
+#include "mif/service/make.h"
 
 namespace Mif
 {
@@ -55,10 +56,10 @@ namespace Mif
             ProxyClient& operator = (ProxyClient &&) = delete;
 
             template <typename TInterface>
-            std::shared_ptr<TInterface> CreateService(std::string const &id)
+            Service::TServicePtr<TInterface> CreateService(std::string const &id)
             {
                 using PSTuple = std::tuple<TProxyStubs<TSerializer> ... >;
-                return std::static_pointer_cast<TInterface>(Create<TInterface, PSTuple>(id,
+                return Service::Cast<TInterface>(Create<TInterface, PSTuple>(id,
                     reinterpret_cast<std::integral_constant<std::size_t, std::tuple_size<PSTuple>::value> const *>(0)));
             }
 
@@ -71,7 +72,7 @@ namespace Mif
             using Response = std::pair<std::chrono::microseconds/*timestamp*/, DeserializerPtr>;
             using Responses = std::map<std::string/*uuid*/, Response>;
 
-            using IObjectManagerPtr = std::shared_ptr<Detail::IObjectManager>;
+            using IObjectManagerPtr = Service::TServicePtr<Detail::IObjectManager>;
 
             std::chrono::microseconds const m_timeout;
             std::condition_variable m_condVar;
@@ -208,9 +209,9 @@ namespace Mif
 
             IObjectManagerPtr CreateObjectManager()
             {
-                auto proxy = std::make_shared<ObjectManagerProxy>(std::string{"0"}, std::bind(&ThisType::Send,
+                auto proxy = Service::Make<ObjectManagerProxy, Detail::IObjectManager>(std::string{"0"}, std::bind(&ThisType::Send,
                     std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2));
-                return std::static_pointer_cast<Detail::IObjectManager>(proxy);
+                return proxy;
             }
 
             template
@@ -253,7 +254,7 @@ namespace Mif
                 auto const instanceId = manager->CreateObject(serviceId, PSType::InterfaceId);
                 try
                 {
-                    service = std::make_shared<Holder<ProxyType>>(
+                    service = Service::Make<Holder<ProxyType>>(
                             std::move(sender), manager, instanceId);
                 }
                 catch (std::exception const &e)
@@ -275,7 +276,7 @@ namespace Mif
                         "Error: " + std::string{e.what()}};
                 }
 
-                return std::static_pointer_cast<Service::IService>(service);
+                return service;
             }
 
             template
@@ -289,7 +290,7 @@ namespace Mif
             }
 
             template <typename TProxy>
-            class Holder final
+            class Holder
                 : public TProxy
             {
             public:

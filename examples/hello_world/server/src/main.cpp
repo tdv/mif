@@ -18,13 +18,14 @@
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost.h>
 #include <mif/remote/stub_client.h>
-#include <mif/service/service_factory.h>
+#include <mif/service/make.h>
+#include <mif/service/factory.h>
 
 // COMMON
 #include "common/ps/ihello_world.h"
 
 // THIS
-#include "hello_world_service.h"
+#include "common/id/service.h"
 
 int main(int argc, char const **argv)
 {
@@ -39,16 +40,15 @@ int main(int argc, char const **argv)
         using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
         using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
 
-        auto serviceFactory = std::make_shared<Mif::Service::ServiceFactory>();
-        serviceFactory->AddClass<HelloWorldService>("HelloWorld");
+        auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
+        factory->AddClass<Service::Id::HelloWorld>();
 
         using StubClient = Mif::Remote::StubClient<SerializerTraits, IHelloWorld_PS>;
         using StubFactory = Mif::Net::ClientFactory<StubClient>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;
 
-        auto netClientFactgory = std::make_shared<StubFactory>(
-            std::static_pointer_cast<Mif::Service::IServiceFactory>(serviceFactory));
+        auto netClientFactgory = std::make_shared<StubFactory>(factory);
         auto server = std::make_shared<Mif::Net::TCPServer>(
             argv[1], argv[2], 4, netClientFactgory);
         (void)server;
