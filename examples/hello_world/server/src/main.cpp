@@ -43,7 +43,7 @@ int main(int argc, char const **argv)
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<Service::Id::HelloWorld>();
 
-        using StubClient = Mif::Remote::StubClient<SerializerTraits, IHelloWorld_PS>;
+        using StubClient = Mif::Remote::StubClient<SerializerTraits, Service::Meta::IHelloWorld_PS>;
         using StubFactory = Mif::Net::ClientFactory<StubClient>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;

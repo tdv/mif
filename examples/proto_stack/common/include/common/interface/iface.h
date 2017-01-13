@@ -14,10 +14,15 @@
 // MIF
 #include <mif/service/iservice.h>
 
-struct IFace
-    : public Mif::Service::IService
+namespace Service
 {
-    virtual std::string SayHello(std::string const &text) = 0;
-};
+
+    struct IFace
+        : public Mif::Service::IService
+    {
+        virtual std::string SayHello(std::string const &text) = 0;
+    };
+
+}   // namespace Service
 
 #endif  // !__PROTO_STACK_COMMON_INTERFACE_IFACE_H__

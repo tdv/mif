@@ -14,12 +14,17 @@
 // MIF
 #include <mif/service/iservice.h>
 
-struct IHelloWorld
-    : public Mif::Service::IService
+namespace Service
 {
-    virtual void AddWord(std::string const &word) = 0;
-    virtual std::string GetText() const = 0;
-    virtual void Clean() = 0;
-};
+
+    struct IHelloWorld
+        : public Mif::Service::IService
+    {
+        virtual void AddWord(std::string const &word) = 0;
+        virtual std::string GetText() const = 0;
+        virtual void Clean() = 0;
+    };
+
+}   // namespace Service
 
 #endif  // !__HELLO_WORLD_COMMON_INTERFACE_IHELLO_WORLD_H__

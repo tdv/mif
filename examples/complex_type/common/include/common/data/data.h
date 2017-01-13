@@ -13,26 +13,29 @@
 #include <map>
 #include <string>
 
-namespace Data
+namespace Service
 {
-
-    using ID = std::string;
-
-    struct Human
+    namespace Data
     {
-        std::string name;
-        std::string lastName;
-        std::uint32_t age = 0;
-    };
 
-    struct Employee
-        : public Human
-    {
-        std::string position;
-    };
+        using ID = std::string;
 
-    using Employees = std::map<ID, Employee>;
+        struct Human
+        {
+            std::string name;
+            std::string lastName;
+            std::uint32_t age = 0;
+        };
 
-}   // Data
+        struct Employee
+            : public Human
+        {
+            std::string position;
+        };
+
+        using Employees = std::map<ID, Employee>;
+
+    }   // namespace Data
+}   // namespace Service
 
 #endif  // !__COMPLEX_TYPE_COMMON_DATA_DATA_H__

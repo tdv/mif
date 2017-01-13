@@ -17,10 +17,18 @@
 // THIS
 #include "common/interface/ihello_world.h"
 
-MIF_REMOTE_PS_BEGIN(IHelloWorld)
-    MIF_REMOTE_METHOD(AddWord)
-    MIF_REMOTE_METHOD(GetText)
-    MIF_REMOTE_METHOD(Clean)
-MIF_REMOTE_PS_END()
+namespace Service
+{
+    namespace Meta
+    {
+
+        MIF_REMOTE_PS_BEGIN(IHelloWorld)
+            MIF_REMOTE_METHOD(AddWord)
+            MIF_REMOTE_METHOD(GetText)
+            MIF_REMOTE_METHOD(Clean)
+        MIF_REMOTE_PS_END()
+
+    }   // namespace Meta
+}   // namespace Service
 
 #endif  // !__HELLO_WORLD_COMMON_PS_IHELLO_WORLD_H__

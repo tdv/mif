@@ -14,8 +14,16 @@
 // THIS
 #include "common/interface/iface.h"
 
-MIF_REMOTE_PS_BEGIN(IFace)
-    MIF_REMOTE_METHOD(SayHello)
-MIF_REMOTE_PS_END()
+namespace Service
+{
+    namespace Meta
+    {
+
+        MIF_REMOTE_PS_BEGIN(IFace)
+            MIF_REMOTE_METHOD(SayHello)
+        MIF_REMOTE_PS_END()
+
+    }   // namespace Meta
+}   // namespace Service
 
 #endif  // !__PROTO_STACK_COMMON_PS_IFACE_H__

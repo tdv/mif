@@ -17,71 +17,77 @@
 #include "common/id/service.h"
 #include "common/interface/ihello_world.h"
 
-namespace
+namespace Service
 {
-
-    class HelloWorld
-        : public IHelloWorld
+    namespace Detail
     {
-    public:
-        HelloWorld()
+        namespace
         {
-            LockGuard lock(m_lock);
-            std::cout << "HelloWorld" << std::endl;
-        }
 
-        ~HelloWorld()
-        {
-            LockGuard lock(m_lock);
-            std::cout << "~HelloWorld" << std::endl;
-        }
-
-    private:
-        using LockType = std::mutex;
-        using LockGuard = std::lock_guard<LockType>;
-
-        mutable LockType m_lock;
-        std::list<std::string> m_words;
-
-        // IHelloWorld
-        virtual void AddWord(std::string const &word) override final
-        {
-            LockGuard lock(m_lock);
-            std::cout << "AddWord: " << word << std::endl;
-            m_words.push_back(word);
-        }
-
-        virtual std::string GetText() const override final
-        {
-            std::string text;
+            class HelloWorld
+                : public IHelloWorld
             {
-                LockGuard lock(m_lock);
-                std::cout << "GetText. Creating text in " << m_words.size() << " words." << std::endl;
-                for (auto const &word : m_words)
+            public:
+                HelloWorld()
                 {
-                    if (!text.empty())
-                        text += " ";
-                    text += word;
+                    LockGuard lock(m_lock);
+                    std::cout << "HelloWorld" << std::endl;
                 }
-                std::cout << "GetText. Created text in " << m_words.size() << " words. Text \"" << text << "\"" << std::endl;
-            }
-            return text;
-        }
+
+                ~HelloWorld()
+                {
+                    LockGuard lock(m_lock);
+                    std::cout << "~HelloWorld" << std::endl;
+                }
+
+            private:
+                using LockType = std::mutex;
+                using LockGuard = std::lock_guard<LockType>;
+
+                mutable LockType m_lock;
+                std::list<std::string> m_words;
+
+                // IHelloWorld
+                virtual void AddWord(std::string const &word) override final
+                {
+                    LockGuard lock(m_lock);
+                    std::cout << "AddWord: " << word << std::endl;
+                    m_words.push_back(word);
+                }
+
+                virtual std::string GetText() const override final
+                {
+                    std::string text;
+                    {
+                        LockGuard lock(m_lock);
+                        std::cout << "GetText. Creating text in " << m_words.size() << " words." << std::endl;
+                        for (auto const &word : m_words)
+                        {
+                            if (!text.empty())
+                                text += " ";
+                            text += word;
+                        }
+                        std::cout << "GetText. Created text in " << m_words.size() << " words. Text \"" << text << "\"" << std::endl;
+                    }
+                    return text;
+                }
 
 
-        virtual void Clean() override final
-        {
-            LockGuard lock(m_lock);
-            std::cout << "Clean. Remove " << m_words.size() << " words." << std::endl;
-            decltype(m_words){}.swap(m_words);
-        }
+                virtual void Clean() override final
+                {
+                    LockGuard lock(m_lock);
+                    std::cout << "Clean. Remove " << m_words.size() << " words." << std::endl;
+                    decltype(m_words){}.swap(m_words);
+                }
 
-    };
+            };
 
-}   // namespace
+        }   // namespace
+    }   // namespace Detail
+}   // namespace Service
 
 MIF_SERVICE_CREATOR
 (
     ::Service::Id::HelloWorld,
-    HelloWorld
+    ::Service::Detail::HelloWorld
 )

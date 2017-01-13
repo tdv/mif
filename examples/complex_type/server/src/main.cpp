@@ -42,8 +42,8 @@ int main(int argc, char const **argv)
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<::Service::Id::MyCompany>();
 
-        using StubClient = Mif::Remote::StubClient<SerializerTraits, IMyCompany_PS>;
-        using StubFactory = Mif::Net::ClientFactory<ProtocolChain<StubClient>>;
+        using StubClient = Mif::Remote::StubClient<SerializerTraits, Service::Meta::IMyCompany_PS>;
+        using StubFactory = Mif::Net::ClientFactory<Service::Ipc::ProtocolChain<StubClient>>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;
 

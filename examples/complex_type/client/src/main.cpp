@@ -23,7 +23,7 @@
 #include "common/ps/imy_company.h"
 #include "common/protocol_chain.h"
 
-void ShowEmployees(Data::Employees const &employees)
+void ShowEmployees(Service::Data::Employees const &employees)
 {
     for (auto const &e : employees)
     {
@@ -48,9 +48,9 @@ int main(int argc, char const **argv)
         using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
         using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
 
-        using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, IMyCompany_PS>;
+        using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, Service::Meta::IMyCompany_PS>;
 
-        using ClientsChain = ProtocolChain<ProxyClient>;
+        using ClientsChain = Service::Ipc::ProtocolChain<ProxyClient>;
 
         using ProxyFactory = Mif::Net::ClientFactory<ClientsChain>;
 
@@ -69,12 +69,12 @@ int main(int argc, char const **argv)
 
         auto client = proxy->GetClientItem<ProxyClient>();
 
-        auto service = client->CreateService<IMyCompany>("MyCompany");
+        auto service = client->CreateService<Service::IMyCompany>("MyCompany");
 
         std::cout << "Client started." << std::endl;
 
         {
-            Data::Employee e;
+            Service::Data::Employee e;
             e.name = "Ivan";
             e.lastName = "Ivanov";
             e.age = 25;
@@ -84,7 +84,7 @@ int main(int argc, char const **argv)
         }
 
         {
-            Data::Employee e;
+            Service::Data::Employee e;
             e.name = "Petr";
             e.lastName = "Petrov";
             e.age = 30;

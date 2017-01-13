@@ -15,10 +15,18 @@
 #include "common/interface/imy_company.h"
 #include "common/meta/data.h"
 
-MIF_REMOTE_PS_BEGIN(IMyCompany)
-    MIF_REMOTE_METHOD(AddEmployee)
-    MIF_REMOTE_METHOD(RemoveAccount)
-    MIF_REMOTE_METHOD(GetEmployees)
-MIF_REMOTE_PS_END()
+namespace Service
+{
+    namespace Meta
+    {
+
+        MIF_REMOTE_PS_BEGIN(IMyCompany)
+            MIF_REMOTE_METHOD(AddEmployee)
+            MIF_REMOTE_METHOD(RemoveAccount)
+            MIF_REMOTE_METHOD(GetEmployees)
+        MIF_REMOTE_PS_END()
+
+    }   // namespace Meta
+}   // namespace Service
 
 #endif  // !__COMPLEX_TYPE_COMMON_PS_IMYCOMPANY_H__

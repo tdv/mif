@@ -35,7 +35,7 @@ int main(int argc, char const **argv)
         using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
         using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
 
-        using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, IHelloWorld_PS>;
+        using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits, Service::Meta::IHelloWorld_PS>;
         using ProxyFactory = Mif::Net::ClientFactory<ProxyClient>;
 
         std::chrono::microseconds timeout{10 * 1000 * 1000};
@@ -47,7 +47,7 @@ int main(int argc, char const **argv)
 
         auto client = std::static_pointer_cast<ProxyClient>(clients.RunClient(argv[1], argv[2]));
 
-        auto service = client->CreateService<IHelloWorld>("HelloWorld");
+        auto service = client->CreateService<Service::IHelloWorld>("HelloWorld");
 
         std::cout << "Client started." << std::endl;
 
