@@ -11,13 +11,14 @@
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost.h>
 #include <mif/remote/stub_client.h>
-#include <mif/service/service_factory.h>
+#include <mif/service/make.h>
+#include <mif/service/factory.h>
 
 // COMMON
 #include "common/ps/iface.h"
 
 // THIS
-#include "service.h"
+#include "common/id/service.h"
 #include "common/protocol_chain.h"
 
 int main(int argc, char const **argv)
@@ -33,8 +34,8 @@ int main(int argc, char const **argv)
         using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
         using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
 
-        auto serviceFactory = std::make_shared<Mif::Service::ServiceFactory>();
-        serviceFactory->AddClass<Service>("Service");
+        auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
+        factory->AddClass<::Service::Id::Service>();
 
         using StubClient = Mif::Remote::StubClient<SerializerTraits, IFace_PS>;
         using StubFactory = Mif::Net::ClientFactory<ProtocolChain<StubClient>>;
@@ -43,7 +44,7 @@ int main(int argc, char const **argv)
 
         auto netClientFactgory = std::make_shared<StubFactory>
             (
-                Mif::Common::MakeCreator<StubClient>(serviceFactory)
+                Mif::Common::MakeCreator<StubClient>(factory)
             );
 
         auto server = std::make_shared<Mif::Net::TCPServer>(

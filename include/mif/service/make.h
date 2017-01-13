@@ -23,7 +23,7 @@ namespace Mif
         template <typename TImpl, typename TRet, typename ... TArgs>
         inline TServicePtr<TRet> Make(TArgs && ... args)
         {
-            TServicePtr<Detail::FakeService> service{new Detail::Service<TImpl>(std::forward<TArgs>(args) ... )};
+            TServicePtr<Detail::Fake_Service__> service{new Detail::Service_Impl__<TImpl>(std::forward<TArgs>(args) ... )};
             return Cast<TRet>(service);
         }
 

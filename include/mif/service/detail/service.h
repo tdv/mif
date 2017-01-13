@@ -22,29 +22,31 @@ namespace Mif
         namespace Detail
         {
 
-            struct FakeService
+            struct Fake_Service__
                 : public IService
             {
             };
 
             template <typename T>
-            class Service final
+            class Service_Impl__ final
                 : public std::enable_if<std::is_base_of<IService, T>::value || std::is_same<IService, T>::value, T>::type
-                , public Detail::FakeService
+                , public Detail::Fake_Service__
             {
             public:
-                Service()
+                Service_Impl__()
                 {
                 }
 
                 template <typename ... TArgs>
-                Service(TArgs && ... args)
+                Service_Impl__(TArgs && ... args)
                     : T{std::forward<TArgs>(args) ... }
                 {
                 }
 
+                virtual ~Service_Impl__() = default;
+
             private:
-                std::atomic_size_t m_counter;
+                std::atomic_size_t m_counter{0};
 
                 // IService
                 virtual std::size_t AddRef() override final

@@ -69,7 +69,7 @@ int main(int argc, char const **argv)
 
         auto client = proxy->GetClientItem<ProxyClient>();
 
-        auto service = client->CreateService<IMyCompany>("MyCompanyService");
+        auto service = client->CreateService<IMyCompany>("MyCompany");
 
         std::cout << "Client started." << std::endl;
 

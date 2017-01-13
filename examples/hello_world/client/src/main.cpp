@@ -47,22 +47,22 @@ int main(int argc, char const **argv)
 
         auto client = std::static_pointer_cast<ProxyClient>(clients.RunClient(argv[1], argv[2]));
 
-        auto helloWorldService = client->CreateService<IHelloWorld>("HelloWorld");
+        auto service = client->CreateService<IHelloWorld>("HelloWorld");
 
         std::cout << "Client started." << std::endl;
 
         std::cout << "Add words." << std::endl;
 
-        helloWorldService->AddWord("Hello");
-        helloWorldService->AddWord("World");
-        helloWorldService->AddWord("!!!");
+        service->AddWord("Hello");
+        service->AddWord("World");
+        service->AddWord("!!!");
 
-        std::cout << "Result from server: \"" << helloWorldService->GetText() << "\"" << std::endl;
+        std::cout << "Result from server: \"" << service->GetText() << "\"" << std::endl;
         
         std::cout << "Clean." << std::endl;
-        helloWorldService->Clean();
-        
-        std::cout << "Result from server: \"" << helloWorldService->GetText() << "\"" << std::endl;
+        service->Clean();
+
+        std::cout << "Result from server: \"" << service->GetText() << "\"" << std::endl;
 
         std::cout << "Press Enter for quit." << std::endl;
 

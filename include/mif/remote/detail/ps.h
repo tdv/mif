@@ -190,10 +190,10 @@ namespace Mif
                 void InvokeRealMethod(TResult (*method)(TInterface &, std::tuple<TParams ... > && ),
                                       void *instance, void *deserializer, void *serializer)
                 {
-                    auto inst = Service::Cast<TInterface>(reinterpret_cast<Service::IService *>(instance));
+                    auto &inst = dynamic_cast<TInterface &>(*reinterpret_cast<Service::IService *>(instance));
                     auto params = reinterpret_cast<Deserializer *>(deserializer)->template GetParams<TParams ... >();
                     FunctionWrap<TResult>::Call(
-                            [&method, &inst, &params] () { return method(*inst, std::move(params)); },
+                            [&method, &inst, &params] () { return method(inst, std::move(params)); },
                             *reinterpret_cast<Serializer *>(serializer)
                         );
                 }

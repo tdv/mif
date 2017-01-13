@@ -7,29 +7,58 @@
 
 // STD
 #include <iostream>
+#include <mutex>
 
-// THIS
-#include "service.h"
+// MIF
+#include <mif/service/creator.h>
 
-Service::Service()
+// COMMON
+#include "common/id/service.h"
+#include "common/interface/iface.h"
+
+namespace
 {
-    LockGuard lock(m_lock);
-    std::cout << "Service" << std::endl;
-}
 
-Service::~Service()
-{
-    LockGuard lock(m_lock);
-    std::cout << "~Service" << std::endl;
-}
-
-std::string Service::SayHello(std::string const &text)
-{
-    std::string result;
+    class ServiceImpl
+        : public IFace
     {
-        LockGuard lock(m_lock);
-        result = "Hello " + text + "!";
-        std::cout << "SeyHello: " << result << std::endl;
-    }
-    return result;
-}
+    public:
+        ServiceImpl()
+        {
+            LockGuard lock(m_lock);
+            std::cout << "ServiceImpl" << std::endl;
+        }
+
+        ~ServiceImpl()
+        {
+            LockGuard lock(m_lock);
+            std::cout << "~ServiceImpl" << std::endl;
+        }
+
+    private:
+        using LockType = std::mutex;
+        using LockGuard = std::lock_guard<LockType>;
+
+        mutable LockType m_lock;
+
+        // IFace
+        virtual std::string SayHello(std::string const &text) override final
+        {
+            std::string result;
+            {
+                LockGuard lock(m_lock);
+                result = "Hello " + text + "!";
+                std::cout << "SeyHello: " << result << std::endl;
+            }
+            return result;
+        }
+
+    };
+
+}   // namespace
+
+MIF_SERVICE_CREATOR
+(
+    ::Service::Id::Service,
+    ::ServiceImpl
+)
