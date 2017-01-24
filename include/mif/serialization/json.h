@@ -17,11 +17,18 @@
 #include <type_traits>
 #include <utility>
 
+// BOOST
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/stream.hpp>
+
 // JSONCPP
 #include <json/json.h>
 #include <json/reader.h>
 
 // MIF
+#include "mif/common/types.h"
 #include "mif/common/index_sequence.h"
 #include "mif/common/static_string.h"
 #include "mif/common/unused.h"
@@ -540,7 +547,8 @@ namespace Mif
             }   // namespace Detail
 
             template <typename T, typename TStream>
-            inline void Serialize(T const &object, TStream &stream)
+            inline typename std::enable_if<Reflection::IsReflectable<T>(), void>::type
+            Serialize(T const &object, TStream &stream)
             {
                 ::Json::Value root{::Json::objectValue};
                 using BasesType = typename Reflection::Reflect<T>::Base;
@@ -549,8 +557,55 @@ namespace Mif
                 stream << root;
             }
 
+            template <typename T>
+            inline typename std::enable_if<Reflection::IsReflectable<T>(), Common::Buffer>::type
+            Serialize(T const &object)
+            {
+                Common::Buffer buffer;
+
+                {
+                    boost::iostreams::filtering_ostream stream{boost::iostreams::back_inserter(buffer)};
+                    Serialize(object, stream);
+                    stream.flush();
+                }
+
+                return buffer;
+            }
+
             template <typename T, typename TStream>
-            inline T Deserialize(TStream &stream)
+            inline typename std::enable_if<!Reflection::IsReflectable<T>(), void>::type
+            Serialize(T const &object, TStream &stream, std::string const &rootName = {})
+            {
+                if (!rootName.empty())
+                {
+                    ::Json::Value root{::Json::objectValue};
+                    root[rootName] = Detail::ValueToJson(object);
+                    stream << root;
+                }
+                else
+                {
+                    stream << Detail::ValueToJson(object);
+                }
+            }
+
+            template <typename T>
+            inline typename std::enable_if<!Reflection::IsReflectable<T>(), Common::Buffer>::type
+            Serialize(T const &object, std::string const &rootName = {})
+            {
+                Common::Buffer buffer;
+
+                {
+                    boost::iostreams::filtering_ostream stream{boost::iostreams::back_inserter(buffer)};
+                    Serialize(object, stream, rootName);
+                    stream.flush();
+                }
+
+                return buffer;
+            }
+
+            template <typename T, typename TStream>
+            inline typename std::enable_if<Reflection::IsReflectable<T>(), T>::type
+            Deserialize(TStream &stream)
             {
                 ::Json::Value root;
                 ::Json::Reader reader;
@@ -564,6 +619,44 @@ namespace Mif
                 Detail::BasesDeserializer<BasesType, std::tuple_size<BasesType>::value>::Deserialize(root, object);
                 Detail::Deserializer<Reflection::Reflect<T>::Fields::Count>::Deserialize(root, object);
                 return object;
+            }
+
+            template <typename T>
+            inline typename std::enable_if<Reflection::IsReflectable<T>(), T>::type
+            Deserialize(Common::Buffer const &buffer)
+            {
+                using SourceType = boost::iostreams::basic_array_source<char>;
+                SourceType source{!buffer.empty() ? buffer.data() : nullptr, buffer.size()};
+                boost::iostreams::stream<SourceType> stream{source};
+
+                return Deserialize<T>(stream);
+            }
+
+            template <typename T, typename TStream>
+            inline typename std::enable_if<!Reflection::IsReflectable<T>(), T>::type
+            Deserialize(TStream &stream, std::string const &rootName = {})
+            {
+                ::Json::Value root;
+                ::Json::Reader reader;
+                if (!reader.parse(stream, root))
+                {
+                    throw std::invalid_argument{"[Mif::Serialization::Json::Deserialize] Failed to parse json. Error: " +
+                        reader.getFormattedErrorMessages()};
+                }
+                T object{};
+                Detail::JsonToValue<T>(rootName.empty() ? root : root.get(rootName, ::Json::Value{}), object);
+                return object;
+            }
+
+            template <typename T>
+            inline typename std::enable_if<!Reflection::IsReflectable<T>(), T>::type
+            Deserialize(Common::Buffer const &buffer, std::string const &rootName = {})
+            {
+                using SourceType = boost::iostreams::basic_array_source<char>;
+                SourceType source{!buffer.empty() ? buffer.data() : nullptr, buffer.size()};
+                boost::iostreams::stream<SourceType> stream{source};
+
+                return Deserialize<T>(stream, rootName);
             }
 
         }   // namespace Json
