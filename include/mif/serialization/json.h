@@ -115,29 +115,29 @@ namespace Mif
                 JsonToValue(::Json::Value const &root, T &object);
 
                 template <typename T>
-                typename std::enable_if<std::is_pointer<T>::value, ::Json::Value>::type
-                inline ValueToJson(T const &)
+                inline typename std::enable_if<std::is_pointer<T>::value, ::Json::Value>::type
+                ValueToJson(T const &)
                 {
                     static_assert(!std::is_pointer<T>::value, "[Mif::Serialization::Json::Detail] You can't serialize the raw pointers.");
                 }
 
                 template <typename T>
-                typename std::enable_if<std::is_enum<T>::value, ::Json::Value>::type
-                inline ValueToJson(T const &object)
+                inline typename std::enable_if<std::is_enum<T>::value, ::Json::Value>::type
+                ValueToJson(T const &object)
                 {
                     return ValueToJson(static_cast<typename std::underlying_type<T>::type>(object));
                 }
 
                 template <typename T>
-                typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
-                inline ValueToJson(T const &object)
+                inline typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
+                ValueToJson(T const &object)
                 {
                     return {object};
                 }
 
                 template <typename T>
-                typename std::enable_if<Reflection::IsReflectable<T>(), ::Json::Value>::type
-                inline ValueToJson(T const &object)
+                inline typename std::enable_if<Reflection::IsReflectable<T>(), ::Json::Value>::type
+                ValueToJson(T const &object)
                 {
                     ::Json::Value root{::Json::objectValue};
                     using BasesType = typename Reflection::Reflect<T>::Base;
@@ -147,8 +147,8 @@ namespace Mif
                 }
 
                 template <typename T>
-                typename std::enable_if<Traits::IsSmartPointer<T>(), ::Json::Value>::type
-                inline ValueToJson(T const &ptr)
+                inline typename std::enable_if<Traits::IsSmartPointer<T>(), ::Json::Value>::type
+                ValueToJson(T const &ptr)
                 {
                     if (!ptr)
                         return {::Json::nullValue};
@@ -156,8 +156,8 @@ namespace Mif
                 }
 
                 template <typename T>
-                typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
-                inline ValueToJson(T const &array)
+                inline typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
+                ValueToJson(T const &array)
                 {
                     ::Json::Value root{::Json::arrayValue};
 
