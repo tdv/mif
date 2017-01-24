@@ -9,10 +9,12 @@
 #define __MIF_SERVICE_FACTORY_H__
 
 // STD
+#include <functional>
 #include <map>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 // MIF
 #include "mif/common/crc32.h"
@@ -29,17 +31,19 @@ namespace Mif
             : public IFactory
         {
         public:
-            template <ServiceId Id>
-            void AddClass()
+            template <ServiceId Id, typename ... TArgs>
+            void AddClass(TArgs && ... args)
             {
+                auto creator = std::bind(::Mif::Service::Detail::Creators::Create<Id, TArgs ... >,
+                        std::forward<TArgs>(args) ... );
                 LockGuard lock(m_lock);
-                m_creators.insert(std::make_pair(Id, ::Mif::Service::Create<Id>));
+                m_creators.insert(std::make_pair(Id, std::move(creator)));
             }
 
             // IFactory
             virtual IServicePtr Create(ServiceId id) override final
             {
-                Creator creator = nullptr;
+                Creator creator;
                 {
                     LockGuard lock(m_lock);
                     auto iter = m_creators.find(id);
@@ -55,7 +59,7 @@ namespace Mif
 
             virtual IServicePtr Create(std::string const &id) override final
             {
-                Creator creator = nullptr;
+                Creator creator;
                 {
                     LockGuard lock(m_lock);
                     auto iter = m_creators.find(Common::Crc32str(id));
@@ -72,10 +76,12 @@ namespace Mif
         private:
             using LockType = std::mutex;
             using LockGuard = std::lock_guard<LockType>;
-            using Creator = IServicePtr (*)();
+            
+            LockType m_lock;
+
+            using Creator = std::function<IServicePtr ()>;
             using Creators = std::map<ServiceId, Creator>;
 
-            LockType m_lock;
             Creators m_creators;
         };
 
