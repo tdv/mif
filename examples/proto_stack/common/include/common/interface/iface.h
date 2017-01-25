@@ -18,7 +18,7 @@ namespace Service
 {
 
     struct IFace
-        : public Mif::Service::IService
+        : public Mif::Service::Inherit<Mif::Service::IService>
     {
         virtual std::string SayHello(std::string const &text) = 0;
     };

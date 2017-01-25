@@ -18,7 +18,7 @@ namespace Service
 {
 
     struct IHelloWorld
-        : public Mif::Service::IService
+        : public Mif::Service::Inherit<Mif::Service::IService>
     {
         virtual void AddWord(std::string const &word) = 0;
         virtual std::string GetText() const = 0;
