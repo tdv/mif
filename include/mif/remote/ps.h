@@ -8,11 +8,51 @@
 #ifndef __MIF_REMOTE_PS_H__
 #define __MIF_REMOTE_PS_H__
 
+// STD
+#include <cstdint>
+
 // MIF
 #include "mif/common/index_sequence.h"
 #include "mif/common/detail/hierarchy.h"
 #include "mif/common/detail/method.h"
 #include "mif/remote/detail/ps.h"
+
+namespace Mif
+{
+    namespace Remote
+    {
+        namespace Detail
+        {
+
+            using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
+
+            inline constexpr FakeHierarchy const* GetFakeHierarchy()
+            {
+                return static_cast<FakeHierarchy const *>(nullptr);
+            }
+
+            namespace Registry
+
+            {
+                namespace Counter
+                {
+                    inline constexpr std::size_t GetLast(void const *)
+                    {
+                        return 0;
+                    }
+
+                }   // namespace Counter
+
+                template <typename TInterface>
+                struct Registry;
+
+                template <std::size_t I>
+                struct Item;
+
+            }   // namespace Registry
+        }   // namespace Detail
+    }   // namespace Remote
+}   // namespace Mif
 
 #define MIF_REMOTE_PS_BEGIN(interface_) \
     template <typename TSerializer> \
@@ -40,7 +80,7 @@
                 return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... ); \
             } \
         }; \
-        using FakeHierarchy = ::Mif::Common::Detail::MakeHierarchy<100>; \
+        using FakeHierarchy = ::Mif::Remote::Detail::FakeHierarchy; \
         static char (&GetNextCounter(void *))[1]; \
         static ProxyBase* GetProxyBase(::Mif::Common::Detail::Hierarchy<1>); \
         class StubBase \
@@ -155,5 +195,42 @@
         decltype(method_ ## _Method_Stub_Type_Calc(method_ ## _IndexSequence{})); \
     static method_ ## _Stub_Type GetStubBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index + 1>); \
     static char (&GetNextCounter(::Mif::Common::Detail::Hierarchy<method_ ## _Index> *))[method_ ## _Index + 1];
+
+#define MIF_REMOTE_REGISTER_PS(interface_) \
+    namespace Mif \
+    { \
+        namespace Remote \
+        { \
+            namespace Detail \
+            { \
+                namespace Registry \
+                { \
+                    template <> \
+                    struct Registry< :: interface_> \
+                    { \
+                        static constexpr auto Id = Counter::GetLast(GetFakeHierarchy()) + 1; \
+                        template <typename TSerializer> \
+                        using Type = :: interface_ ## _PS <TSerializer>; \
+                    }; \
+                    template <> \
+                    struct Item<Registry< :: interface_>::Id> \
+                    { \
+                        using Type = Registry< :: interface_>; \
+                    }; \
+                    namespace Counter \
+                    { \
+                        inline constexpr std::size_t GetLast(Common::Detail::MakeHierarchy \
+                            < \
+                                Registry< :: interface_>::Id \
+                            > const *) \
+                        { \
+                            return Registry< :: interface_> ::Id; \
+                        } \
+                    } \
+                } \
+            } \
+        } \
+    } \
+
 
 #endif  // !__MIF_REMOTE_PS_H__

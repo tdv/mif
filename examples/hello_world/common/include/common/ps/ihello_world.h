@@ -22,6 +22,8 @@ namespace Service
     namespace Meta
     {
 
+        using namespace ::Service;
+
         MIF_REMOTE_PS_BEGIN(IHelloWorld)
             MIF_REMOTE_METHOD(AddWord)
             MIF_REMOTE_METHOD(GetText)
@@ -30,5 +32,7 @@ namespace Service
 
     }   // namespace Meta
 }   // namespace Service
+
+MIF_REMOTE_REGISTER_PS(Service::Meta::IHelloWorld)
 
 #endif  // !__HELLO_WORLD_COMMON_PS_IHELLO_WORLD_H__

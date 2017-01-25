@@ -17,7 +17,6 @@
 #include <mif/net/tcp_server.h>
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost.h>
-#include <mif/remote/stub_client.h>
 #include <mif/service/make.h>
 #include <mif/service/factory.h>
 
@@ -25,6 +24,9 @@
 #include "common/id/service.h"
 #include "common/ps/imy_company.h"
 #include "common/protocol_chain.h"
+
+// MIF
+#include <mif/remote/stub_client.h>
 
 int main(int argc, char const **argv)
 {
@@ -42,7 +44,7 @@ int main(int argc, char const **argv)
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<::Service::Id::MyCompany>();
 
-        using StubClient = Mif::Remote::StubClient<SerializerTraits, Service::Meta::IMyCompany_PS>;
+        using StubClient = Mif::Remote::StubClient<SerializerTraits>;
         using StubFactory = Mif::Net::ClientFactory<Service::Ipc::ProtocolChain<StubClient>>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;

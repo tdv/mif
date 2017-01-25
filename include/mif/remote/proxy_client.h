@@ -18,7 +18,6 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <tuple>
 #include <utility>
 
 // MIF
@@ -32,16 +31,12 @@ namespace Mif
     namespace Remote
     {
 
-        template
-        <
-            typename TSerializer,
-            template <typename> class ... TProxyStubs
-        >
+        template <typename TSerializer>
         class ProxyClient final
             : public Net::Client
         {
         public:
-            using ThisType = ProxyClient<TSerializer, TProxyStubs ... >;
+            using ThisType = ProxyClient<TSerializer>;
 
             ProxyClient(std::weak_ptr<Net::IControl> control, std::weak_ptr<Net::IPublisher> publisher,
                 std::chrono::microseconds const &timeout)
@@ -58,9 +53,7 @@ namespace Mif
             template <typename TInterface>
             Service::TServicePtr<TInterface> CreateService(std::string const &id)
             {
-                using PSTuple = std::tuple<TProxyStubs<TSerializer> ... >;
-                return Service::Cast<TInterface>(Create<TInterface, PSTuple>(id,
-                    reinterpret_cast<std::integral_constant<std::size_t, std::tuple_size<PSTuple>::value> const *>(0)));
+                return Service::Cast<TInterface>(Create<TInterface>(id));
             }
 
         private:
@@ -230,22 +223,13 @@ namespace Mif
                     reinterpret_cast<std::integral_constant<std::size_t, I - 1> const *>(0));
             }
 
-            template
-            <
-                typename TInterface,
-                typename TPSList,
-                std::size_t I, typename = typename std::enable_if
-                    <
-                        I &&
-                        std::is_same<TInterface, typename std::tuple_element<I - 1, TPSList>::type::InterfaceType>::value
-                    >::type
-            >
-            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, I> const *)
+            template <typename TInterface>
+            Service::IServicePtr Create(std::string const &serviceId)
             {
                 auto self = std::static_pointer_cast<ThisType>(shared_from_this());
                 auto sender = std::bind(&ThisType::Send, self, std::placeholders::_1, std::placeholders::_2);
 
-                using PSType = typename std::tuple_element<I - 1, TPSList>::type;
+                using PSType = typename Detail::Registry::Registry<TInterface>::template Type<TSerializer>;
                 using ProxyType = typename PSType::Proxy;
 
                 Service::IServicePtr service;
@@ -277,16 +261,6 @@ namespace Mif
                 }
 
                 return service;
-            }
-
-            template
-            <
-                typename TInterface,
-                typename TPSList
-            >
-            Service::IServicePtr Create(std::string const &serviceId, std::integral_constant<std::size_t, 0> const *)
-            {
-                throw std::runtime_error{"Proxy for service with id \"" + serviceId + "\" not found."};
             }
 
             template <typename TProxy>

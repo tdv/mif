@@ -17,12 +17,14 @@
 #include <mif/net/tcp_server.h>
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost.h>
-#include <mif/remote/stub_client.h>
 #include <mif/service/make.h>
 #include <mif/service/factory.h>
 
 // COMMON
 #include "common/ps/ihello_world.h"
+
+// MIF
+#include <mif/remote/stub_client.h>
 
 // THIS
 #include "common/id/service.h"
@@ -43,7 +45,7 @@ int main(int argc, char const **argv)
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<Service::Id::HelloWorld>();
 
-        using StubClient = Mif::Remote::StubClient<SerializerTraits, Service::Meta::IHelloWorld_PS>;
+        using StubClient = Mif::Remote::StubClient<SerializerTraits>;
         using StubFactory = Mif::Net::ClientFactory<StubClient>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;

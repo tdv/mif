@@ -29,16 +29,12 @@ namespace Mif
     namespace Remote
     {
 
-        template
-        <
-            typename TSerializer,
-            template <typename> class ... TProxyStubs
-        >
+        template <typename TSerializer>
         class StubClient final
             : public Net::Client
         {
         public:
-            using StubClientType = StubClient<TSerializer, TProxyStubs ... >;
+            using StubClientType = StubClient<TSerializer>;
 
             StubClient(StubClient const &) = delete;
             StubClient(StubClient &&) = delete;
@@ -157,9 +153,7 @@ namespace Mif
                 virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) override final
                 {
                     auto const instanceId = m_idGenerator.Generate();
-                    using PSTuple = std::tuple<TProxyStubs<TSerializer> ... >;
-                    auto stub = CreateStub<PSTuple>(interfaceId,
-                        reinterpret_cast<std::integral_constant<std::size_t, std::tuple_size<PSTuple>::value> const *>(0));
+                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Detail::GetFakeHierarchy())>(interfaceId);
                     auto instance = m_factory->Create(serviceId);
                                         {
                         LockGuard lock(m_owner->m_lock);
@@ -184,18 +178,19 @@ namespace Mif
                     }
                 }
 
-                template <typename T, std::size_t I, typename = typename std::enable_if<I>::type>
-                IStubPtr CreateStub(std::string const &interfaceId, std::integral_constant<std::size_t, I> const *)
+                template <std::size_t I>
+                typename std::enable_if<I != 0, IStubPtr>::type
+                CreateStub(std::string const &interfaceId)
                 {
-                    using PSType = typename std::tuple_element<I - 1, T>::type;
+                    using PSType = typename Detail::Registry::template Item<I>::Type::template Type<TSerializer>;
                     if (PSType::InterfaceId == interfaceId)
                         return std::make_shared<typename PSType::Stub>();
-                    return CreateStub<T>(interfaceId,
-                        reinterpret_cast<std::integral_constant<std::size_t, I - 1> const *>(0));
+                    return CreateStub<I - 1>(interfaceId);
                 }
 
-                template <typename T>
-                IStubPtr CreateStub(std::string const &interfaceId, std::integral_constant<std::size_t, 0> const *)
+                template <std::size_t I>
+                typename std::enable_if<I == 0, IStubPtr>::type
+                CreateStub(std::string const &interfaceId)
                 {
                     throw std::runtime_error{"Stub for interface with id \"" + interfaceId + "\" not found."};
                 }

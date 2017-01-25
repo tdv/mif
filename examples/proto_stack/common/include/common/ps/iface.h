@@ -19,11 +19,15 @@ namespace Service
     namespace Meta
     {
 
+        using namespace ::Service;
+
         MIF_REMOTE_PS_BEGIN(IFace)
             MIF_REMOTE_METHOD(SayHello)
         MIF_REMOTE_PS_END()
 
     }   // namespace Meta
 }   // namespace Service
+
+MIF_REMOTE_REGISTER_PS(Service::Meta::IFace)
 
 #endif  // !__PROTO_STACK_COMMON_PS_IFACE_H__

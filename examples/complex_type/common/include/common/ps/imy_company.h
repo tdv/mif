@@ -20,6 +20,8 @@ namespace Service
     namespace Meta
     {
 
+        using namespace ::Service;
+
         MIF_REMOTE_PS_BEGIN(IMyCompany)
             MIF_REMOTE_METHOD(AddEmployee)
             MIF_REMOTE_METHOD(RemoveAccount)
@@ -28,5 +30,7 @@ namespace Service
 
     }   // namespace Meta
 }   // namespace Service
+
+MIF_REMOTE_REGISTER_PS(Service::Meta::IMyCompany)
 
 #endif  // !__COMPLEX_TYPE_COMMON_PS_IMYCOMPANY_H__
