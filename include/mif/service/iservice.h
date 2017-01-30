@@ -11,6 +11,7 @@
 // STD
 #include <cstdint>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 
 // BOOST
@@ -70,6 +71,8 @@ namespace Mif
         struct Inherit
             : public std::enable_if<std::is_base_of<IService, T>::value || std::is_same<IService, T>::value, T>::type ...
         {
+            using TBaseTypeTuple = std::tuple<T ... >;
+
             virtual ~Inherit() = default;
 
             MIF_ISERVICE_METHODS_DECL_IMPL()

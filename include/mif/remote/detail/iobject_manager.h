@@ -22,7 +22,7 @@ namespace Mif
         {
 
             struct IObjectManager
-                : public Service::IService
+                : public Service::Inherit<Service::IService>
             {
                 virtual ~IObjectManager() = default;
                 virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) = 0;

@@ -10,6 +10,7 @@
 
 // STD
 #include <cstdint>
+#include <type_traits>
 
 // MIF
 #include "mif/common/index_sequence.h"
@@ -50,6 +51,25 @@ namespace Mif
                 struct Item;
 
             }   // namespace Registry
+
+            template <typename T>
+            class InheritProxy final
+            {
+            private:
+                template <typename ... TProxy>
+                struct BaseProxies
+                    : public TProxy ...
+                {
+                    virtual ~BaseProxies() = default;
+                };
+
+                template <typename ... TInterfaces>
+                static BaseProxies<TInterfaces ... > GetBaseProxy(std::tuple<TInterfaces ... > const *);
+
+            public:
+                using Base = decltype(GetBaseProxy(static_cast<typename T::TBaseTypeTuple const *>(nullptr)));
+            };
+
         }   // namespace Detail
     }   // namespace Remote
 }   // namespace Mif
@@ -63,7 +83,7 @@ namespace Mif
         static constexpr auto InterfaceId = #interface_; \
     private: \
         class ProxyBase \
-            : public InterfaceType \
+            : public ::Mif::Remote::Detail::InheritProxy<InterfaceType>::Base \
         { \
         public: \
             template <typename ... TParams> \
