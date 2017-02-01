@@ -37,7 +37,7 @@ namespace Service
         MIF_REMOTE_PS_END()
 
         MIF_REMOTE_PS_BEGIN(IEmployee)
-            MIF_REMOTE_METHOD(GetWages)
+            MIF_REMOTE_METHOD(GetRate)
         MIF_REMOTE_PS_END()
 
     }   // namespace Meta

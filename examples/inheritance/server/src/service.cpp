@@ -91,11 +91,11 @@ namespace Service
                 }
 
                 // IEmployee
-                virtual double GetWages() override final
+                virtual double GetRate() override final
                 {
                     {
                         LockGuard lock(m_lock);
-                        std::cout << "GetWages" << std::endl;
+                        std::cout << "GetRate" << std::endl;
                     }
                     return 100000.00;
                 }

@@ -165,10 +165,10 @@ namespace Mif
                     try
                     {
                         auto const &interfaceId = request.GetInterface();
-                        if (interfaceId != GetInterfaceId())
+                        if (!ContainInterfaceId(interfaceId))
                         {
-                            throw ProxyStubException{"[Mif::Remote::Stub::Call] Bad interface id \"" +
-                                interfaceId + "\" Needed \"" + GetInterfaceId() + "\""};
+                            throw ProxyStubException{"[Mif::Remote::Stub::Call] Interface with id \"" +
+                                interfaceId + "\" not supported for this object."};
                         }
                         auto const &method = request.GetMethod();
                         InvokeMethod(instance, method, &request, &response);
@@ -182,8 +182,7 @@ namespace Mif
             protected:
                 virtual void InvokeMethod(void *, std::string const &method, void *, void *)
                 {
-                    throw ProxyStubException{"[Mif::Remote::Stub::InvokeMethod] Method \"" + method + "\" "
-                        "of interface \"" + std::string{GetInterfaceId()} + "\" not found."};
+                    throw ProxyStubException{"[Mif::Remote::Stub::InvokeMethod] Method \"" + method + "\" not found."};
                 }
 
                 template <typename TResult, typename TInterface, typename ... TParams>
@@ -198,9 +197,9 @@ namespace Mif
                         );
                 }
 
-                virtual char const* GetInterfaceId() const
+                virtual bool ContainInterfaceId(std::string const &id) const
                 {
-                    return "[Mif::Remote::Stub::ProcessData] Default interface id.";
+                    return false;
                 }
             };
 

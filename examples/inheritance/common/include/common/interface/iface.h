@@ -42,7 +42,7 @@ namespace Service
     struct IEmployee
         : public Mif::Service::Inherit<IDeveloper, IManager>
     {
-        virtual double GetWages() = 0;
+        virtual double GetRate() = 0;
     };
 
 }   // namespace Service

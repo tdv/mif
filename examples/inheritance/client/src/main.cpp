@@ -69,7 +69,7 @@ int main(int argc, char const **argv)
         service->BugFixes();
         service->Monitoring();
 
-        std::cout << "Wage: \"" << service->GetWages() << "\"" << std::endl;
+        std::cout << "Rate: \"" << service->GetRate() << "\"" << std::endl;
 
         std::cout << "Press Enter for quit." << std::endl;
 
