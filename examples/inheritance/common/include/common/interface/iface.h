@@ -21,32 +21,28 @@ namespace Service
     struct IHuman
         : public Mif::Service::Inherit<Mif::Service::IService>
 	{
-		virtual std::string GetName() const = 0;
-		virtual std::size_t GetAge() const = 0;
+        virtual std::string GetName() const = 0;
+        virtual std::size_t GetAge() const = 0;
 	};
 
-	struct IDeveloper
+    struct IDeveloper
 		: public Mif::Service::Inherit<IHuman>
 	{
-		virtual void Development() = 0;
-		virtual void BugFixes() = 0;
+        virtual void Development() = 0;
+        virtual void BugFixes() = 0;
 	};
 
-    /*struct IManager
+    struct IManager
 		: public Mif::Service::Inherit<IHuman>
 	{
-		virtual void Planning() = 0;
-		virtual void Monitoring() = 0;
-    };*/
-
-    struct IEmployee
-        : public Mif::Service::Inherit<IDeveloper/*, IManager*/>
-    {
-        virtual double GetWages() = 0;
-
-        // TODO: delete this
         virtual void Planning() = 0;
         virtual void Monitoring() = 0;
+    };
+
+    struct IEmployee
+        : public Mif::Service::Inherit<IDeveloper, IManager>
+    {
+        virtual double GetWages() = 0;
     };
 
 }   // namespace Service

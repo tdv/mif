@@ -61,8 +61,8 @@ int main(int argc, char const **argv)
 
         std::cout << "Client started." << std::endl;
 
-        std::cout << "Name: \"" << service->GetName() << "\"" << std::endl;
-        std::cout << "Age: \"" << service->GetAge() << "\"" << std::endl;
+        //std::cout << "Name: \"" << service->GetName() << "\"" << std::endl;
+        //std::cout << "Age: \"" << service->GetAge() << "\"" << std::endl;
 
         service->Planning();
         service->Development();

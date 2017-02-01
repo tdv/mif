@@ -28,4 +28,6 @@ namespace Mif
     }   // namespace Remote
 }   // namespace Mif
 
+MIF_REMOTE_REGISTER_PS(Mif::Remote::Detail::IObjectManager)
+
 #endif  // !__MIF_REMOTE_DETAIL_IOBJECT_MANAGER_PS_H__

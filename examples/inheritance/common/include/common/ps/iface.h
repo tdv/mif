@@ -21,37 +21,31 @@ namespace Service
 
         using namespace ::Service;
 
-        /*MIF_REMOTE_PS_BEGIN(IHuman)
+        MIF_REMOTE_PS_BEGIN(IHuman)
             MIF_REMOTE_METHOD(GetName)
             MIF_REMOTE_METHOD(GetAge)
-        MIF_REMOTE_PS_END()*/
+        MIF_REMOTE_PS_END()
 
-        /*MIF_REMOTE_PS_BEGIN(IDeveloper)
+        MIF_REMOTE_PS_BEGIN(IDeveloper)
             MIF_REMOTE_METHOD(Development)
             MIF_REMOTE_METHOD(BugFixes)
-        MIF_REMOTE_PS_END()*/
+        MIF_REMOTE_PS_END()
 
-        /*MIF_REMOTE_PS_BEGIN(IManager)
+        MIF_REMOTE_PS_BEGIN(IManager)
             MIF_REMOTE_METHOD(Planning)
             MIF_REMOTE_METHOD(Monitoring)
-        MIF_REMOTE_PS_END()*/
+        MIF_REMOTE_PS_END()
 
         MIF_REMOTE_PS_BEGIN(IEmployee)
-            MIF_REMOTE_METHOD(GetName)
-            MIF_REMOTE_METHOD(GetAge)
-            MIF_REMOTE_METHOD(Development)
-            MIF_REMOTE_METHOD(BugFixes)
-            MIF_REMOTE_METHOD(Planning)
-            MIF_REMOTE_METHOD(Monitoring)
             MIF_REMOTE_METHOD(GetWages)
         MIF_REMOTE_PS_END()
 
     }   // namespace Meta
 }   // namespace Service
 
-//MIF_REMOTE_REGISTER_PS(Service::Meta::IHuman)
-//MIF_REMOTE_REGISTER_PS(Service::Meta::IDeveloper)
-//MIF_REMOTE_REGISTER_PS(Service::Meta::IManager)
+MIF_REMOTE_REGISTER_PS(Service::Meta::IHuman)
+MIF_REMOTE_REGISTER_PS(Service::Meta::IDeveloper)
+MIF_REMOTE_REGISTER_PS(Service::Meta::IManager)
 MIF_REMOTE_REGISTER_PS(Service::Meta::IEmployee)
 
 #endif  // !__INHERITANCE_COMMON_PS_IFACE_H__

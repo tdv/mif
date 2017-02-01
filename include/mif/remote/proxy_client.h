@@ -59,7 +59,7 @@ namespace Mif
         private:
             using Serializer = typename TSerializer::Serializer;
             using Deserializer = typename TSerializer::Deserializer;
-            using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::Proxy;
+            using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::template Proxy<>;
 
             using DeserializerPtr = std::unique_ptr<Deserializer>;
             using Response = std::pair<std::chrono::microseconds/*timestamp*/, DeserializerPtr>;
@@ -230,7 +230,7 @@ namespace Mif
                 auto sender = std::bind(&ThisType::Send, self, std::placeholders::_1, std::placeholders::_2);
 
                 using PSType = typename Detail::Registry::Registry<TInterface>::template Type<TSerializer>;
-                using ProxyType = typename PSType::Proxy;
+                using ProxyType = typename PSType::template Proxy<>;
 
                 Service::IServicePtr service;
 

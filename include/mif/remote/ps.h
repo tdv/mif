@@ -17,6 +17,7 @@
 #include "mif/common/detail/hierarchy.h"
 #include "mif/common/detail/method.h"
 #include "mif/remote/detail/ps.h"
+#include "mif/service/inherited_list.h"
 
 namespace Mif
 {
@@ -52,22 +53,52 @@ namespace Mif
 
             }   // namespace Registry
 
-            template <typename T>
-            class InheritProxy final
+            template <typename, typename, typename>
+            class BaseProxies;
+
+            template <typename TSerializer, typename TInterface, typename TBase, typename ... TBases>
+            class BaseProxies<TSerializer, TInterface, std::tuple<TBase, TBases ... >>
+                : public Registry::Registry<TBase>::template Type<TSerializer>::template Proxy
+                    <
+                        BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
+                    >
             {
-            private:
-                template <typename ... TProxy>
-                struct BaseProxies
-                    : public TProxy ...
-                {
-                    virtual ~BaseProxies() = default;
-                };
-
-                template <typename ... TInterfaces>
-                static BaseProxies<TInterfaces ... > GetBaseProxy(std::tuple<TInterfaces ... > const *);
-
             public:
-                using Base = decltype(GetBaseProxy(static_cast<typename T::TBaseTypeTuple const *>(nullptr)));
+                using Registry::Registry<TBase>::template Type<TSerializer>::template Proxy
+                        <
+                            BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
+                        >::Proxy;
+            };
+
+            template <typename TSerializer, typename TInterface>
+            class BaseProxies<TSerializer, TInterface, std::tuple<>>
+                : public TInterface
+            {
+            public:
+                template <typename ... TParams>
+                BaseProxies(TParams && ... params)
+                    : m_proxy(std::forward<TParams>(params) ... )
+                {
+                    ;
+                }
+
+            private:
+                mutable Proxy<TSerializer> m_proxy;
+
+            protected:
+                template <typename TResult, typename ... TParams>
+                TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const
+                {
+                    return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... );
+                }
+            };
+
+            template <typename TSerializer, typename T>
+            class InheritProxy
+                : public BaseProxies<TSerializer, T, Service::MakeInheritedIist<T>>
+            {
+            public:
+                using BaseProxies<TSerializer, T, Service::MakeInheritedIist<T>>::BaseProxies;
             };
 
         }   // namespace Detail
@@ -82,27 +113,17 @@ namespace Mif
         using InterfaceType = interface_; \
         static constexpr auto InterfaceId = #interface_; \
     private: \
+        template <typename TBase> \
         class ProxyBase \
-            : public ::Mif::Remote::Detail::InheritProxy<InterfaceType>::Base \
+            : public TBase \
         { \
         public: \
-            template <typename ... TParams> \
-            ProxyBase(TParams && ... params) \
-                : m_proxy(std::forward<TParams>(params) ... ) \
-            { \
-            } \
-        private: \
-            mutable ::Mif::Remote::Detail::Proxy<TSerializer> m_proxy; \
-        protected: \
-            template <typename TResult, typename ... TParams> \
-            TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const \
-            { \
-                return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... ); \
-            } \
+            using TBase::TBase; \
         }; \
         using FakeHierarchy = ::Mif::Remote::Detail::FakeHierarchy; \
         static char (&GetNextCounter(void *))[1]; \
-        static ProxyBase* GetProxyBase(::Mif::Common::Detail::Hierarchy<1>); \
+        template <typename TBase> \
+        static ProxyBase<TBase>* GetProxyBase(::Mif::Common::Detail::Hierarchy<1>); \
         class StubBase \
             : public ::Mif::Remote::Detail::Stub<TSerializer> \
         { \
@@ -112,14 +133,16 @@ namespace Mif
         static StubBase GetStubBase(::Mif::Common::Detail::Hierarchy<1>);
 
 #define MIF_REMOTE_PS_END() \
-        using MethodProxies = typename std::remove_pointer<decltype(GetProxyBase(FakeHierarchy{}))>::type; \
+        template <typename TBase> \
+        using MethodProxies = typename std::remove_pointer<decltype(GetProxyBase<TBase>(FakeHierarchy{}))>::type; \
         using MethodStubs = decltype(GetStubBase(FakeHierarchy{})); \
     public: \
+        template <typename TBase = typename ::Mif::Remote::Detail::InheritProxy<TSerializer, InterfaceType>> \
         class Proxy \
-            : public MethodProxies \
+            : public MethodProxies<TBase> \
         { \
         public: \
-            using MethodProxies::MethodProxies; \
+            using MethodProxies<TBase>::MethodProxies; \
         }; \
         class Stub \
             : public MethodStubs \
@@ -139,14 +162,14 @@ namespace Mif
     };
 
 #define MIF_REMOTE_DETAIL_PROXY_METHOD_IMPL(method_, const_) \
-    template <std::size_t ... Indexes> \
+    template <typename TBase, std::size_t ... Indexes> \
     class method_ ## _Mif_Remote_Proxy ## _ ## const_ \
-        : public method_ ## _Proxy_Base_Type \
+        : public method_ ## _Proxy_Base_Type<TBase> \
     { \
     private: \
         using ResultType = typename method_ ## _Info ::ResultType; \
     public: \
-        using method_ ## _Proxy_Base_Type :: method_ ## _Proxy_Base_Type ; \
+        using method_ ## _Proxy_Base_Type <TBase> :: method_ ## _Proxy_Base_Type ; \
         virtual ResultType method_ \
                 (typename std::tuple_element<Indexes, typename method_ ## _Info ::ParamTypeList>::type ... params) \
             const_ override final \
@@ -165,25 +188,28 @@ namespace Mif
                 ... ); \
         } \
     }; \
-    template <std::size_t ... Indexes> \
-    static method_ ## _Mif_Remote_Proxy_ ## const_ <Indexes ... > \
+    template <typename TBase, std::size_t ... Indexes> \
+    static method_ ## _Mif_Remote_Proxy_ ## const_ <TBase, Indexes ... > \
         method_ ## _Method_Proxy_Type_Calc_ ## const_ (::Mif::Common::IndexSequence<Indexes ... >);
 
 #define MIF_REMOTE_METHOD(method_) \
     using method_ ## _Info = ::Mif::Common::Detail::Method<decltype(&InterfaceType :: method_)>; \
     enum { method_ ## _Index = sizeof(GetNextCounter(static_cast<FakeHierarchy *>(nullptr))) }; \
     using method_ ## _IndexSequence = ::Mif::Common::MakeIndexSequence<std::tuple_size<typename method_ ## _Info ::ParamTypeList>::value>; \
-    using method_ ## _Proxy_Base_Type = typename std::remove_pointer<decltype(GetProxyBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{}))>::type; \
+    template <typename TBase> \
+    using method_ ## _Proxy_Base_Type = typename std::remove_pointer<decltype(GetProxyBase<TBase>(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{}))>::type; \
     using method_ ## _Stub_Base_Type = decltype(GetStubBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{})); \
     MIF_REMOTE_DETAIL_PROXY_METHOD_IMPL(method_, ) \
     MIF_REMOTE_DETAIL_PROXY_METHOD_IMPL(method_, const) \
+    template <typename TBase> \
     using method_ ## _Proxy_Type = typename std::conditional \
         < \
             method_ ## _Info :: IsConst, \
-            decltype(method_ ## _Method_Proxy_Type_Calc_const(method_ ## _IndexSequence{})), \
-            decltype(method_ ## _Method_Proxy_Type_Calc_(method_ ## _IndexSequence{})) \
+            decltype(method_ ## _Method_Proxy_Type_Calc_const<TBase>(method_ ## _IndexSequence{})), \
+            decltype(method_ ## _Method_Proxy_Type_Calc_<TBase>(method_ ## _IndexSequence{})) \
         >::type; \
-    static method_ ## _Proxy_Type* GetProxyBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index + 1>); \
+    template <typename TBase> \
+    static method_ ## _Proxy_Type<TBase>* GetProxyBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index + 1>); \
     template <std::size_t ... Indexes> \
     class method_ ## _Mif_Remote_Stub \
         : public method_ ## _Stub_Base_Type \
