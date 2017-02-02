@@ -16,7 +16,6 @@
 
 // MIF
 #include "mif/common/index_sequence.h"
-#include "mif/common/detail/hierarchy.h"
 #include "mif/common/detail/method.h"
 #include "mif/remote/detail/ps.h"
 
@@ -174,7 +173,7 @@
                     template <> \
                     struct Registry< :: interface_> \
                     { \
-                        static constexpr auto Id = Counter::GetLast(GetFakeHierarchy()) + 1; \
+                        static constexpr auto Id = Counter::GetLast(FakeHierarchy{}) + 1; \
                         template <typename TSerializer> \
                         using Type = :: interface_ ## _PS <TSerializer>; \
                     }; \
@@ -188,7 +187,7 @@
                         inline constexpr std::size_t GetLast(Common::Detail::MakeHierarchy \
                             < \
                                 Registry< :: interface_>::Id \
-                            > const *) \
+                            >) \
                         { \
                             return Registry< :: interface_> ::Id; \
                         } \

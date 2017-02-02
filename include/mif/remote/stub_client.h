@@ -153,7 +153,7 @@ namespace Mif
                 virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) override final
                 {
                     auto const instanceId = m_idGenerator.Generate();
-                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Detail::GetFakeHierarchy())>(interfaceId);
+                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Detail::FakeHierarchy{})>(interfaceId);
                     auto instance = m_factory->Create(serviceId);
                                         {
                         LockGuard lock(m_owner->m_lock);

@@ -18,6 +18,7 @@
 #include <utility>
 
 // MIF
+#include "mif/common/detail/hierarchy.h"
 #include "mif/common/types.h"
 #include "mif/common/uuid_generator.h"
 #include "mif/service/inherited_list.h"
@@ -208,17 +209,12 @@ namespace Mif
 
             using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
 
-            inline constexpr FakeHierarchy const* GetFakeHierarchy()
-            {
-                return static_cast<FakeHierarchy const *>(nullptr);
-            }
-
             namespace Registry
 
             {
                 namespace Counter
                 {
-                    inline constexpr std::size_t GetLast(void const *)
+                    inline constexpr std::size_t GetLast(...)
                     {
                         return 0;
                     }
