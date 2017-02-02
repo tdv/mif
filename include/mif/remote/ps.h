@@ -10,6 +10,8 @@
 
 // STD
 #include <cstdint>
+#include <string>
+#include <tuple>
 #include <type_traits>
 
 // MIF
@@ -17,120 +19,6 @@
 #include "mif/common/detail/hierarchy.h"
 #include "mif/common/detail/method.h"
 #include "mif/remote/detail/ps.h"
-#include "mif/service/inherited_list.h"
-
-namespace Mif
-{
-    namespace Remote
-    {
-        namespace Detail
-        {
-
-            using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
-
-            inline constexpr FakeHierarchy const* GetFakeHierarchy()
-            {
-                return static_cast<FakeHierarchy const *>(nullptr);
-            }
-
-            namespace Registry
-
-            {
-                namespace Counter
-                {
-                    inline constexpr std::size_t GetLast(void const *)
-                    {
-                        return 0;
-                    }
-
-                }   // namespace Counter
-
-                template <typename TInterface>
-                struct Registry;
-
-                template <std::size_t I>
-                struct Item;
-
-            }   // namespace Registry
-
-            template <typename, typename, typename>
-            class BaseProxies;
-
-            template <typename TSerializer, typename TInterface, typename TBase, typename ... TBases>
-            class BaseProxies<TSerializer, TInterface, std::tuple<TBase, TBases ... >>
-                : public Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
-                    <
-                        BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
-                    >
-            {
-            public:
-                using Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
-                        <
-                            BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
-                        >::ProxyItem;
-            };
-
-            template <typename TSerializer, typename TInterface>
-            class BaseProxies<TSerializer, TInterface, std::tuple<>>
-                : public TInterface
-            {
-            public:
-                template <typename ... TParams>
-                BaseProxies(TParams && ... params)
-                    : m_proxy(std::forward<TParams>(params) ... )
-                {
-                }
-
-            private:
-                mutable Proxy<TSerializer> m_proxy;
-
-            protected:
-                template <typename TResult, typename ... TParams>
-                TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const
-                {
-                    return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... );
-                }
-            };
-
-            template <typename TSerializer, typename T>
-            using InheritProxy = BaseProxies<TSerializer, T, Service::MakeInheritedIist<T>>;
-
-            template <typename, typename>
-            class BaseStubs;
-
-            template <typename TSerializer, typename TBase, typename ... TBases>
-            class BaseStubs<TSerializer, std::tuple<TBase, TBases ... >>
-                : public Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
-                    <
-                        BaseStubs<TSerializer, std::tuple<TBases ... >>
-                    >
-            {
-            public:
-                using Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
-                        <
-                            BaseStubs<TSerializer, std::tuple<TBases ... >>
-                        >::StubItem;
-            };
-
-            template <typename TSerializer>
-            class BaseStubs<TSerializer, std::tuple<>>
-                : public ::Mif::Remote::Detail::Stub<TSerializer>
-            {
-            public:
-                using ::Mif::Remote::Detail::Stub<TSerializer>::Stub;
-            };
-
-            template <typename TSerializer, typename T>
-            class InheritStub
-                : public BaseStubs<TSerializer, Service::MakeInheritedIist<T>>
-            {
-            public:
-                using BaseStubs<TSerializer, Service::MakeInheritedIist<T>>::BaseStubs;
-            };
-
-        }   // namespace Detail
-    }   // namespace Remote
-}   // namespace Mif
 
 #define MIF_REMOTE_PS_BEGIN(interface_) \
     template <typename TSerializer> \
@@ -164,7 +52,7 @@ namespace Mif
 
 #define MIF_REMOTE_PS_END() \
         template <typename TBase> \
-        using MethodProxies = typename std::remove_pointer<decltype(GetProxyBase<TBase>(FakeHierarchy{}))>::type; \
+        using MethodProxies = typename std::remove_pointer<decltype(ThisType::GetProxyBase<TBase>(FakeHierarchy{}))>::type; \
         template <typename TBase> \
         using MethodStubs = decltype(ThisType::GetStubBase<TBase>(FakeHierarchy{})); \
     public: \
@@ -226,17 +114,17 @@ namespace Mif
     enum { method_ ## _Index = sizeof(GetNextCounter(static_cast<FakeHierarchy *>(nullptr))) }; \
     using method_ ## _IndexSequence = ::Mif::Common::MakeIndexSequence<std::tuple_size<typename method_ ## _Info ::ParamTypeList>::value>; \
     template <typename TBase> \
-    using method_ ## _Proxy_Base_Type = typename std::remove_pointer<decltype(GetProxyBase<TBase>(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{}))>::type; \
+    using method_ ## _Proxy_Base_Type = typename std::remove_pointer<decltype(ThisType::GetProxyBase<TBase>(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{}))>::type; \
     template <typename TBase> \
-    using method_ ## _Stub_Base_Type = decltype(GetStubBase<TBase>(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{})); \
+    using method_ ## _Stub_Base_Type = decltype(ThisType::GetStubBase<TBase>(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{})); \
     MIF_REMOTE_DETAIL_PROXY_METHOD_IMPL(method_, ) \
     MIF_REMOTE_DETAIL_PROXY_METHOD_IMPL(method_, const) \
     template <typename TBase> \
     using method_ ## _Proxy_Type = typename std::conditional \
         < \
             method_ ## _Info :: IsConst, \
-            decltype(method_ ## _Method_Proxy_Type_Calc_const<TBase>(method_ ## _IndexSequence{})), \
-            decltype(method_ ## _Method_Proxy_Type_Calc_<TBase>(method_ ## _IndexSequence{})) \
+            decltype(ThisType :: method_ ## _Method_Proxy_Type_Calc_const<TBase>(method_ ## _IndexSequence{})), \
+            decltype(ThisType :: method_ ## _Method_Proxy_Type_Calc_<TBase>(method_ ## _IndexSequence{})) \
         >::type; \
     template <typename TBase> \
     static method_ ## _Proxy_Type<TBase>* GetProxyBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index + 1>); \
@@ -269,7 +157,7 @@ namespace Mif
         method_ ## _Method_Stub_Type_Calc (::Mif::Common::IndexSequence<Indexes ... >); \
     template <typename TBase> \
     using method_ ## _Stub_Type = \
-        decltype(method_ ## _Method_Stub_Type_Calc<TBase>(method_ ## _IndexSequence{})); \
+        decltype(ThisType :: method_ ## _Method_Stub_Type_Calc<TBase>(method_ ## _IndexSequence{})); \
     template <typename TBase> \
     static method_ ## _Stub_Type<TBase> GetStubBase(::Mif::Common::Detail::Hierarchy<method_ ## _Index + 1>); \
     static char (&GetNextCounter(::Mif::Common::Detail::Hierarchy<method_ ## _Index> *))[method_ ## _Index + 1];

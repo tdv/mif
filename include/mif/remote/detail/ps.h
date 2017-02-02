@@ -13,11 +13,14 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <tuple>
+#include <type_traits>
 #include <utility>
 
 // MIF
 #include "mif/common/types.h"
 #include "mif/common/uuid_generator.h"
+#include "mif/service/inherited_list.h"
 #include "mif/service/iservice.h"
 
 namespace Mif
@@ -201,6 +204,108 @@ namespace Mif
                 {
                     return false;
                 }
+            };
+
+            using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
+
+            inline constexpr FakeHierarchy const* GetFakeHierarchy()
+            {
+                return static_cast<FakeHierarchy const *>(nullptr);
+            }
+
+            namespace Registry
+
+            {
+                namespace Counter
+                {
+                    inline constexpr std::size_t GetLast(void const *)
+                    {
+                        return 0;
+                    }
+
+                }   // namespace Counter
+
+                template <typename TInterface>
+                struct Registry;
+
+                template <std::size_t I>
+                struct Item;
+
+            }   // namespace Registry
+
+            template <typename, typename, typename>
+            class BaseProxies;
+
+            template <typename TSerializer, typename TInterface, typename TBase, typename ... TBases>
+            class BaseProxies<TSerializer, TInterface, std::tuple<TBase, TBases ... >>
+                : public Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
+                    <
+                        BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
+                    >
+            {
+            public:
+                using Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
+                        <
+                            BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
+                        >::ProxyItem;
+            };
+
+            template <typename TSerializer, typename TInterface>
+            class BaseProxies<TSerializer, TInterface, std::tuple<>>
+                : public TInterface
+            {
+            public:
+                template <typename ... TParams>
+                BaseProxies(TParams && ... params)
+                    : m_proxy(std::forward<TParams>(params) ... )
+                {
+                }
+
+            private:
+                mutable Proxy<TSerializer> m_proxy;
+
+            protected:
+                template <typename TResult, typename ... TParams>
+                TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const
+                {
+                    return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... );
+                }
+            };
+
+            template <typename TSerializer, typename T>
+            using InheritProxy = BaseProxies<TSerializer, T, Service::MakeInheritedIist<T>>;
+
+            template <typename, typename>
+            class BaseStubs;
+
+            template <typename TSerializer, typename TBase, typename ... TBases>
+            class BaseStubs<TSerializer, std::tuple<TBase, TBases ... >>
+                : public Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
+                    <
+                        BaseStubs<TSerializer, std::tuple<TBases ... >>
+                    >
+            {
+            public:
+                using Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
+                        <
+                            BaseStubs<TSerializer, std::tuple<TBases ... >>
+                        >::StubItem;
+            };
+
+            template <typename TSerializer>
+            class BaseStubs<TSerializer, std::tuple<>>
+                : public ::Mif::Remote::Detail::Stub<TSerializer>
+            {
+            public:
+                using ::Mif::Remote::Detail::Stub<TSerializer>::Stub;
+            };
+
+            template <typename TSerializer, typename T>
+            class InheritStub
+                : public BaseStubs<TSerializer, Service::MakeInheritedIist<T>>
+            {
+            public:
+                using BaseStubs<TSerializer, Service::MakeInheritedIist<T>>::BaseStubs;
             };
 
         }  // namespace Detail
