@@ -29,6 +29,8 @@ namespace Mif
                 virtual void DestroyObject(std::string const &instanceId) = 0;
             };
 
+            using IObjectManagerPtr = Service::TServicePtr<IObjectManager>;
+
         }   // namespace Detail
     }   // namespace Remote
 }   // namespace Mif

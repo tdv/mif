@@ -19,8 +19,10 @@
 
 // MIF
 #include "mif/common/detail/hierarchy.h"
+#include "mif/common/log.h"
 #include "mif/common/types.h"
 #include "mif/common/uuid_generator.h"
+#include "mif/remote/detail/iobject_manager.h"
 #include "mif/service/inherited_list.h"
 #include "mif/service/iservice.h"
 
@@ -88,13 +90,35 @@ namespace Mif
 
                 using Sender = std::function<DeserializerPtr (std::string const &, Serializer &)>;
 
-                Proxy(std::string const &instance, Sender && sender)
-                    : m_instance(instance)
-                    , m_sender(std::move(sender))
+                Proxy(IObjectManagerPtr manager, std::string const &serviceId, std::string const &interfaceId, Sender && sender)
+                    : m_manager{manager}
+                    , m_instance{m_manager->CreateObject(serviceId, interfaceId)}
+                    , m_sender{std::move(sender)}
                 {
                 }
 
-                virtual ~Proxy() = default;
+                Proxy(std::string const &instance, Sender && sender)
+                    : m_instance{instance}
+                    , m_sender{std::move(sender)}
+                {
+                }
+
+                virtual ~Proxy()
+                {
+                    if (m_manager)
+                    {
+                        try
+                        {
+                            m_manager->DestroyObject(m_instance);
+                        }
+                        catch (std::exception const &e)
+                        {
+                            MIF_LOG(Warning) << "[Mif::Remote::Detail::Proxy::~Proxy] "
+                                << "Failed to destroy service with instance id "
+                                << "\"" << m_instance + "\". Error: " << e.what();
+                        }
+                    }
+                }
 
                 template <typename TResult, typename ... TParams>
                 TResult RemoteCall(std::string const &interface, std::string const &method, TParams && ... params)
@@ -141,6 +165,7 @@ namespace Mif
 
             private:
                 Common::UuidGenerator m_generator;
+                IObjectManagerPtr m_manager;
                 std::string m_instance;
                 Sender m_sender;
             };
@@ -244,6 +269,8 @@ namespace Mif
                         <
                             BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
                         >::ProxyItem;
+
+                virtual ~BaseProxies() = default;
             };
 
             template <typename TSerializer, typename TInterface>
@@ -256,6 +283,8 @@ namespace Mif
                     : m_proxy(std::forward<TParams>(params) ... )
                 {
                 }
+
+                virtual ~BaseProxies() = default;
 
             private:
                 mutable Proxy<TSerializer> m_proxy;
