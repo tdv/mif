@@ -177,7 +177,7 @@ namespace Mif
                 using Deserializer = typename TSerializer::Deserializer;
 
                 virtual ~IStub() = default;
-                virtual void Call(void *instance, Deserializer &request, Serializer &response) = 0;
+                virtual void Call(Deserializer &request, Serializer &response) = 0;
             };
 
             template <typename TSerializer>
@@ -189,7 +189,13 @@ namespace Mif
                 using Serializer = typename BaseType::Serializer;
                 using Deserializer = typename BaseType::Deserializer;
 
-                virtual void Call(void *instance, Deserializer &request, Serializer &response) override final
+                Stub(Service::IServicePtr instance, std::string const &instanceId)
+                    : m_instance{instance}
+                    , m_instanceId{instanceId}
+                {
+                }
+
+                virtual void Call(Deserializer &request, Serializer &response) override final
                 {
                     try
                     {
@@ -200,7 +206,7 @@ namespace Mif
                                 interfaceId + "\" not supported for this object."};
                         }
                         auto const &method = request.GetMethod();
-                        InvokeMethod(instance, method, &request, &response);
+                        InvokeMethod(method, request, response);
                     }
                     catch (...)
                     {
@@ -208,21 +214,28 @@ namespace Mif
                     }
                 }
 
+            private:
+                Service::IServicePtr m_instance;
+                std::string m_instanceId;
+
             protected:
-                virtual void InvokeMethod(void *, std::string const &method, void *, void *)
+                virtual void InvokeMethod(std::string const &method, Deserializer &, Serializer &)
                 {
                     throw ProxyStubException{"[Mif::Remote::Stub::InvokeMethod] Method \"" + method + "\" not found."};
                 }
 
                 template <typename TResult, typename TInterface, typename ... TParams>
                 void InvokeRealMethod(TResult (*method)(TInterface &, std::tuple<TParams ... > && ),
-                                      void *instance, void *deserializer, void *serializer)
+                                      Deserializer &deserializer, Serializer &serializer)
                 {
-                    auto &inst = dynamic_cast<TInterface &>(*reinterpret_cast<Service::IService *>(instance));
-                    auto params = reinterpret_cast<Deserializer *>(deserializer)->template GetParams<TParams ... >();
+                    auto inst = Service::Cast<TInterface>(m_instance);
+                    auto params = deserializer.template GetParams<TParams ... >();
                     FunctionWrap<TResult>::Call(
-                            [&method, &inst, &params] () { return method(inst, std::move(params)); },
-                            *reinterpret_cast<Serializer *>(serializer)
+                            [&method, &inst, &params] ()
+                            {
+                                return method(*inst, std::move(params));
+                            },
+                            serializer
                         );
                 }
 
@@ -264,7 +277,7 @@ namespace Mif
                         BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
                     >
             {
-            public:
+            protected:
                 using Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
                         <
                             BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
@@ -277,7 +290,7 @@ namespace Mif
             class BaseProxies<TSerializer, TInterface, std::tuple<>>
                 : public TInterface
             {
-            public:
+            protected:
                 template <typename ... TParams>
                 BaseProxies(TParams && ... params)
                     : m_proxy(std::forward<TParams>(params) ... )
@@ -286,15 +299,14 @@ namespace Mif
 
                 virtual ~BaseProxies() = default;
 
-            private:
-                mutable Proxy<TSerializer> m_proxy;
-
-            protected:
                 template <typename TResult, typename ... TParams>
                 TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const
                 {
                     return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... );
                 }
+
+            private:
+                mutable Proxy<TSerializer> m_proxy;
             };
 
             template <typename TSerializer, typename T>
@@ -310,27 +322,45 @@ namespace Mif
                         BaseStubs<TSerializer, std::tuple<TBases ... >>
                     >
             {
-            public:
-                using Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
+            protected:
+                using BaseType = typename Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
                         <
                             BaseStubs<TSerializer, std::tuple<TBases ... >>
-                        >::StubItem;
+                        >;
+                using Serializer = typename BaseType::Serializer;
+                using Deserializer = typename BaseType::Deserializer;
+
+                using BaseType::StubItem;
+
+                virtual ~BaseStubs() = default;
             };
 
             template <typename TSerializer>
             class BaseStubs<TSerializer, std::tuple<>>
                 : public ::Mif::Remote::Detail::Stub<TSerializer>
             {
-            public:
-                using ::Mif::Remote::Detail::Stub<TSerializer>::Stub;
+            protected:
+                using BaseType = ::Mif::Remote::Detail::Stub<TSerializer>;
+                using Serializer = typename BaseType::Serializer;
+                using Deserializer = typename BaseType::Deserializer;
+
+                using BaseType::Stub;
+
+                virtual ~BaseStubs() = default;
             };
 
             template <typename TSerializer, typename T>
             class InheritStub
                 : public BaseStubs<TSerializer, Service::MakeInheritedIist<T>>
             {
-            public:
-                using BaseStubs<TSerializer, Service::MakeInheritedIist<T>>::BaseStubs;
+            protected:
+                using BaseType = BaseStubs<TSerializer, Service::MakeInheritedIist<T>>;
+                using Serializer = typename BaseType::Serializer;
+                using Deserializer = typename BaseType::Deserializer;
+
+                using BaseType::BaseStubs;
+
+                virtual ~InheritStub() = default;
             };
 
         }  // namespace Detail

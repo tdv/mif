@@ -32,7 +32,7 @@
         class ProxyBase \
             : public TBase \
         { \
-        public: \
+        protected: \
             using TBase::TBase; \
         }; \
         using FakeHierarchy = ::Mif::Remote::Detail::FakeHierarchy; \
@@ -43,7 +43,7 @@
         class StubBase \
             : public TBase \
         { \
-        public: \
+        protected: \
             using TBase::TBase; \
         }; \
         template <typename TBase> \
@@ -62,16 +62,17 @@
         class StubItem \
             : public MethodStubs<TBase> \
         { \
-        public: \
-            using MethodStubs<TBase>::MethodStubs; \
         protected: \
+            using MethodStubs<TBase>::MethodStubs; \
+            using Serializer = typename MethodStubs<TBase>::Serializer; \
+            using Deserializer = typename MethodStubs<TBase>::Deserializer; \
             virtual bool ContainInterfaceId(std::string const &id) const \
             { \
                 return InterfaceId == id || MethodStubs<TBase>::ContainInterfaceId(id); \
             } \
-            virtual void InvokeMethod(void *instance, std::string const &method, void *deserializer, void *serializer) \
+            virtual void InvokeMethod(std::string const &method, Deserializer &deserializer, Serializer &serializer) \
             { \
-                MethodStubs<TBase>::InvokeMethod(instance, method, deserializer, serializer); \
+                MethodStubs<TBase>::InvokeMethod(method, deserializer, serializer); \
             } \
         }; \
         using Stub = StubItem<>; \
@@ -84,8 +85,9 @@
     { \
     private: \
         using ResultType = typename method_ ## _Info ::ResultType; \
-    public: \
+    protected: \
         using method_ ## _Proxy_Base_Type <TBase> :: method_ ## _Proxy_Base_Type ; \
+    private: \
         virtual ResultType method_ \
                 (typename std::tuple_element<Indexes, typename method_ ## _Info ::ParamTypeList>::type ... params) \
             const_ override final \
@@ -132,23 +134,25 @@
         : public method_ ## _Stub_Base_Type<TBase> \
     { \
     private: \
-        using BaseType = method_ ## _Stub_Base_Type<TBase>; \
         using ResultType = typename method_ ## _Info ::ResultType; \
         using ParamTypeList = typename method_ ## _Info ::ParamTypeList; \
     protected: \
+        using BaseType = method_ ## _Stub_Base_Type<TBase>; \
         using BaseType::BaseType; \
+        using Serializer = typename BaseType::Serializer; \
+        using Deserializer = typename BaseType::Deserializer; \
         static ResultType Invoke(InterfaceType &instance, ParamTypeList && params) \
         { \
             static_assert(!std::is_pointer<ResultType>::value && !std::is_reference<ResultType>::value, \
                 "Method \"" #method_ "\" must not return pointer or reference. Only value."); \
             return instance. method_ (std::get<Indexes>(params) ... ); \
         } \
-        virtual void InvokeMethod(void *instance, std::string const &method, void *deserializer, void *serializer) override \
+        virtual void InvokeMethod(std::string const &method, Deserializer &deserializer, Serializer &serializer) override \
         { \
             if (method != #method_) \
-                BaseType::InvokeMethod(instance, method, deserializer, serializer); \
+                BaseType::InvokeMethod(method, deserializer, serializer); \
             else \
-                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, instance, deserializer, serializer); \
+                BaseType::InvokeRealMethod(& method_ ## _Mif_Remote_Stub :: Invoke, deserializer, serializer); \
         } \
     }; \
     template <typename TBase, std::size_t ... Indexes> \

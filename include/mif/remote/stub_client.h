@@ -45,17 +45,17 @@ namespace Mif
                 Service::IFactoryPtr factory)
                 : Client{control, publisher}
             {
-                auto stub = std::make_shared<ObjectManagerStub>();
-                auto manager = Service::Make<ObjectManager>(this, factory);
-                m_stubs.insert(std::make_pair(std::string{"0"}, std::make_pair(stub, manager)));
+                std::string const instanceId{"0"};
+                auto manager = Service::Make<ObjectManager, ObjectManager>(this, factory);
+                auto stub = std::make_shared<ObjectManagerStub>(manager, instanceId);
+                m_stubs.insert(std::make_pair(instanceId, std::move(stub)));
             }
 
             ~StubClient() = default;
 
         private:
             using IStubPtr = std::shared_ptr<Detail::IStub<TSerializer>>;
-            using StubService = std::pair<IStubPtr, Service::IServicePtr>;
-            using Stubs = std::map<std::string/*instance id*/, StubService>;
+            using Stubs = std::map<std::string/*instance id*/, IStubPtr>;
             using Serializer = typename TSerializer::Serializer;
             using Deserializer = typename TSerializer::Deserializer;
             using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
@@ -81,14 +81,12 @@ namespace Mif
                     if (instanceId.empty())
                         throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty instance id."};
                     IStubPtr stub;
-                    Service::IServicePtr service;
                     {
                         LockGuard lock(m_lock);
                         auto iter = m_stubs.find(instanceId);
                         if (iter == std::end(m_stubs))
                             throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Instance \"" + instanceId + "\" not found."};
-                        stub = iter->second.first;
-                        service = iter->second.second;
+                        stub = iter->second;
                     }
                     auto const &interfaceId = deserializer.GetInterface();
                     if (interfaceId.empty())
@@ -100,7 +98,7 @@ namespace Mif
                     if (method.empty())
                         throw Detail::ProxyStubException{"[Mif::Remote::StubClient::ProcessData] Empty method name of interface \"" + interfaceId  + "\""};
                     Serializer serializer(false, deserializer.GetUuid(), instanceId, interfaceId, method);
-                    stub->Call(service.get(), deserializer, serializer);
+                    stub->Call(deserializer, serializer);
                     if (!Post(std::move(serializer.GetBuffer())))
                     {
                         if (!CloseMe())
@@ -152,19 +150,18 @@ namespace Mif
                 // IObjectManager
                 virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) override final
                 {
-                    auto const instanceId = m_idGenerator.Generate();
-                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Detail::FakeHierarchy{})>(interfaceId);
-                    auto instance = m_factory->Create(serviceId);
-                                        {
+                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Detail::FakeHierarchy{})>(serviceId, interfaceId);
+
+                    {
                         LockGuard lock(m_owner->m_lock);
-                        m_owner->m_stubs.insert(std::make_pair(instanceId, std::make_pair(std::move(stub), std::move(instance))));
+                        m_owner->m_stubs.insert(stub);
                     }
-                    return instanceId;
+                    return stub.first;
                 }
 
                 virtual void DestroyObject(std::string const &instanceId) override final
                 {
-                    StubService stubService;
+                    IStubPtr stubService;
                     {
                         LockGuard lock(m_owner->m_lock);
                         auto iter = m_owner->m_stubs.find(instanceId);
@@ -179,20 +176,26 @@ namespace Mif
                 }
 
                 template <std::size_t I>
-                typename std::enable_if<I != 0, IStubPtr>::type
-                CreateStub(std::string const &interfaceId)
+                typename std::enable_if<I != 0, std::pair<std::string, IStubPtr>>::type
+                CreateStub(std::string const &serviceId, std::string const &interfaceId)
                 {
                     using PSType = typename Detail::Registry::template Item<I>::Type::template Type<TSerializer>;
                     if (PSType::InterfaceId == interfaceId)
-                        return std::make_shared<typename PSType::Stub>();
-                    return CreateStub<I - 1>(interfaceId);
+                    {
+                        auto const instanceId = m_idGenerator.Generate();
+                        auto instance = m_factory->Create(serviceId);
+                        auto stub = std::make_shared<typename PSType::Stub>(instance, instanceId);
+                        return std::make_pair(instanceId, std::move(stub));
+                    }
+                    return CreateStub<I - 1>(serviceId, interfaceId);
                 }
 
                 template <std::size_t I>
-                typename std::enable_if<I == 0, IStubPtr>::type
-                CreateStub(std::string const &interfaceId)
+                typename std::enable_if<I == 0, std::pair<std::string, IStubPtr>>::type
+                CreateStub(std::string const &serviceId, std::string const &interfaceId)
                 {
-                    throw std::runtime_error{"Stub for interface with id \"" + interfaceId + "\" not found."};
+                    throw std::runtime_error{"Failed to create stub for service with id \"" + serviceId + "\". "
+                        "Stub for interface with id \"" + interfaceId + "\" not found."};
                 }
             };
 
