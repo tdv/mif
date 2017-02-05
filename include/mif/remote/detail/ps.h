@@ -44,7 +44,7 @@ namespace Mif
 
             private:
                 template <typename T>
-                static constexpr bool TIsTservicePtr(boost::intrusive_ptr<T> const *)
+                static constexpr bool TIsTservicePtr(Service::TIntrusivePtr<T> const *)
                 {
                     static_assert(std::is_same<Service::TServicePtr<T>, boost::intrusive_ptr<T>>::value,
                         "TServicePtr should be parameterized by a type derived from IService or be IService.");

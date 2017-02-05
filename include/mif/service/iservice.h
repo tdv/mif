@@ -59,10 +59,13 @@ namespace Mif
         };
 
         template <typename T>
+        using TIntrusivePtr = boost::intrusive_ptr<T>;
+
+        template <typename T>
         using TServicePtr = typename std::enable_if
             <
                 std::is_base_of<IService, T>::value || std::is_same<IService, T>::value,
-                boost::intrusive_ptr<T>
+                TIntrusivePtr<T>
             >::type;
 
         using IServicePtr = TServicePtr<IService>;
