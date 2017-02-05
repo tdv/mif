@@ -92,8 +92,6 @@
                 (typename std::tuple_element<Indexes, typename method_ ## _Info ::ParamTypeList>::type ... params) \
             const_ override final \
         { \
-            static_assert(!std::is_pointer<ResultType>::value && !std::is_reference<ResultType>::value, \
-                "Method \"" #method_ "\" must not return pointer or reference. Only value."); \
             return this->template _Mif_Remote_Call_Method<ResultType> \
                 ( \
                     InterfaceId, \
@@ -143,8 +141,6 @@
         using Deserializer = typename BaseType::Deserializer; \
         static ResultType Invoke(InterfaceType &instance, ParamTypeList && params) \
         { \
-            static_assert(!std::is_pointer<ResultType>::value && !std::is_reference<ResultType>::value, \
-                "Method \"" #method_ "\" must not return pointer or reference. Only value."); \
             return instance. method_ (std::get<Indexes>(params) ... ); \
         } \
         virtual void InvokeMethod(std::string const &method, Deserializer &deserializer, Serializer &serializer) override \

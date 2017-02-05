@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     09.2016
-//  Copyright (C) 2016 tdv
+//  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
 #ifndef __MIF_REMOTE_DETAIL_PS_H__
@@ -39,8 +39,81 @@ namespace Mif
                 template <typename TFunc, typename TStorage>
                 static void Call(TFunc func, TStorage &storage)
                 {
-                    auto res = func();
-                    storage.PutParams(std::move(res));
+                    PackResult(func(), storage);
+                }
+
+            private:
+                template <typename T>
+                static constexpr bool TIsTservicePtr(boost::intrusive_ptr<T> const *)
+                {
+                    static_assert(std::is_same<Service::TServicePtr<T>, boost::intrusive_ptr<T>>::value,
+                        "TServicePtr should be parameterized by a type derived from IService or be IService.");
+                    return true;
+                }
+
+                static constexpr bool TIsTservicePtr(...)
+                {
+                    return false;
+                }
+
+                template <typename T>
+                static constexpr bool IsTServicePtr()
+                {
+                    return TIsTservicePtr(static_cast<T const *>(nullptr));
+                }
+
+                template <typename T, typename TStorage>
+                static typename std::enable_if
+                    <
+                        !std::is_pointer<T>::value && !std::is_reference<T>::value && !IsTServicePtr<T>(),
+                        void
+                    >::type
+                PackResult(T && res, TStorage &storage)
+                {
+                    storage.PutParams(std::forward<T>(res));
+                }
+
+                template <typename T, typename TStorage>
+                static typename std::enable_if
+                    <
+                        std::is_pointer<T>::value &&
+                            (
+                                std::is_base_of<Service::IService, typename std::remove_pointer<T>::type>::value ||
+                                std::is_same<Service::IService, typename std::remove_pointer<T>::type>::value
+                            ),
+                        void
+                    >::type
+                PackResult(T res, TStorage &storage)
+                {
+                    PackResult(Service::TServicePtr<typename std::remove_pointer<T>::type>{res}, storage);
+                }
+
+                template <typename T, typename TStorage>
+                static typename std::enable_if
+                    <
+                        IsTServicePtr<T>(),
+                        void
+                    >::type
+                PackResult(T res, TStorage &storage)
+                {
+                    // TODO: !!! process TServicePtr
+                    (void)res;
+                    (void)storage;
+                }
+
+                template <typename T, typename TStorage>
+                static typename std::enable_if
+                    <
+                        (std::is_pointer<T>::value || std::is_reference<T>::value) &&
+                            !std::is_base_of<Service::IService, typename std::remove_pointer<T>::type>::value &&
+                            !std::is_same<Service::IService, typename std::remove_pointer<T>::type>::value &&
+                            !IsTServicePtr<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>(),
+                        void
+                    >::type
+                PackResult(T &&, TStorage &)
+                {
+                    static_assert(!std::is_pointer<T>::value && !std::is_reference<T>::value,
+                        "You can't return a pointer or a reference from some interface method. Only value.");
                 }
             };
 
