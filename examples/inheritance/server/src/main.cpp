@@ -24,7 +24,7 @@
 #include "common/ps/iface.h"
 
 // MIF
-#include <mif/remote/proxy_client.h>
+#include <mif/remote/ps_client.h>
 
 // THIS
 #include "common/id/service.h"

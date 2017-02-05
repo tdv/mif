@@ -24,7 +24,7 @@
 #include "common/ps/ihello_world.h"
 
 // MIF
-#include <mif/remote/stub_client.h>
+#include <mif/remote/ps_client.h>
 
 // THIS
 #include "common/id/service.h"
@@ -45,12 +45,15 @@ int main(int argc, char const **argv)
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<Service::Id::HelloWorld>();
 
-        using StubClient = Mif::Remote::StubClient<SerializerTraits>;
-        using StubFactory = Mif::Net::ClientFactory<StubClient>;
+        using PSClient = Mif::Remote::PSClient<SerializerTraits>;
+        using StubFactory = Mif::Net::ClientFactory<PSClient>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;
 
-        auto netClientFactgory = std::make_shared<StubFactory>(factory);
+        std::chrono::microseconds timeout{10 * 1000 * 1000};
+
+        auto netClientFactgory = std::make_shared<StubFactory>(timeout, factory);
+
         auto server = std::make_shared<Mif::Net::TCPServer>(
             argv[1], argv[2], 4, netClientFactgory);
         (void)server;

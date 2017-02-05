@@ -26,7 +26,7 @@
 #include "common/protocol_chain.h"
 
 // MIF
-#include <mif/remote/stub_client.h>
+#include <mif/remote/ps_client.h>
 
 int main(int argc, char const **argv)
 {
@@ -44,14 +44,16 @@ int main(int argc, char const **argv)
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<::Service::Id::MyCompany>();
 
-        using StubClient = Mif::Remote::StubClient<SerializerTraits>;
-        using StubFactory = Mif::Net::ClientFactory<Service::Ipc::ProtocolChain<StubClient>>;
+        using PSClient = Mif::Remote::PSClient<SerializerTraits>;
+        using StubFactory = Mif::Net::ClientFactory<Service::Ipc::ProtocolChain<PSClient>>;
 
         std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;
 
+        std::chrono::microseconds timeout{10 * 1000 * 1000};
+
         auto netClientFactgory = std::make_shared<StubFactory>
             (
-                Mif::Common::MakeCreator<StubClient>(factory)
+                Mif::Common::MakeCreator<PSClient>(timeout, factory)
             );
 
         auto server = std::make_shared<Mif::Net::TCPServer>(
