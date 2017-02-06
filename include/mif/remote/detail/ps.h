@@ -25,6 +25,7 @@
 #include "mif/remote/detail/iobject_manager.h"
 #include "mif/service/inherited_list.h"
 #include "mif/service/iservice.h"
+#include "mif/service/make.h"
 
 namespace Mif
 {
@@ -33,116 +34,108 @@ namespace Mif
         namespace Detail
         {
 
-            template <typename TResult>
+            using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
+
+            namespace Registry
+
+            {
+                namespace Counter
+                {
+                    inline constexpr std::size_t GetLast(...)
+                    {
+                        return 0;
+                    }
+
+                }   // namespace Counter
+
+                template <typename TInterface>
+                struct Registry;
+
+                template <std::size_t I>
+                struct Item;
+
+            }   // namespace Registry
+
+            template <typename T>
+            inline constexpr bool TIsTservicePtr(Service::TIntrusivePtr<T> const *)
+            {
+                static_assert(std::is_same<Service::TServicePtr<T>, boost::intrusive_ptr<T>>::value,
+                    "TServicePtr should be parameterized by a type derived from IService or be IService.");
+                return true;
+            }
+
+            inline constexpr bool TIsTservicePtr(...)
+            {
+                return false;
+            }
+
+            template <typename T>
+            inline constexpr bool IsTServicePtr()
+            {
+                return TIsTservicePtr(static_cast<T const *>(nullptr));
+            }
+
+            template <typename TResult, typename TSerializer>
             struct FunctionWrap
             {
-                template <typename TFunc, typename TStorage>
-                static void Call(TFunc func, TStorage &storage)
+                using Serializer = typename TSerializer::Serializer;
+
+                template <typename TFunc, typename TStubCreator>
+                static void Call(TFunc func, Serializer &serializer, TStubCreator &stubCreator)
                 {
-                    PackResult(func(), storage);
+                    PackResult(func(), serializer, stubCreator);
                 }
 
             private:
-                template <typename T>
-                static constexpr bool TIsTservicePtr(Service::TIntrusivePtr<T> const *)
-                {
-                    static_assert(std::is_same<Service::TServicePtr<T>, boost::intrusive_ptr<T>>::value,
-                        "TServicePtr should be parameterized by a type derived from IService or be IService.");
-                    return true;
-                }
-
-                static constexpr bool TIsTservicePtr(...)
-                {
-                    return false;
-                }
-
-                template <typename T>
-                static constexpr bool IsTServicePtr()
-                {
-                    return TIsTservicePtr(static_cast<T const *>(nullptr));
-                }
-
-                template <typename T, typename TStorage>
+                template <typename T, typename TStubCreator>
                 static typename std::enable_if
                     <
-                        !std::is_pointer<T>::value && !std::is_reference<T>::value && !IsTServicePtr<T>(),
+                        !std::is_pointer<T>::value &&
+                        !std::is_reference<T>::value &&
+                        !IsTServicePtr<T>(),
                         void
                     >::type
-                PackResult(T && res, TStorage &storage)
+                PackResult(T && res, Serializer &serializer, TStubCreator &)
                 {
-                    storage.PutParams(std::forward<T>(res));
+                    serializer.PutParams(std::forward<T>(res));
                 }
 
-                template <typename T, typename TStorage>
-                static typename std::enable_if
-                    <
-                        std::is_pointer<T>::value &&
-                            (
-                                std::is_base_of<Service::IService, typename std::remove_pointer<T>::type>::value ||
-                                std::is_same<Service::IService, typename std::remove_pointer<T>::type>::value
-                            ),
-                        void
-                    >::type
-                PackResult(T res, TStorage &storage)
-                {
-                    PackResult(Service::TServicePtr<typename std::remove_pointer<T>::type>{res}, storage);
-                }
-
-                template <typename T, typename TStorage>
+                template <typename T, typename TStubCreator>
                 static typename std::enable_if
                     <
                         IsTServicePtr<T>(),
                         void
                     >::type
-                PackResult(T res, TStorage &storage)
+                PackResult(T res, Serializer &serializer, TStubCreator &stubCreator)
                 {
-                    // TODO: !!! process TServicePtr
-                    (void)res;
-                    (void)storage;
+                    using PSType = typename Registry::Registry<typename T::element_type>::template Type<TSerializer>;
+                    auto instanceId = stubCreator(res, std::string{PSType::InterfaceId});
+                    serializer.PutParams(std::move(instanceId));
                 }
 
-                template <typename T, typename TStorage>
+                template <typename T, typename TStubCreator>
                 static typename std::enable_if
                     <
-                        (std::is_pointer<T>::value || std::is_reference<T>::value) &&
-                            !std::is_base_of<Service::IService, typename std::remove_pointer<T>::type>::value &&
-                            !std::is_same<Service::IService, typename std::remove_pointer<T>::type>::value &&
-                            !IsTServicePtr<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>(),
+                        std::is_pointer<T>::value ||
+                        std::is_reference<T>::value,
                         void
                     >::type
-                PackResult(T &&, TStorage &)
+                PackResult(T &&, typename TSerializer::Serializer &, TStubCreator &)
                 {
                     static_assert(!std::is_pointer<T>::value && !std::is_reference<T>::value,
                         "You can't return a pointer or a reference from some interface method. Only value.");
                 }
             };
 
-            template <>
-            struct FunctionWrap<void>
+            template <typename TSerializer>
+            struct FunctionWrap<void, TSerializer>
             {
-                template <typename TFunc, typename TStorage>
-                static void Call(TFunc func, TStorage &storage)
+                using Serializer = typename TSerializer::Serializer;
+
+                template <typename TFunc, typename TStubCreator>
+                static void Call(TFunc func, Serializer &, TStubCreator &)
                 {
                     func();
-                }
-            };
-
-            template <typename TResult>
-            struct ResultExtractor
-            {
-                template <typename TStorage>
-                static TResult Extract(TStorage &storage)
-                {
-                    return std::get<0>(storage.template GetParams<TResult>());
-                }
-            };
-
-            template <>
-            struct ResultExtractor<void>
-            {
-                template <typename TStorage>
-                static void Extract(TStorage &)
-                {
                 }
             };
 
@@ -166,6 +159,13 @@ namespace Mif
                 Proxy(IObjectManagerPtr manager, std::string const &serviceId, std::string const &interfaceId, Sender && sender)
                     : m_manager{manager}
                     , m_instance{m_manager->CreateObject(serviceId, interfaceId)}
+                    , m_sender{std::move(sender)}
+                {
+                }
+
+                Proxy(IObjectManagerPtr manager, std::string const &instance, Sender && sender)
+                    : m_manager{manager}
+                    , m_instance{instance}
                     , m_sender{std::move(sender)}
                 {
                 }
@@ -226,7 +226,7 @@ namespace Mif
                         if (deserializer->HasException())
                             std::rethrow_exception(deserializer->GetException());
 
-                        return ResultExtractor<TResult>::Extract(*deserializer);
+                        return ExtractResult<TResult>(*deserializer);
                     }
                     catch (std::exception const &e)
                     {
@@ -241,6 +241,67 @@ namespace Mif
                 IObjectManagerPtr m_manager;
                 std::string m_instance;
                 Sender m_sender;
+
+                template <typename TResult>
+                typename std::enable_if
+                    <
+                        !std::is_same<TResult, void>::value &&
+                        !std::is_pointer<TResult>::value &&
+                        !std::is_reference<TResult>::value &&
+                        !IsTServicePtr<TResult>(),
+                        TResult
+                    >::type
+                ExtractResult(Deserializer &deserializer)
+                {
+                    return std::get<0>(deserializer.template GetParams<TResult>());
+                }
+
+                template <typename TResult>
+                typename std::enable_if
+                    <
+                        IsTServicePtr<TResult>(),
+                        TResult
+                    >::type
+                ExtractResult(Deserializer &deserializer)
+                {
+                    auto const instanceId = std::get<0>(deserializer.template GetParams<std::string>());
+                    if (instanceId.empty())
+                        return {};
+
+                    using InterfaceType = typename TResult::element_type;
+
+                    using PSType = typename Registry::Registry<InterfaceType>::template Type<TSerializer>;
+                    using ProxyType = typename PSType::Proxy;
+
+                    Sender sender{m_sender};
+
+                    return Service::Make<ProxyType, InterfaceType>(m_manager, instanceId, std::move(sender));
+                }
+
+                template <typename TResult>
+                typename std::enable_if
+                    <
+                        std::is_pointer<TResult>::value ||
+                        std::is_reference<TResult>::value,
+                        TResult
+                    >::type
+                ExtractResult(Deserializer &)
+                {
+                    static_assert(!std::is_pointer<TResult>::value && !std::is_reference<TResult>::value,
+                        "You can't return a pointer or a reference from some interface method. Only value.");
+
+                    throw std::exception{};
+                }
+
+                template <typename TResult>
+                typename std::enable_if
+                    <
+                        std::is_same<TResult, void>::value,
+                        TResult
+                    >::type
+                ExtractResult(Deserializer &de)
+                {
+                }
             };
 
             template <typename TSerializer>
@@ -262,9 +323,12 @@ namespace Mif
                 using Serializer = typename BaseType::Serializer;
                 using Deserializer = typename BaseType::Deserializer;
 
-                Stub(Service::IServicePtr instance, std::string const &instanceId)
+                using StubCreator = std::function<std::string (Service::IServicePtr, std::string const &)>;
+
+                Stub(Service::IServicePtr instance, std::string const &instanceId, StubCreator && stubCreator)
                     : m_instance{instance}
                     , m_instanceId{instanceId}
+                    , m_stubCreator(std::move(stubCreator))
                 {
                 }
 
@@ -290,6 +354,7 @@ namespace Mif
             private:
                 Service::IServicePtr m_instance;
                 std::string m_instanceId;
+                StubCreator m_stubCreator;
 
             protected:
                 virtual void InvokeMethod(std::string const &method, Deserializer &, Serializer &)
@@ -303,12 +368,13 @@ namespace Mif
                 {
                     auto inst = Service::Cast<TInterface>(m_instance);
                     auto params = deserializer.template GetParams<TParams ... >();
-                    FunctionWrap<TResult>::Call(
+                    FunctionWrap<TResult, TSerializer>::Call(
                             [&method, &inst, &params] ()
                             {
                                 return method(*inst, std::move(params));
                             },
-                            serializer
+                            serializer,
+                            m_stubCreator
                         );
                 }
 
@@ -317,28 +383,6 @@ namespace Mif
                     return false;
                 }
             };
-
-            using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
-
-            namespace Registry
-
-            {
-                namespace Counter
-                {
-                    inline constexpr std::size_t GetLast(...)
-                    {
-                        return 0;
-                    }
-
-                }   // namespace Counter
-
-                template <typename TInterface>
-                struct Registry;
-
-                template <std::size_t I>
-                struct Item;
-
-            }   // namespace Registry
 
             template <typename, typename, typename>
             class BaseProxies;
