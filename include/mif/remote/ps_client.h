@@ -297,7 +297,7 @@ namespace Mif
             }
 
             class ObjectManager
-                : public Detail::IObjectManager
+                : public Service::Inherit<Detail::IObjectManager>
             {
             public:
                 ObjectManager(ObjectManager const &) = delete;

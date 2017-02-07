@@ -405,7 +405,7 @@ namespace Mif
 
             template <typename TSerializer, typename TInterface>
             class BaseProxies<TSerializer, TInterface, std::tuple<>>
-                : public TInterface
+                : public Service::Inherit<TInterface>
             {
             protected:
                 template <typename ... TParams>

@@ -61,8 +61,9 @@ int main(int argc, char const **argv)
 
         std::cout << "Client started." << std::endl;
 
-        //std::cout << "Name: \"" << service->GetName() << "\"" << std::endl;
-        //std::cout << "Age: \"" << service->GetAge() << "\"" << std::endl;
+        auto human = service->Cast<Service::IHuman>();
+        std::cout << "Name: \"" << human->GetName() << "\"" << std::endl;
+        std::cout << "Age: \"" << human->GetAge() << "\"" << std::endl;
 
         service->Planning();
         service->Development();

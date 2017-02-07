@@ -23,14 +23,14 @@ namespace Mif
         {
 
             struct Fake_Service__
-                : public IService
+                : public Inherit<IService>
             {
             };
 
             template <typename T>
             class Service_Impl__ final
                 : public std::enable_if<std::is_base_of<IService, T>::value || std::is_same<IService, T>::value, T>::type
-                , public Detail::Fake_Service__
+                , public Fake_Service__
             {
             public:
                 Service_Impl__()
@@ -63,6 +63,18 @@ namespace Mif
                         delete this;
 
                     return counter;
+                }
+
+                virtual bool Query(std::type_info const &typeInfo, void **service,
+                        std::string const &serviceId = {}) override final
+                {
+                    bool result = T::QueryInterfaceInternal(service, static_cast<T *>(this), typeInfo, serviceId);
+                    if (!result || !service)
+                    {
+                        result = Fake_Service__::QueryInterfaceInternal(service,
+                                static_cast<Fake_Service__ *>(this), typeInfo, serviceId);
+                    }
+                    return result;
                 }
             };
 

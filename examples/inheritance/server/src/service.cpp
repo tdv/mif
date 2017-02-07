@@ -24,7 +24,7 @@ namespace Service
         {
 
             class Service
-                : public IEmployee
+                : public Mif::Service::Inherit<IEmployee>
             {
             public:
                 Service()
@@ -99,7 +99,6 @@ namespace Service
                     }
                     return 100000.00;
                 }
-
             };
 
         }   // namespace
