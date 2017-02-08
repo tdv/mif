@@ -22,6 +22,7 @@ namespace Mif
             MIF_REMOTE_PS_BEGIN(IObjectManager)
                 MIF_REMOTE_METHOD(CreateObject)
                 MIF_REMOTE_METHOD(DestroyObject)
+                MIF_REMOTE_METHOD(QueryInterface)
             MIF_REMOTE_PS_END()
 
         }   // namespace Detail

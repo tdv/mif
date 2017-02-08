@@ -32,6 +32,7 @@
             if (!result || !instance) \
                 return {}; \
             TServicePtr<T_Mif_Based_Interface__> service{dynamic_cast<T_Mif_Based_Interface__ *>(instance)}; \
+            /*service->Release();*/ \
             return service; \
         } \
         template <typename T_Mif_Based_Interface__> \
@@ -68,6 +69,13 @@ namespace Mif
             template <typename T>
             class Service_Impl__;
 
+            struct IProxyBase_Mif_Remote_
+            {
+                virtual ~IProxyBase_Mif_Remote_() = default;
+                virtual bool _Mif_Remote_QueryRemoteInterface(void **service,
+                        std::type_info const &typeInfo, std::string const &serviceId) = 0;
+            };
+
             template <typename>
             struct QueryInterface;
 
@@ -79,7 +87,9 @@ namespace Mif
                 {
                     if (typeid(H) == typeInfo)
                     {
-                        *service = static_cast<H *>(instance);
+                        auto obj = static_cast<H *>(instance);
+                        /*obj->AddRef();*/
+                        *service = obj;
                         return true;
                     }
                     using TBases = typename H::TThisInterfaceItemType::TBaseTypeTuple;
@@ -108,7 +118,7 @@ namespace Mif
         template <typename T>
         using TServicePtr = typename std::enable_if
             <
-                1/*std::is_base_of<IService, T>::value || std::is_same<IService, T>::value*/,
+                std::is_base_of<IService, T>::value || std::is_same<IService, T>::value,
                 TIntrusivePtr<T>
             >::type;
 

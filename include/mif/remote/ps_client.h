@@ -347,6 +347,33 @@ namespace Mif
                     }
                 }
 
+                virtual std::string QueryInterface(std::string const &instanceId, std::string const &interfaceId,
+                        std::string const &serviceId) override final
+                {
+                    IStubPtr stub;
+                    {
+                        LockGuard lock(m_owner->m_lock);
+                        auto iter = m_owner->m_stubs.find(instanceId);
+                        if (iter == std::end(m_owner->m_stubs))
+                        {
+                            throw std::invalid_argument{"[Mif::Remote::PSClient::CastObject] "
+                                "Instance with id \"" + instanceId + "\" not found."};
+                        }
+                        stub = iter->second;
+                    }
+
+                    auto instance = stub->Query(interfaceId, serviceId);
+                    if (!instance)
+                        return {};
+
+                    return AppendStub(std::move(instance), interfaceId);
+                }
+
+                std::string CreateInstanceId(void const *instance, std::string const &interfaceId) const
+                {
+                     return static_cast<std::stringstream const &>(std::stringstream{} << instance).str() + interfaceId;
+                }
+
                 template <std::size_t I>
                 typename std::enable_if<I != 0, IStubPtr>::type
                 CreateStub(Service::IServicePtr instance, std::string const &instanceId, std::string const &interfaceId)
@@ -375,7 +402,7 @@ namespace Mif
                     if (!instance)
                         return {};
 
-                    auto const instanceId = static_cast<std::stringstream const &>(std::stringstream{} << instance.get()).str();
+                    auto const instanceId = CreateInstanceId(instance.get(), interfaceId);
 
                     {
                         LockGuard lock(m_owner->m_lock);

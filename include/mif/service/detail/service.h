@@ -10,6 +10,7 @@
 
 // STD
 #include <atomic>
+#include <stdexcept>
 #include <utility>
 
 // MIF
@@ -68,13 +69,26 @@ namespace Mif
                 virtual bool Query(std::type_info const &typeInfo, void **service,
                         std::string const &serviceId = {}) override final
                 {
-                    bool result = T::QueryInterfaceInternal(service, static_cast<T *>(this), typeInfo, serviceId);
-                    if (!result || !service)
+                    if (!service || *service)
                     {
-                        result = Fake_Service__::QueryInterfaceInternal(service,
-                                static_cast<Fake_Service__ *>(this), typeInfo, serviceId);
+                        throw std::invalid_argument{"[Mif::Service::Detail::Service_Impl__::Query] "
+                                "Failed to query interface. Parameter \"service\" not empty. "
+                                "Must be a pointer to pointer of the void type initialized by nullptr."};
                     }
-                    return result;
+
+                    if (typeInfo == typeid(IService))
+                    {
+                        *service = static_cast<Fake_Service__ *>(this);
+                        return true;
+                    }
+
+                    if (T::QueryInterfaceInternal(service, static_cast<T *>(this), typeInfo, serviceId))
+                        return true;
+
+                    if (auto *proxy = dynamic_cast<IProxyBase_Mif_Remote_ *>(this))
+                        return proxy->_Mif_Remote_QueryRemoteInterface(service, typeInfo, serviceId);
+
+                    return false;
                 }
             };
 

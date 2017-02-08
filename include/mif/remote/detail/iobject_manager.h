@@ -27,6 +27,8 @@ namespace Mif
                 virtual ~IObjectManager() = default;
                 virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) = 0;
                 virtual void DestroyObject(std::string const &instanceId) = 0;
+                virtual std::string QueryInterface(std::string const &instanceId, std::string const &interfaceId,
+                        std::string const &serviceId) = 0;
             };
 
             using IObjectManagerPtr = Service::TServicePtr<IObjectManager>;

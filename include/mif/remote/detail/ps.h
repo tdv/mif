@@ -15,6 +15,8 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
+#include <typeindex>
+#include <typeinfo>
 #include <utility>
 
 // MIF
@@ -37,7 +39,6 @@ namespace Mif
             using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
 
             namespace Registry
-
             {
                 namespace Counter
                 {
@@ -236,6 +237,11 @@ namespace Mif
                     }
                 }
 
+                bool QueryRemoteInterface(void **service, std::type_info const &typeInfo, std::string const &serviceId)
+                {
+                    return CreateProxy<0>(service, std::type_index{typeInfo}, serviceId);
+                }
+
             private:
                 Common::UuidGenerator m_generator;
                 IObjectManagerPtr m_manager;
@@ -302,6 +308,51 @@ namespace Mif
                 ExtractResult(Deserializer &de)
                 {
                 }
+
+                template <std::size_t I>
+                bool CreateProxy(typename Registry::template Item<I>::Index::value_type,
+                        void **service, std::type_index const &typeId, std::string const &serviceId)
+                {
+                    using PSType = typename Registry::template Item<I>::Type::template Type<TSerializer>;
+                    using InterfaceType = typename PSType::InterfaceType;
+                    using ProxyType = typename PSType::Proxy;
+                    if (std::type_index{typeid(InterfaceType)} == typeId)
+                    {
+                        auto const instanceId = m_manager->QueryInterface(m_instance, PSType::InterfaceId, serviceId);
+                        if (instanceId.empty())
+                            return false;
+                        Sender sender{m_sender};
+                        auto procy = Service::Make<ProxyType, InterfaceType>(m_manager, instanceId, std::move(sender));
+                        // TODO: fix memory leak
+                        procy->AddRef();
+                        *service = procy.get();
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                template <std::size_t I>
+                bool CreateProxy(...)
+                {
+                    return false;
+                }
+
+                template <std::size_t I>
+                typename std::enable_if<I == 100, bool>::type
+                CreateProxy(void **, std::type_index const &, std::string const &)
+                {
+                    return false;
+                }
+
+                template <std::size_t I>
+                typename std::enable_if<I != 100, bool>::type
+                CreateProxy(void **service, std::type_index const &typeId, std::string const &serviceId)
+                {
+                    if (CreateProxy<I>(std::size_t{}, service, typeId, serviceId))
+                        return true;
+                    return CreateProxy<I + 1>(service, typeId, serviceId);
+                }
             };
 
             template <typename TSerializer>
@@ -312,6 +363,7 @@ namespace Mif
 
                 virtual ~IStub() = default;
                 virtual void Call(Deserializer &request, Serializer &response) = 0;
+                virtual Service::IServicePtr Query(std::string const &interfaceId, std::string const &serviceId) = 0;
             };
 
             template <typename TSerializer>
@@ -349,6 +401,51 @@ namespace Mif
                     {
                         response.PutException(std::current_exception());
                     }
+                }
+
+                virtual Service::IServicePtr Query(std::string const &interfaceId, std::string const &serviceId) override final
+                {
+                    return QueryInterface<0>(interfaceId, serviceId);
+                }
+
+                template <std::size_t I>
+                Service::IServicePtr QueryInterface(typename Registry::template Item<I>::Index::value_type,
+                        std::string const &interfaceId, std::string const &serviceId)
+                {
+                    using PSType = typename Registry::template Item<I>::Type::template Type<TSerializer>;
+                    using InterfaceType = typename PSType::InterfaceType;
+                    if (interfaceId == PSType::InterfaceId)
+                    {
+                        auto instance = m_instance->Query<InterfaceType>(serviceId);
+                        if (!instance)
+                            return {};
+                        auto result = instance->template Cast<Service::IService>();
+                        return result;
+                    }
+
+                    return {};
+                }
+
+                template <std::size_t I>
+                Service::IServicePtr QueryInterface(...)
+                {
+                    return {};
+                }
+
+                template <std::size_t I>
+                typename std::enable_if<I == 100, Service::IServicePtr>::type
+                QueryInterface(std::string const &, std::string const &)
+                {
+                    return {};
+                }
+
+                template <std::size_t I>
+                typename std::enable_if<I != 100, Service::IServicePtr>::type
+                QueryInterface(std::string const &interfaceId, std::string const &serviceId)
+                {
+                    if (auto instance = QueryInterface<I>(std::size_t{}, interfaceId, serviceId))
+                        return instance;
+                    return QueryInterface<I + 1>(interfaceId, serviceId);
                 }
 
             private:
@@ -406,6 +503,7 @@ namespace Mif
             template <typename TSerializer, typename TInterface>
             class BaseProxies<TSerializer, TInterface, std::tuple<>>
                 : public Service::Inherit<TInterface>
+                , public Service::Detail::IProxyBase_Mif_Remote_
             {
             protected:
                 template <typename ... TParams>
@@ -424,6 +522,13 @@ namespace Mif
 
             private:
                 mutable Proxy<TSerializer> m_proxy;
+
+                // IProxyBase_Mif_Remote_
+                virtual bool _Mif_Remote_QueryRemoteInterface(void **service,
+                        std::type_info const &typeInfo, std::string const &serviceId) override final
+                {
+                    return m_proxy.QueryRemoteInterface(service, typeInfo, serviceId);
+                }
             };
 
             template <typename TSerializer, typename T>

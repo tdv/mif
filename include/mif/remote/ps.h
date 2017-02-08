@@ -180,6 +180,7 @@
                     template <> \
                     struct Item<Registry< :: interface_>::Id> \
                     { \
+                        using Index = std::integral_constant<std::size_t, Registry< :: interface_>::Id>; \
                         using Type = Registry< :: interface_>; \
                     }; \
                     namespace Counter \
