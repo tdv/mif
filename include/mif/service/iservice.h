@@ -22,8 +22,10 @@
     public: \
         virtual std::size_t AddRef() = 0; \
         virtual std::size_t Release() = 0;  \
+    private: \
         virtual bool Query(std::type_info const &typeInfo, \
                 void **service, std::string const &serviceId = {}) = 0; \
+    public: \
         template <typename T_Mif_Based_Interface__> \
         TServicePtr<T_Mif_Based_Interface__> Query(std::string const &serviceId = {}) \
         { \
@@ -31,7 +33,7 @@
             auto const result = Query(typeid(T_Mif_Based_Interface__), reinterpret_cast<void **>(&instance), serviceId); \
             if (!result || !instance) \
                 return {}; \
-            TServicePtr<T_Mif_Based_Interface__> service{dynamic_cast<T_Mif_Based_Interface__ *>(instance)}; \
+            TServicePtr<T_Mif_Based_Interface__> service{instance}; \
             /*service->Release();*/ \
             return service; \
         } \
