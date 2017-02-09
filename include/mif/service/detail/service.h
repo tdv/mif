@@ -67,7 +67,7 @@ namespace Mif
                 }
 
                 virtual bool Query(std::type_info const &typeInfo, void **service,
-                        std::string const &serviceId = {}) override final
+                        std::string const &serviceId, IService **holder) override final
                 {
                     if (!service || *service)
                     {
@@ -86,7 +86,7 @@ namespace Mif
                         return true;
 
                     if (auto *proxy = dynamic_cast<IProxyBase_Mif_Remote_ *>(this))
-                        return proxy->_Mif_Remote_QueryRemoteInterface(service, typeInfo, serviceId);
+                        return proxy->_Mif_Remote_QueryRemoteInterface(service, typeInfo, serviceId, holder);
 
                     return false;
                 }

@@ -35,9 +35,6 @@ namespace Mif
     {
         namespace Detail
         {
-
-            using FakeHierarchy = Common::Detail::MakeHierarchy<100>;
-
             namespace Registry
             {
                 namespace Counter
@@ -237,9 +234,10 @@ namespace Mif
                     }
                 }
 
-                bool QueryRemoteInterface(void **service, std::type_info const &typeInfo, std::string const &serviceId)
+                bool QueryRemoteInterface(void **service, std::type_info const &typeInfo,
+                        std::string const &serviceId, Service::IService **holder)
                 {
-                    return CreateProxy<0>(service, std::type_index{typeInfo}, serviceId);
+                    return CreateProxy<0>(service, std::type_index{typeInfo}, serviceId, holder);
                 }
 
             private:
@@ -310,8 +308,8 @@ namespace Mif
                 }
 
                 template <std::size_t I>
-                bool CreateProxy(typename Registry::template Item<I>::Index::value_type,
-                        void **service, std::type_index const &typeId, std::string const &serviceId)
+                bool CreateProxy(typename Registry::template Item<I>::Index::value_type, void **service,
+                        std::type_index const &typeId, std::string const &serviceId, Service::IService **holder)
                 {
                     using PSType = typename Registry::template Item<I>::Type::template Type<TSerializer>;
                     using InterfaceType = typename PSType::InterfaceType;
@@ -322,10 +320,9 @@ namespace Mif
                         if (instanceId.empty())
                             return false;
                         Sender sender{m_sender};
-                        auto procy = Service::Make<ProxyType, InterfaceType>(m_manager, instanceId, std::move(sender));
-                        // TODO: fix memory leak
-                        procy->AddRef();
-                        *service = procy.get();
+                        auto proxy = Service::Make<ProxyType, InterfaceType>(m_manager, instanceId, std::move(sender));
+                        *service = proxy.get();
+                        (*holder = proxy->template Cast<Service::IService>().get())->AddRef();
                         return true;
                     }
 
@@ -339,19 +336,19 @@ namespace Mif
                 }
 
                 template <std::size_t I>
-                typename std::enable_if<I == 100, bool>::type
-                CreateProxy(void **, std::type_index const &, std::string const &)
+                typename std::enable_if<I == Common::Detail::FakeHierarchyLength::value, bool>::type
+                CreateProxy(void **, std::type_index const &, std::string const &, Service::IService **)
                 {
                     return false;
                 }
 
                 template <std::size_t I>
-                typename std::enable_if<I != 100, bool>::type
-                CreateProxy(void **service, std::type_index const &typeId, std::string const &serviceId)
+                typename std::enable_if<I != Common::Detail::FakeHierarchyLength::value, bool>::type
+                CreateProxy(void **service, std::type_index const &typeId, std::string const &serviceId, Service::IService **holder)
                 {
-                    if (CreateProxy<I>(std::size_t{}, service, typeId, serviceId))
+                    if (CreateProxy<I>(std::size_t{}, service, typeId, serviceId, holder))
                         return true;
-                    return CreateProxy<I + 1>(service, typeId, serviceId);
+                    return CreateProxy<I + 1>(service, typeId, serviceId, holder);
                 }
             };
 
@@ -408,6 +405,11 @@ namespace Mif
                     return QueryInterface<0>(interfaceId, serviceId);
                 }
 
+             private:
+                Service::IServicePtr m_instance;
+                std::string m_instanceId;
+                StubCreator m_stubCreator;
+
                 template <std::size_t I>
                 Service::IServicePtr QueryInterface(typename Registry::template Item<I>::Index::value_type,
                         std::string const &interfaceId, std::string const &serviceId)
@@ -433,25 +435,20 @@ namespace Mif
                 }
 
                 template <std::size_t I>
-                typename std::enable_if<I == 100, Service::IServicePtr>::type
+                typename std::enable_if<I == Common::Detail::FakeHierarchyLength::value, Service::IServicePtr>::type
                 QueryInterface(std::string const &, std::string const &)
                 {
                     return {};
                 }
 
                 template <std::size_t I>
-                typename std::enable_if<I != 100, Service::IServicePtr>::type
+                typename std::enable_if<I != Common::Detail::FakeHierarchyLength::value, Service::IServicePtr>::type
                 QueryInterface(std::string const &interfaceId, std::string const &serviceId)
                 {
                     if (auto instance = QueryInterface<I>(std::size_t{}, interfaceId, serviceId))
                         return instance;
                     return QueryInterface<I + 1>(interfaceId, serviceId);
                 }
-
-            private:
-                Service::IServicePtr m_instance;
-                std::string m_instanceId;
-                StubCreator m_stubCreator;
 
             protected:
                 virtual void InvokeMethod(std::string const &method, Deserializer &, Serializer &)
@@ -525,9 +522,10 @@ namespace Mif
 
                 // IProxyBase_Mif_Remote_
                 virtual bool _Mif_Remote_QueryRemoteInterface(void **service,
-                        std::type_info const &typeInfo, std::string const &serviceId) override final
+                        std::type_info const &typeInfo, std::string const &serviceId,
+                        Service::IService **holder) override final
                 {
-                    return m_proxy.QueryRemoteInterface(service, typeInfo, serviceId);
+                    return m_proxy.QueryRemoteInterface(service, typeInfo, serviceId, holder);
                 }
             };
 

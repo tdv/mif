@@ -24,17 +24,21 @@
         virtual std::size_t Release() = 0;  \
     private: \
         virtual bool Query(std::type_info const &typeInfo, \
-                void **service, std::string const &serviceId = {}) = 0; \
+                void **service, std::string const &serviceId = {}, \
+                IService **holder = nullptr) = 0; \
     public: \
         template <typename T_Mif_Based_Interface__> \
         TServicePtr<T_Mif_Based_Interface__> Query(std::string const &serviceId = {}) \
         { \
             T_Mif_Based_Interface__ *instance = nullptr; \
-            auto const result = Query(typeid(T_Mif_Based_Interface__), reinterpret_cast<void **>(&instance), serviceId); \
+            IService *holder = nullptr; \
+            auto const result = Query(typeid(T_Mif_Based_Interface__), \
+                    reinterpret_cast<void **>(&instance), serviceId, &holder); \
             if (!result || !instance) \
                 return {}; \
             TServicePtr<T_Mif_Based_Interface__> service{instance}; \
-            /*service->Release();*/ \
+            if (holder) \
+                holder->Release(); \
             return service; \
         } \
         template <typename T_Mif_Based_Interface__> \
@@ -75,7 +79,8 @@ namespace Mif
             {
                 virtual ~IProxyBase_Mif_Remote_() = default;
                 virtual bool _Mif_Remote_QueryRemoteInterface(void **service,
-                        std::type_info const &typeInfo, std::string const &serviceId) = 0;
+                        std::type_info const &typeInfo, std::string const &serviceId,
+                        IService **holder) = 0;
             };
 
             template <typename>
@@ -90,7 +95,6 @@ namespace Mif
                     if (typeid(H) == typeInfo)
                     {
                         auto obj = static_cast<H *>(instance);
-                        /*obj->AddRef();*/
                         *service = obj;
                         return true;
                     }

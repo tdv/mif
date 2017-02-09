@@ -35,7 +35,6 @@
         protected: \
             using TBase::TBase; \
         }; \
-        using FakeHierarchy = ::Mif::Remote::Detail::FakeHierarchy; \
         static char (&GetNextCounter(void *))[1]; \
         template <typename TBase> \
         static ProxyBase<TBase>* GetProxyBase(::Mif::Common::Detail::Hierarchy<1>); \
@@ -51,9 +50,10 @@
 
 #define MIF_REMOTE_PS_END() \
         template <typename TBase> \
-        using MethodProxies = typename std::remove_pointer<decltype(ThisType::GetProxyBase<TBase>(FakeHierarchy{}))>::type; \
+        using MethodProxies = typename std::remove_pointer<decltype(ThisType::GetProxyBase<TBase>( \
+                ::Mif::Common::Detail::FakeHierarchy{}))>::type; \
         template <typename TBase> \
-        using MethodStubs = decltype(ThisType::GetStubBase<TBase>(FakeHierarchy{})); \
+        using MethodStubs = decltype(ThisType::GetStubBase<TBase>(::Mif::Common::Detail::FakeHierarchy{})); \
     public: \
         template <typename TBase = ::Mif::Remote::Detail::InheritProxy<TSerializer, InterfaceType>> \
         using ProxyItem = MethodProxies<TBase>; \
@@ -110,7 +110,7 @@
 
 #define MIF_REMOTE_METHOD(method_) \
     using method_ ## _Info = ::Mif::Common::Detail::Method<decltype(&InterfaceType :: method_)>; \
-    enum { method_ ## _Index = sizeof(GetNextCounter(static_cast<FakeHierarchy *>(nullptr))) }; \
+    enum { method_ ## _Index = sizeof(GetNextCounter(static_cast<::Mif::Common::Detail::FakeHierarchy *>(nullptr))) }; \
     using method_ ## _IndexSequence = ::Mif::Common::MakeIndexSequence<std::tuple_size<typename method_ ## _Info ::ParamTypeList>::value>; \
     template <typename TBase> \
     using method_ ## _Proxy_Base_Type = typename std::remove_pointer<decltype(ThisType::GetProxyBase<TBase>(::Mif::Common::Detail::Hierarchy<method_ ## _Index>{}))>::type; \
@@ -173,7 +173,7 @@
                     template <> \
                     struct Registry< :: interface_> \
                     { \
-                        static constexpr auto Id = Counter::GetLast(FakeHierarchy{}) + 1; \
+                        static constexpr auto Id = Counter::GetLast(Common::Detail::FakeHierarchy{}) + 1; \
                         template <typename TSerializer> \
                         using Type = :: interface_ ## _PS <TSerializer>; \
                     }; \

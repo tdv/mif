@@ -52,7 +52,6 @@ namespace Mif
         MIF_DECLARE_SRTING_PROVIDER(TypeNameProvider, #type_) \
         using ClassType = type_; \
         using BaseTypes = std::tuple<__VA_ARGS__>; \
-        using FakeHierarchy = ::Mif::Common::Detail::MakeHierarchy<100>; \
         static char (&GetNextCounter(void *))[1];
 
 #define MIF_REFLECT_FIELD(field_) \
@@ -65,12 +64,12 @@ namespace Mif
             return &ClassType :: field_ ; \
         } \
     }; \
-    enum { field_ ## _Index = sizeof(GetNextCounter(static_cast<FakeHierarchy *>(nullptr))) }; \
+    enum { field_ ## _Index = sizeof(GetNextCounter(static_cast<::Mif::Common::Detail::FakeHierarchy *>(nullptr))) }; \
     static char (&GetNextCounter(::Mif::Common::Detail::Hierarchy<field_ ## _Index> *))[field_ ## _Index + 1]; \
     static field_ ## _MetaInfo GetFieldInfo(::Mif::Common::Detail::Hierarchy<field_ ## _Index - 1>);
 
 #define MIF_REFLECT_END() \
-        enum { FieldsCount = sizeof(GetNextCounter(static_cast<FakeHierarchy *>(nullptr))) }; \
+        enum { FieldsCount = sizeof(GetNextCounter(static_cast<::Mif::Common::Detail::FakeHierarchy *>(nullptr))) }; \
     };
 
 #ifndef MIF_BOOST_TYPE_SERIALIZER

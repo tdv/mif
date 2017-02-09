@@ -181,7 +181,6 @@ namespace Mif
                             auto iter = m_stubs.find(instanceId);
                             if (iter == std::end(m_stubs))
                             {
-                                // TODO: !!!
                                 if (instanceId == m_psInstanceId)
                                 {
                                     using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
@@ -312,6 +311,8 @@ namespace Mif
                 }
 
             private:
+                Common::UuidGenerator m_uuidGenerator;
+
                 ThisType *m_owner;
 
                 Service::IFactoryPtr m_factory;
@@ -369,11 +370,6 @@ namespace Mif
                     return AppendStub(std::move(instance), interfaceId);
                 }
 
-                std::string CreateInstanceId(void const *instance, std::string const &interfaceId) const
-                {
-                     return static_cast<std::stringstream const &>(std::stringstream{} << instance).str() + interfaceId;
-                }
-
                 template <std::size_t I>
                 typename std::enable_if<I != 0, IStubPtr>::type
                 CreateStub(Service::IServicePtr instance, std::string const &instanceId, std::string const &interfaceId)
@@ -402,7 +398,7 @@ namespace Mif
                     if (!instance)
                         return {};
 
-                    auto const instanceId = CreateInstanceId(instance.get(), interfaceId);
+                    auto const instanceId = m_uuidGenerator.Generate();
 
                     {
                         LockGuard lock(m_owner->m_lock);
@@ -410,7 +406,7 @@ namespace Mif
                             return instanceId;
                     }
 
-                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Detail::FakeHierarchy{})>(
+                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Common::Detail::FakeHierarchy{})>(
                             std::move(instance), instanceId, interfaceId);
 
                     {
