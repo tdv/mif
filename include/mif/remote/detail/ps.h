@@ -9,7 +9,9 @@
 #define __MIF_REMOTE_DETAIL_PS_H__
 
 // STD
+#include <algorithm>
 #include <functional>
+#include <list>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -72,6 +74,9 @@ namespace Mif
             {
                 return TIsTservicePtr(static_cast<T const *>(nullptr));
             }
+
+            template <typename T>
+            using ExtractType = typename std::remove_const<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>::type;
 
             template <typename TResult, typename TSerializer>
             struct FunctionWrap
@@ -144,6 +149,53 @@ namespace Mif
                 using std::runtime_error::runtime_error;
             };
 
+            using StubCreator = std::function<std::string (Service::IServicePtr, std::string const &)>;
+
+            class ObjectCleaner final
+            {
+            public:
+                ObjectCleaner(Service::TIntrusivePtr<IObjectManager> manager)
+                    : m_manager{std::move(manager)}
+                {
+                }
+
+                ObjectCleaner(ObjectCleaner const &) = delete;
+                ObjectCleaner& operator = (ObjectCleaner const &) = delete;
+                ObjectCleaner(ObjectCleaner &&) = delete;
+                ObjectCleaner& operator = (ObjectCleaner &&) = delete;
+
+                ~ObjectCleaner()
+                {
+                    if (!m_manager)
+                        return;
+
+                    std::for_each(std::begin(m_ids), std::end(m_ids),
+                            [this] (std::string const &id)
+                            {
+                                try
+                                {
+                                    m_manager->DestroyObject(id);
+                                }
+                                catch (std::exception const &e)
+                                {
+                                    MIF_LOG(Warning) << "[Mif::Remote::Detail::ObjectCleaner::~ObjectCleaner] "
+                                                     << "Failed to call Destroy object for instance whith id \""
+                                                     << id << "\" Error: " << e.what();
+                                }
+                            }
+                        );
+                }
+
+                void AppendId(std::string const &id)
+                {
+                    m_ids.push_back(id);
+                }
+
+            private:
+                Service::TIntrusivePtr<IObjectManager> m_manager;
+                std::list<std::string> m_ids;
+            };
+
             template <typename TSerializer>
             class Proxy
             {
@@ -154,23 +206,28 @@ namespace Mif
 
                 using Sender = std::function<DeserializerPtr (std::string const &, Serializer &)>;
 
-                Proxy(IObjectManagerPtr manager, std::string const &serviceId, std::string const &interfaceId, Sender && sender)
+                Proxy(IObjectManagerPtr manager, std::string const &serviceId, std::string const &interfaceId,
+                        Sender && sender, StubCreator && stubCreator)
                     : m_manager{manager}
                     , m_instance{m_manager->CreateObject(serviceId, interfaceId)}
                     , m_sender{std::move(sender)}
+                    , m_stubCreator{std::move(stubCreator)}
                 {
                 }
 
-                Proxy(IObjectManagerPtr manager, std::string const &instance, Sender && sender)
+                Proxy(IObjectManagerPtr manager, std::string const &instance,
+                        Sender && sender, StubCreator && stubCreator)
                     : m_manager{manager}
                     , m_instance{instance}
                     , m_sender{std::move(sender)}
+                    , m_stubCreator{stubCreator}
                 {
                 }
 
-                Proxy(std::string const &instance, Sender && sender)
+                Proxy(std::string const &instance, Sender && sender, StubCreator && stubCreator)
                     : m_instance{instance}
                     , m_sender{std::move(sender)}
+                    , m_stubCreator{stubCreator}
                 {
                 }
 
@@ -197,7 +254,9 @@ namespace Mif
                     try
                     {
                         auto const requestId = m_generator.Generate();
-                        Serializer serializer(true, requestId, m_instance, interface, method, std::forward<TParams>(params) ... );
+                        ObjectCleaner cleaner{m_manager};
+                        Serializer serializer(true, requestId, m_instance, interface, method,
+                                PropareParam(std::forward<TParams>(params), cleaner) ... );
                         auto deserializer = m_sender(requestId, serializer);
                         if (!deserializer->IsResponse())
                             throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad response type \"" + deserializer->GetType() + "\""};
@@ -245,6 +304,7 @@ namespace Mif
                 IObjectManagerPtr m_manager;
                 std::string m_instance;
                 Sender m_sender;
+                StubCreator m_stubCreator;
 
                 template <typename TResult>
                 typename std::enable_if
@@ -278,8 +338,10 @@ namespace Mif
                     using ProxyType = typename PSType::Proxy;
 
                     Sender sender{m_sender};
+                    StubCreator stubCreator{m_stubCreator};
 
-                    return Service::Make<ProxyType, InterfaceType>(m_manager, instanceId, std::move(sender));
+                    return Service::Make<ProxyType, InterfaceType>(m_manager, instanceId,
+                            std::move(sender), std::move(stubCreator));
                 }
 
                 template <typename TResult>
@@ -320,7 +382,9 @@ namespace Mif
                         if (instanceId.empty())
                             return false;
                         Sender sender{m_sender};
-                        auto proxy = Service::Make<ProxyType, InterfaceType>(m_manager, instanceId, std::move(sender));
+                        StubCreator stubCreator{m_stubCreator};
+                        auto proxy = Service::Make<ProxyType, InterfaceType>(m_manager, instanceId,
+                                std::move(sender), std::move(stubCreator));
                         *service = proxy.get();
                         (*holder = proxy->template Cast<Service::IService>().get())->AddRef();
                         return true;
@@ -350,6 +414,73 @@ namespace Mif
                         return true;
                     return CreateProxy<I + 1>(service, typeId, serviceId, holder);
                 }
+
+                // Specialization for all types that are not inherited from IService and not IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        !std::is_base_of<Service::IService, ExtractType<T>>::value &&
+                        !std::is_same<Service::IService, ExtractType<T>>::value &&
+                        !IsTServicePtr<ExtractType<T>>()
+                        ,
+                        T
+                    >::type &&
+                PropareParam(T && param, ObjectCleaner &)
+                {
+                    return std::forward<T>(param);
+                }
+
+                // Specialization for pointers on interfaces based on IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        std::is_pointer<T>::value &&
+                            (
+                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
+                                std::is_same<Service::IService, ExtractType<T>>::value
+                            )
+                        ,
+                        std::string
+                    >::type
+                PropareParam(T && param, ObjectCleaner &cleaner)
+                {
+                    return PropareParam(Service::TIntrusivePtr<ExtractType<T>>{param}, cleaner);
+                }
+
+                // Specialization for references on interfaces based on IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        std::is_reference<T>::value &&
+                            (
+                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
+                                std::is_same<Service::IService, ExtractType<T>>::value
+                            )
+                        ,
+                        std::string
+                    >::type
+                PropareParam(T && param, ObjectCleaner &cleaner)
+                {
+                    return PropareParam(&param, cleaner);
+                }
+
+                // Specialization for smart pointers on interfaces based on IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        !std::is_pointer<T>::value &&
+                        IsTServicePtr<ExtractType<T>>()
+                        ,
+                        std::string
+                    >::type
+                PropareParam(T && param, ObjectCleaner &cleaner)
+                {
+                    if (!param)
+                        return {};
+                    auto instanceId = m_stubCreator(std::forward<T>(param), std::string{});
+                    cleaner.AppendId(instanceId);
+                    return instanceId;
+                }
             };
 
             template <typename TSerializer>
@@ -371,8 +502,6 @@ namespace Mif
                 using BaseType = IStub<TSerializer>;
                 using Serializer = typename BaseType::Serializer;
                 using Deserializer = typename BaseType::Deserializer;
-
-                using StubCreator = std::function<std::string (Service::IServicePtr, std::string const &)>;
 
                 Stub(Service::IServicePtr instance, std::string const &instanceId, StubCreator && stubCreator)
                     : m_instance{instance}
@@ -456,6 +585,11 @@ namespace Mif
                     throw ProxyStubException{"[Mif::Remote::Stub::InvokeMethod] Method \"" + method + "\" not found."};
                 }
 
+                virtual bool ContainInterfaceId(std::string const &id) const
+                {
+                    return false;
+                }
+
                 template <typename TResult, typename TInterface, typename ... TParams>
                 void InvokeRealMethod(TResult (*method)(TInterface &, std::tuple<TParams ... > && ),
                                       Deserializer &deserializer, Serializer &serializer)
@@ -470,11 +604,6 @@ namespace Mif
                             serializer,
                             m_stubCreator
                         );
-                }
-
-                virtual bool ContainInterfaceId(std::string const &id) const
-                {
-                    return false;
                 }
             };
 

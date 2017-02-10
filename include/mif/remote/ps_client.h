@@ -43,9 +43,19 @@ namespace Mif
                 std::chrono::microseconds const &timeout,
                 Service::IFactoryPtr factory = Service::Make<Service::Factory, Service::IFactory>())
                 : Client{control, publisher}
+                , m_factory{std::move(factory)}
                 , m_timeout{timeout}
-                , m_factory{factory}
             {
+                using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
+                m_stubObjectManager = Service::Make<ObjectManager, ObjectManager>(this, m_factory);
+                auto stub = std::make_shared<ObjectManagerStub>(m_stubObjectManager, m_psInstanceId,
+                        [] (Service::IServicePtr, std::string const &interfaceId) -> std::string
+                        {
+                            throw Detail::ProxyStubException{"[Mif::Remote::PSClient::PSClient] "
+                                "Failed to create stub from ObjectManager. Interface id \"" + interfaceId + "\""};
+                        }
+                    );
+                m_stubs.insert(std::make_pair(m_psInstanceId, std::move(stub)));
             }
 
             PSClient(PSClient const &) = delete;
@@ -73,6 +83,143 @@ namespace Mif
             using IStubPtr = std::shared_ptr<Detail::IStub<TSerializer>>;
             using Stubs = std::map<std::string/*instance id*/, IStubPtr>;
 
+            class ObjectManager
+                : public Service::Inherit<Detail::IObjectManager>
+            {
+            public:
+                ObjectManager(ObjectManager const &) = delete;
+                ObjectManager(ObjectManager &&) = delete;
+                ObjectManager& operator = (ObjectManager const &) = delete;
+                ObjectManager& operator = (ObjectManager &&) = delete;
+
+                ObjectManager(ThisType *owner, Service::IFactoryPtr factory)
+                    : m_owner{owner}
+                    , m_factory{factory}
+                {
+                }
+
+                Detail::StubCreator GetStubCreator()
+                {
+                    auto self = Service::TServicePtr<ObjectManager>{this};
+                    auto creator = std::bind(&ObjectManager::AppendStub, self,
+                            std::placeholders::_1, std::placeholders::_2);
+                    return creator;
+                }
+
+            private:
+                Common::UuidGenerator m_uuidGenerator;
+
+                ThisType *m_owner;
+
+                Service::IFactoryPtr m_factory;
+
+                // IObjectManager
+                virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) override final
+                {
+                    if (serviceId.empty())
+                        throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"serviceId\" must not be empty."};
+                    if (interfaceId.empty())
+                        throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"interfaceId\" must not be empty."};
+
+                    auto instance = m_factory->Create(serviceId);
+                    return AppendStub(std::move(instance), interfaceId);
+                }
+
+                virtual void DestroyObject(std::string const &instanceId) override final
+                {
+                    if (instanceId.empty())
+                        throw std::invalid_argument{"[Mif::Remote::PSClient::DestrowObject] Parameter \"instanceId\" must not be empty."};
+
+                    IStubPtr stubService;
+                    {
+                        LockGuard lock(m_owner->m_lock);
+                        auto iter = m_owner->m_stubs.find(instanceId);
+                        if (iter == std::end(m_owner->m_stubs))
+                        {
+                            throw std::invalid_argument{"[Mif::Remote::PSClient::DestroyObject] "
+                                "Instance with id \"" + instanceId + "\" not found."};
+                        }
+                        stubService = std::move(iter->second);
+                        m_owner->m_stubs.erase(iter);
+                    }
+                }
+
+                virtual std::string QueryInterface(std::string const &instanceId, std::string const &interfaceId,
+                        std::string const &serviceId) override final
+                {
+                    IStubPtr stub;
+                    {
+                        LockGuard lock(m_owner->m_lock);
+                        auto iter = m_owner->m_stubs.find(instanceId);
+                        if (iter == std::end(m_owner->m_stubs))
+                        {
+                            throw std::invalid_argument{"[Mif::Remote::PSClient::CastObject] "
+                                "Instance with id \"" + instanceId + "\" not found."};
+                        }
+                        stub = iter->second;
+                    }
+
+                    auto instance = stub->Query(interfaceId, serviceId);
+                    if (!instance)
+                        return {};
+
+                    return AppendStub(std::move(instance), interfaceId);
+                }
+
+                template <std::size_t I>
+                typename std::enable_if<I != 0, IStubPtr>::type
+                CreateStub(Service::IServicePtr instance, std::string const &instanceId, std::string const &interfaceId)
+                {
+                    using PSType = typename Detail::Registry::template Item<I>::Type::template Type<TSerializer>;
+                    if (PSType::InterfaceId == interfaceId)
+                    {
+                        auto self = Service::TServicePtr<ObjectManager>{this};
+                        auto stubCreator = GetStubCreator();
+                        return std::make_shared<typename PSType::Stub>(std::move(instance), instanceId,
+                                std::move(stubCreator));
+                    }
+                    return CreateStub<I - 1>(std::move(instance), instanceId, interfaceId);
+                }
+
+                template <std::size_t I>
+                typename std::enable_if<I == 0, IStubPtr>::type
+                CreateStub(Service::IServicePtr, std::string const &, std::string const &interfaceId)
+                {
+                    throw std::runtime_error{"Failed to create stub for interface with id \"" + interfaceId + "\". Stub not found."};
+                }
+
+                std::string AppendStub(Service::IServicePtr instance, std::string const &interfaceId)
+                {
+                    if (!instance)
+                        return {};
+
+                    auto const instanceId = m_uuidGenerator.Generate();
+
+                    {
+                        LockGuard lock(m_owner->m_lock);
+                        if (m_owner->m_stubs.find(instanceId) != std::end(m_owner->m_stubs))
+                            return instanceId;
+                    }
+
+                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Common::Detail::FakeHierarchy{})>(
+                            std::move(instance), instanceId, interfaceId);
+
+                    {
+                        LockGuard lock(m_owner->m_lock);
+
+                        if (m_owner->m_stubs.find(instanceId) != std::end(m_owner->m_stubs))
+                            return instanceId;
+
+                        m_owner->m_stubs.insert(std::make_pair(instanceId, std::move(stub)));
+                    }
+
+                    return instanceId;
+            }
+
+            };
+
+            friend class ObjectManager;
+
             std::string const m_psInstanceId = "0";
 
             std::chrono::microseconds const m_timeout;
@@ -82,10 +229,30 @@ namespace Mif
 
             LockType m_lock;
             Detail::IObjectManagerPtr m_proxyObjectManager;
+            Service::TIntrusivePtr<ObjectManager> m_stubObjectManager;
+
             Stubs m_stubs;
 
             LockType m_dataLock;
             Responses m_responses;
+
+            Detail::IObjectManagerPtr GetProxyObjectManager()
+            {
+                LockGuard lock{m_lock};
+                if (!m_proxyObjectManager)
+                {
+                    using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::Proxy;
+                    m_proxyObjectManager = Service::Make<ObjectManagerProxy, Detail::IObjectManager>(m_psInstanceId, std::bind(&ThisType::Send,
+                            std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2),
+                            [] (Service::IServicePtr, std::string const &interfaceId) -> std::string
+                            {
+                                throw Detail::ProxyStubException{"[Mif::Remote::PSClient::GetProxyObjectManager] "
+                                    "Failed to create proxy from ObjectManager. Interface id \"" + interfaceId + "\""};
+                            }
+                        );
+                }
+                return m_proxyObjectManager;
+            }
 
             DeserializerPtr Send(std::string const &requestId, Serializer &serializer)
             {
@@ -179,31 +346,11 @@ namespace Mif
                         {
                             LockGuard lock(m_lock);
                             auto iter = m_stubs.find(instanceId);
-                            if (iter == std::end(m_stubs))
-                            {
-                                if (instanceId == m_psInstanceId)
-                                {
-                                    using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
-                                    auto manager = Service::Make<ObjectManager, ObjectManager>(this, m_factory);
-                                    stub = std::make_shared<ObjectManagerStub>(manager, m_psInstanceId,
-                                            [] (Service::IServicePtr, std::string const &interfaceId) -> std::string
-                                            {
-                                                throw Detail::ProxyStubException{"[Mif::Remote::PSClient::ProcessData] "
-                                                    "Failed to create stub from ObjectManager. Interface id \"" + interfaceId + "\""};
-                                            }
-                                        );
-                                    m_stubs.insert(std::make_pair(m_psInstanceId, stub));
-                                }
-                                else
-                                {
-                                    throw Detail::ProxyStubException{"[Mif::Remote::PSClient::ProcessData] Instance \"" + instanceId + "\" not found."};
-                                }
-                            }
-                            else
-                            {
+                            if (iter != std::end(m_stubs))
                                 stub = iter->second;
-                            }
                         }
+                        if (!stub)
+                            throw Detail::ProxyStubException{"[Mif::Remote::PSClient::ProcessData] Instance \"" + instanceId + "\" not found."};
                         Serializer serializer(false, uuid, instanceId, interfaceId, method);
                         stub->Call(*deserializer, serializer);
                         if (!Post(std::move(serializer.GetBuffer())))
@@ -267,25 +414,15 @@ namespace Mif
             {
                 try
                 {
-                    using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::Proxy;
-
                     auto self = std::static_pointer_cast<ThisType>(shared_from_this());
                     auto sender = std::bind(&ThisType::Send, self, std::placeholders::_1, std::placeholders::_2);
+                    auto stubCreator = m_stubObjectManager->GetStubCreator();
 
                     using PSType = typename Detail::Registry::Registry<TInterface>::template Type<TSerializer>;
                     using ProxyType = typename PSType::Proxy;
 
-                    {
-                        LockGuard lock{m_lock};
-
-                        if (!m_proxyObjectManager)
-                        {
-                            m_proxyObjectManager = Service::Make<ObjectManagerProxy, Detail::IObjectManager>(m_psInstanceId, std::bind(&ThisType::Send,
-                                    std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2));
-                        }
-                    }
-
-                    return Service::Make<ProxyType>(m_proxyObjectManager, serviceId, std::string{PSType::InterfaceId}, std::move(sender));
+                    return Service::Make<ProxyType>(GetProxyObjectManager(), serviceId, std::string{PSType::InterfaceId},
+                            std::move(sender), std::move(stubCreator));
                 }
                 catch (std::exception const &e)
                 {
@@ -294,136 +431,6 @@ namespace Mif
                         "Error: " + std::string{e.what()}};
                 }
             }
-
-            class ObjectManager
-                : public Service::Inherit<Detail::IObjectManager>
-            {
-            public:
-                ObjectManager(ObjectManager const &) = delete;
-                ObjectManager(ObjectManager &&) = delete;
-                ObjectManager& operator = (ObjectManager const &) = delete;
-                ObjectManager& operator = (ObjectManager &&) = delete;
-
-                ObjectManager(ThisType *owner, Service::IFactoryPtr factory)
-                    : m_owner{owner}
-                    , m_factory{factory}
-                {
-                }
-
-            private:
-                Common::UuidGenerator m_uuidGenerator;
-
-                ThisType *m_owner;
-
-                Service::IFactoryPtr m_factory;
-
-                // IObjectManager
-                virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) override final
-                {
-                    if (serviceId.empty())
-                        throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"serviceId\" must not be empty."};
-                    if (interfaceId.empty())
-                        throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"interfaceId\" must not be empty."};
-
-                    auto instance = m_factory->Create(serviceId);
-                    return AppendStub(std::move(instance), interfaceId);
-                }
-
-                virtual void DestroyObject(std::string const &instanceId) override final
-                {
-                    if (instanceId.empty())
-                        throw std::invalid_argument{"[Mif::Remote::PSClient::DestrowObject] Parameter \"instanceId\" must not be empty."};
-
-                    IStubPtr stubService;
-                    {
-                        LockGuard lock(m_owner->m_lock);
-                        auto iter = m_owner->m_stubs.find(instanceId);
-                        if (iter == std::end(m_owner->m_stubs))
-                        {
-                            throw std::invalid_argument{"[Mif::Remote::PSClient::DestroyObject] "
-                                "Instance with id \"" + instanceId + "\" not found."};
-                        }
-                        stubService = std::move(iter->second);
-                        m_owner->m_stubs.erase(iter);
-                    }
-                }
-
-                virtual std::string QueryInterface(std::string const &instanceId, std::string const &interfaceId,
-                        std::string const &serviceId) override final
-                {
-                    IStubPtr stub;
-                    {
-                        LockGuard lock(m_owner->m_lock);
-                        auto iter = m_owner->m_stubs.find(instanceId);
-                        if (iter == std::end(m_owner->m_stubs))
-                        {
-                            throw std::invalid_argument{"[Mif::Remote::PSClient::CastObject] "
-                                "Instance with id \"" + instanceId + "\" not found."};
-                        }
-                        stub = iter->second;
-                    }
-
-                    auto instance = stub->Query(interfaceId, serviceId);
-                    if (!instance)
-                        return {};
-
-                    return AppendStub(std::move(instance), interfaceId);
-                }
-
-                template <std::size_t I>
-                typename std::enable_if<I != 0, IStubPtr>::type
-                CreateStub(Service::IServicePtr instance, std::string const &instanceId, std::string const &interfaceId)
-                {
-                    using PSType = typename Detail::Registry::template Item<I>::Type::template Type<TSerializer>;
-                    if (PSType::InterfaceId == interfaceId)
-                    {
-                        auto self = Service::TServicePtr<ObjectManager>{this};
-                        auto stubCreator = std::bind(&ObjectManager::AppendStub, self,
-                                std::placeholders::_1, std::placeholders::_2);
-                        return std::make_shared<typename PSType::Stub>(std::move(instance), instanceId,
-                                std::move(stubCreator));
-                    }
-                    return CreateStub<I - 1>(std::move(instance), instanceId, interfaceId);
-                }
-
-                template <std::size_t I>
-                typename std::enable_if<I == 0, IStubPtr>::type
-                CreateStub(Service::IServicePtr, std::string const &, std::string const &interfaceId)
-                {
-                    throw std::runtime_error{"Failed to create stub for interface with id \"" + interfaceId + "\". Stub not found."};
-                }
-
-                std::string AppendStub(Service::IServicePtr instance, std::string const &interfaceId)
-                {
-                    if (!instance)
-                        return {};
-
-                    auto const instanceId = m_uuidGenerator.Generate();
-
-                    {
-                        LockGuard lock(m_owner->m_lock);
-                        if (m_owner->m_stubs.find(instanceId) != std::end(m_owner->m_stubs))
-                            return instanceId;
-                    }
-
-                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Common::Detail::FakeHierarchy{})>(
-                            std::move(instance), instanceId, interfaceId);
-
-                    {
-                        LockGuard lock(m_owner->m_lock);
-
-                        if (m_owner->m_stubs.find(instanceId) != std::end(m_owner->m_stubs))
-                            return instanceId;
-
-                        m_owner->m_stubs.insert(std::make_pair(instanceId, std::move(stub)));
-                    }
-
-                    return instanceId;
-            }
-
-            };
-
-            friend class ObjectManager;
         };
 
     }   // namespace Remote
