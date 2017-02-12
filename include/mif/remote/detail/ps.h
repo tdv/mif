@@ -23,6 +23,7 @@
 
 // MIF
 #include "mif/common/detail/hierarchy.h"
+#include "mif/common/index_sequence.h"
 #include "mif/common/log.h"
 #include "mif/common/types.h"
 #include "mif/common/uuid_generator.h"
@@ -188,7 +189,8 @@ namespace Mif
 
                 void AppendId(std::string const &id)
                 {
-                    m_ids.push_back(id);
+                    // TODO: uncomment it
+                    //m_ids.push_back(id);
                 }
 
             private:
@@ -256,7 +258,7 @@ namespace Mif
                         auto const requestId = m_generator.Generate();
                         ObjectCleaner cleaner{m_manager};
                         Serializer serializer(true, requestId, m_instance, interface, method,
-                                PropareParam(std::forward<TParams>(params), cleaner) ... );
+                                PrepareParam(std::forward<TParams>(params), cleaner) ... );
                         auto deserializer = m_sender(requestId, serializer);
                         if (!deserializer->IsResponse())
                             throw ProxyStubException{"[Mif::Remote::Proxy::RemoteCall] Bad response type \"" + deserializer->GetType() + "\""};
@@ -425,7 +427,7 @@ namespace Mif
                         ,
                         T
                     >::type &&
-                PropareParam(T && param, ObjectCleaner &)
+                PrepareParam(T && param, ObjectCleaner &)
                 {
                     return std::forward<T>(param);
                 }
@@ -442,9 +444,9 @@ namespace Mif
                         ,
                         std::string
                     >::type
-                PropareParam(T && param, ObjectCleaner &cleaner)
+                PrepareParam(T && param, ObjectCleaner &cleaner)
                 {
-                    return PropareParam(Service::TIntrusivePtr<ExtractType<T>>{param}, cleaner);
+                    return PrepareParam(Service::TIntrusivePtr<ExtractType<T>>{param}, cleaner);
                 }
 
                 // Specialization for references on interfaces based on IService
@@ -459,9 +461,9 @@ namespace Mif
                         ,
                         std::string
                     >::type
-                PropareParam(T && param, ObjectCleaner &cleaner)
+                PrepareParam(T && param, ObjectCleaner &cleaner)
                 {
-                    return PropareParam(&param, cleaner);
+                    return PrepareParam(&param, cleaner);
                 }
 
                 // Specialization for smart pointers on interfaces based on IService
@@ -473,14 +475,54 @@ namespace Mif
                         ,
                         std::string
                     >::type
-                PropareParam(T && param, ObjectCleaner &cleaner)
+                PrepareParam(T && param, ObjectCleaner &cleaner)
                 {
                     if (!param)
                         return {};
-                    auto instanceId = m_stubCreator(std::forward<T>(param), std::string{});
+                    using InterfaceType = typename ExtractType<T>::element_type;
+                    using PSType = typename Registry::Registry<InterfaceType>::template Type<TSerializer>;
+                    auto instanceId = m_stubCreator(std::forward<T>(param), PSType::InterfaceId);
                     cleaner.AppendId(instanceId);
                     return instanceId;
                 }
+            };
+
+            template
+                <
+                    typename T,
+                    bool = false ||
+                        (
+                            (   // Condition for pointers on interfaces based on IService
+                                std::is_pointer<T>::value &&
+                                    (
+                                        std::is_base_of<Service::IService, ExtractType<T>>::value ||
+                                        std::is_same<Service::IService, ExtractType<T>>::value
+                                    )
+                            )
+                            ||
+                            (   // Condition for references on interfaces based on IService
+                                std::is_reference<T>::value &&
+                                    (
+                                        std::is_base_of<Service::IService, ExtractType<T>>::value ||
+                                        std::is_same<Service::IService, ExtractType<T>>::value
+                                    )
+                            )
+                            ||
+                            (   // Condition for smart pointers on interfaces based on IService
+                                !std::is_pointer<T>::value &&
+                                IsTServicePtr<ExtractType<T>>()
+                            )
+                        )
+                >
+            struct InterfaceTypeToString
+            {
+                using Type = T;
+            };
+
+            template <typename T>
+            struct InterfaceTypeToString<T, true>
+            {
+                using Type = std::string;
             };
 
             template <typename TSerializer>
@@ -503,10 +545,22 @@ namespace Mif
                 using Serializer = typename BaseType::Serializer;
                 using Deserializer = typename BaseType::Deserializer;
 
-                Stub(Service::IServicePtr instance, std::string const &instanceId, StubCreator && stubCreator)
+                using Sender = typename Proxy<TSerializer>::Sender;
+
+                Stub(Service::IServicePtr instance, std::string const &instanceId,
+                        Service::TIntrusivePtr<IObjectManager> manager,
+                        StubCreator && stubCreator, Sender && sender)
                     : m_instance{instance}
                     , m_instanceId{instanceId}
+                    , m_manager{manager}
                     , m_stubCreator(std::move(stubCreator))
+                    , m_sender{std::move(sender)}
+                {
+                }
+
+                Stub(Service::IServicePtr instance, std::string const &instanceId)
+                    : m_instance{instance}
+                    , m_instanceId{instanceId}
                 {
                 }
 
@@ -537,7 +591,10 @@ namespace Mif
              private:
                 Service::IServicePtr m_instance;
                 std::string m_instanceId;
+                Service::TIntrusivePtr<IObjectManager> m_manager;
                 StubCreator m_stubCreator;
+                Sender m_sender;
+                using Services = std::list<Service::IServicePtr>;
 
                 template <std::size_t I>
                 Service::IServicePtr QueryInterface(typename Registry::template Item<I>::Index::value_type,
@@ -595,7 +652,10 @@ namespace Mif
                                       Deserializer &deserializer, Serializer &serializer)
                 {
                     auto inst = Service::Cast<TInterface>(m_instance);
-                    auto params = deserializer.template GetParams<TParams ... >();
+                    auto tmpParams = deserializer.template GetParams<typename InterfaceTypeToString<TParams>::Type ... >();
+                    Services services;
+                    auto params = PrepareParams<TParams ... >(std::move(tmpParams), services,
+                            static_cast<Common::MakeIndexSequence<sizeof ... (TParams)> const *>(nullptr));
                     FunctionWrap<TResult, TSerializer>::Call(
                             [&method, &inst, &params] ()
                             {
@@ -604,6 +664,92 @@ namespace Mif
                             serializer,
                             m_stubCreator
                         );
+                }
+
+                template <typename ... TOutParams, typename ... TInParams, std::size_t ... Indexes>
+                std::tuple<typename std::decay<TOutParams>::type ... >
+                PrepareParams(std::tuple<TInParams ... > && input, Services &services,
+                        Common::IndexSequence<Indexes ... > const *)
+                {
+                    return std::make_tuple(PrepareParam<TOutParams>(std::get<Indexes>(input), services) ... );
+                }
+
+                // Specialization for all types that are not inherited from IService and not IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        !std::is_base_of<Service::IService, ExtractType<T>>::value &&
+                        !std::is_same<Service::IService, ExtractType<T>>::value &&
+                        !IsTServicePtr<ExtractType<T>>(),
+                        T
+                    >::type &&
+                PrepareParam(T && param, Services &)
+                {
+                    return std::forward<T>(param);
+                }
+
+                // Specialization for pointers on interfaces based on IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        std::is_pointer<T>::value &&
+                            (
+                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
+                                std::is_same<Service::IService, ExtractType<T>>::value
+                            )
+                        ,
+                        T
+                    >::type
+                PrepareParam(std::string const &param, Services &services)
+                {
+                    return PrepareParam<Service::TServicePtr<ExtractType<T>>>(param, services).get();
+                }
+
+                /*
+                // Specialization for references on interfaces based on IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        std::is_reference<T>::value &&
+                            (
+                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
+                                std::is_same<Service::IService, ExtractType<T>>::value
+                            )
+                        ,
+                        ExtractType<T>
+                    >::type &
+                PrepareParam(std::string const &param, Services &services)
+                {
+                    (void)param;
+                    (void)services;
+                    throw std::runtime_error{"Not implemented."};
+                }
+                */
+
+                // Specialization for smart pointers on interfaces based on IService
+                template <typename T>
+                typename std::enable_if
+                    <
+                        !std::is_pointer<T>::value &&
+                        IsTServicePtr<ExtractType<T>>()
+                        ,
+                        T
+                    >::type
+                PrepareParam(std::string const &param, Services &services)
+                {
+                    // TODO: add implementation for reference on smart pointer
+                    if (param.empty())
+                        return {};
+                    StubCreator stubCreator{m_stubCreator};
+                    Sender sender{m_sender};
+                    // TODO: need to clone instance id
+                    std::string instanceId = param; //m_manager->CloneReference(param);
+                    using InterfaceType = typename ExtractType<T>::element_type;
+                    using PSType = typename Registry::Registry<InterfaceType>::template Type<TSerializer>;
+                    using ProxyType = typename PSType::Proxy;;
+                    auto instance = Service::Make<ProxyType>(instanceId, std::move(sender), std::move(stubCreator));
+                    services.push_back(instance);
+                    return instance->template Cast<InterfaceType>();
                 }
             };
 

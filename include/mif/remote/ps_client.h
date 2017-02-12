@@ -43,18 +43,11 @@ namespace Mif
                 std::chrono::microseconds const &timeout,
                 Service::IFactoryPtr factory = Service::Make<Service::Factory, Service::IFactory>())
                 : Client{control, publisher}
-                , m_factory{std::move(factory)}
                 , m_timeout{timeout}
             {
                 using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
-                m_stubObjectManager = Service::Make<ObjectManager, ObjectManager>(this, m_factory);
-                auto stub = std::make_shared<ObjectManagerStub>(m_stubObjectManager, m_psInstanceId,
-                        [] (Service::IServicePtr, std::string const &interfaceId) -> std::string
-                        {
-                            throw Detail::ProxyStubException{"[Mif::Remote::PSClient::PSClient] "
-                                "Failed to create stub from ObjectManager. Interface id \"" + interfaceId + "\""};
-                        }
-                    );
+                m_stubObjectManager = Service::Make<ObjectManager, ObjectManager>(this, std::move(factory));
+                auto stub = std::make_shared<ObjectManagerStub>(m_stubObjectManager, m_psInstanceId);
                 m_stubs.insert(std::make_pair(m_psInstanceId, std::move(stub)));
             }
 
@@ -153,7 +146,7 @@ namespace Mif
                         auto iter = m_owner->m_stubs.find(instanceId);
                         if (iter == std::end(m_owner->m_stubs))
                         {
-                            throw std::invalid_argument{"[Mif::Remote::PSClient::CastObject] "
+                            throw std::invalid_argument{"[Mif::Remote::PSClient::QueryInterface] "
                                 "Instance with id \"" + instanceId + "\" not found."};
                         }
                         stub = iter->second;
@@ -166,6 +159,24 @@ namespace Mif
                     return AppendStub(std::move(instance), interfaceId);
                 }
 
+                virtual std::string CloneReference(std::string const &instanceId) override final
+                {
+                    Service::IServicePtr instance;
+                    {
+                        LockGuard lock(m_owner->m_lock);
+                        auto iter = m_owner->m_stubs.find(instanceId);
+                        if (iter == std::end(m_owner->m_stubs))
+                        {
+                            throw std::invalid_argument{"[Mif::Remote::PSClient::CloneReference] "
+                                "Instance with id \"" + instanceId + "\" not found."};
+                        }
+                        instance = iter->second->Query("IService", {});
+                        if (!instance)
+                            throw std::runtime_error{"!!! Failed to cast to IService !!!"};
+                    }
+                    return AppendStub(std::move(instance), "IService");
+                }
+
                 template <std::size_t I>
                 typename std::enable_if<I != 0, IStubPtr>::type
                 CreateStub(Service::IServicePtr instance, std::string const &instanceId, std::string const &interfaceId)
@@ -175,8 +186,11 @@ namespace Mif
                     {
                         auto self = Service::TServicePtr<ObjectManager>{this};
                         auto stubCreator = GetStubCreator();
+                        // TODO: create sender without shared_ptr on owner class. It's needed for exclude memory leaks;
+                        auto sender = std::bind(&ThisType::Send, std::static_pointer_cast<ThisType>(m_owner->shared_from_this()),
+                                std::placeholders::_1, std::placeholders::_2);
                         return std::make_shared<typename PSType::Stub>(std::move(instance), instanceId,
-                                std::move(stubCreator));
+                                self, std::move(stubCreator), std::move(sender));
                     }
                     return CreateStub<I - 1>(std::move(instance), instanceId, interfaceId);
                 }
@@ -223,7 +237,6 @@ namespace Mif
             std::string const m_psInstanceId = "0";
 
             std::chrono::microseconds const m_timeout;
-            Service::IFactoryPtr m_factory;
 
             std::condition_variable m_condVar;
 
