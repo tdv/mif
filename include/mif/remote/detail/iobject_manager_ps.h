@@ -14,6 +14,24 @@
 
 namespace Mif
 {
+    namespace Service
+    {
+        namespace Meta
+        {
+
+            using ::Mif::Service::IService;
+
+            MIF_REMOTE_PS_BEGIN(IService)
+            MIF_REMOTE_PS_END()
+
+        }   // namespace Meta
+    }   // namespace Service
+}   // namespace Mif
+
+MIF_REMOTE_REGISTER_PS(Mif::Service::Meta::IService)
+
+namespace Mif
+{
     namespace Remote
     {
         namespace Detail

@@ -534,6 +534,7 @@ namespace Mif
                 virtual ~IStub() = default;
                 virtual void Call(Deserializer &request, Serializer &response) = 0;
                 virtual Service::IServicePtr Query(std::string const &interfaceId, std::string const &serviceId) = 0;
+                virtual Service::IServicePtr GetInstance() = 0;
             };
 
             template <typename TSerializer>
@@ -586,6 +587,11 @@ namespace Mif
                 virtual Service::IServicePtr Query(std::string const &interfaceId, std::string const &serviceId) override final
                 {
                     return QueryInterface<0>(interfaceId, serviceId);
+                }
+
+                virtual Service::IServicePtr GetInstance() override final
+                {
+                    return m_instance;
                 }
 
              private:
@@ -742,11 +748,10 @@ namespace Mif
                         return {};
                     StubCreator stubCreator{m_stubCreator};
                     Sender sender{m_sender};
-                    // TODO: need to clone instance id
-                    std::string instanceId = param; //m_manager->CloneReference(param);
                     using InterfaceType = typename ExtractType<T>::element_type;
                     using PSType = typename Registry::Registry<InterfaceType>::template Type<TSerializer>;
-                    using ProxyType = typename PSType::Proxy;;
+                    auto const instanceId = m_manager->CloneReference(param, PSType::InterfaceId);
+                    using ProxyType = typename PSType::Proxy;
                     auto instance = Service::Make<ProxyType>(instanceId, std::move(sender), std::move(stubCreator));
                     services.push_back(instance);
                     return instance->template Cast<InterfaceType>();

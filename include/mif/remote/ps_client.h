@@ -159,7 +159,8 @@ namespace Mif
                     return AppendStub(std::move(instance), interfaceId);
                 }
 
-                virtual std::string CloneReference(std::string const &instanceId) override final
+                virtual std::string CloneReference(std::string const &instanceId,
+                        std::string const &interfaceId) override final
                 {
                     Service::IServicePtr instance;
                     {
@@ -170,11 +171,10 @@ namespace Mif
                             throw std::invalid_argument{"[Mif::Remote::PSClient::CloneReference] "
                                 "Instance with id \"" + instanceId + "\" not found."};
                         }
-                        instance = iter->second->Query("IService", {});
-                        if (!instance)
-                            throw std::runtime_error{"!!! Failed to cast to IService !!!"};
+                        instance = iter->second->GetInstance();
                     }
-                    return AppendStub(std::move(instance), "IService");
+                    auto newInstanceId = AppendStub(std::move(instance), interfaceId);
+                    return newInstanceId;
                 }
 
                 template <std::size_t I>
@@ -186,11 +186,10 @@ namespace Mif
                     {
                         auto self = Service::TServicePtr<ObjectManager>{this};
                         auto stubCreator = GetStubCreator();
-                        // TODO: create sender without shared_ptr on owner class. It's needed for exclude memory leaks;
-                        auto sender = std::bind(&ThisType::Send, std::static_pointer_cast<ThisType>(m_owner->shared_from_this()),
+                        auto sender = std::bind(&ThisType::Send, static_cast<ThisType *>(m_owner),
                                 std::placeholders::_1, std::placeholders::_2);
                         return std::make_shared<typename PSType::Stub>(std::move(instance), instanceId,
-                                self, std::move(stubCreator), std::move(sender));
+                                m_owner->GetProxyObjectManager()/*self*/, std::move(stubCreator), std::move(sender));
                     }
                     return CreateStub<I - 1>(std::move(instance), instanceId, interfaceId);
                 }
@@ -214,6 +213,7 @@ namespace Mif
                         if (m_owner->m_stubs.find(instanceId) != std::end(m_owner->m_stubs))
                             return instanceId;
                     }
+
 
                     auto stub = CreateStub<Detail::Registry::Counter::GetLast(Common::Detail::FakeHierarchy{})>(
                             std::move(instance), instanceId, interfaceId);
@@ -269,7 +269,7 @@ namespace Mif
 
             DeserializerPtr Send(std::string const &requestId, Serializer &serializer)
             {
-                if (!Post(std::move(serializer.GetBuffer())))
+                if (!Post(std::move(std::move(serializer.GetBuffer()))))
                 {
                     if (!CloseMe())
                     {
