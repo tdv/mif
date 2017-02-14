@@ -23,7 +23,8 @@
 
 // MIF
 #include "mif/net/client.h"
-#include "mif/remote/detail/iobject_manager_ps.h"
+#include "mif/remote/detail/meta/iobject_manager.h"
+#include "mif/remote/meta/iservice.h"
 #include "mif/service/factory.h"
 #include "mif/service/make.h"
 
@@ -45,7 +46,7 @@ namespace Mif
                 : Client{control, publisher}
                 , m_timeout{timeout}
             {
-                using ObjectManagerStub = typename Detail::IObjectManager_PS<TSerializer>::Stub;
+                using ObjectManagerStub = typename Detail::Meta::IObjectManager_PS<TSerializer>::Stub;
                 m_stubObjectManager = Service::Make<ObjectManager, ObjectManager>(this, std::move(factory));
                 auto stub = std::make_shared<ObjectManagerStub>(m_stubObjectManager, m_psInstanceId);
                 m_stubs.insert(std::make_pair(m_psInstanceId, std::move(stub)));
@@ -254,7 +255,7 @@ namespace Mif
                 LockGuard lock{m_lock};
                 if (!m_proxyObjectManager)
                 {
-                    using ObjectManagerProxy = typename Detail::IObjectManager_PS<TSerializer>::Proxy;
+                    using ObjectManagerProxy = typename Detail::Meta::IObjectManager_PS<TSerializer>::Proxy;
                     m_proxyObjectManager = Service::Make<ObjectManagerProxy, Detail::IObjectManager>(m_psInstanceId, std::bind(&ThisType::Send,
                             std::static_pointer_cast<ThisType>(shared_from_this()), std::placeholders::_1, std::placeholders::_2),
                             [] (Service::IServicePtr, std::string const &interfaceId) -> std::string

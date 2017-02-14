@@ -28,7 +28,8 @@
 #include "mif/common/types.h"
 #include "mif/common/uuid_generator.h"
 #include "mif/remote/detail/iobject_manager.h"
-#include "mif/service/inherited_list.h"
+#include "mif/remote/detail/registry.h"
+#include "mif/remote/detail/type_traits.h"
 #include "mif/service/iservice.h"
 #include "mif/service/make.h"
 
@@ -38,47 +39,6 @@ namespace Mif
     {
         namespace Detail
         {
-            namespace Registry
-            {
-                namespace Counter
-                {
-                    inline constexpr std::size_t GetLast(...)
-                    {
-                        return 0;
-                    }
-
-                }   // namespace Counter
-
-                template <typename TInterface>
-                struct Registry;
-
-                template <std::size_t I>
-                struct Item;
-
-            }   // namespace Registry
-
-            template <typename T>
-            inline constexpr bool TIsTservicePtr(Service::TIntrusivePtr<T> const *)
-            {
-                static_assert(std::is_same<Service::TServicePtr<T>, boost::intrusive_ptr<T>>::value,
-                    "TServicePtr should be parameterized by a type derived from IService or be IService.");
-                return true;
-            }
-
-            inline constexpr bool TIsTservicePtr(...)
-            {
-                return false;
-            }
-
-            template <typename T>
-            inline constexpr bool IsTServicePtr()
-            {
-                return TIsTservicePtr(static_cast<T const *>(nullptr));
-            }
-
-            template <typename T>
-            using ExtractType = typename std::remove_const<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>::type;
-
             template <typename TResult, typename TSerializer>
             struct FunctionWrap
             {
@@ -92,24 +52,14 @@ namespace Mif
 
             private:
                 template <typename T, typename TStubCreator>
-                static typename std::enable_if
-                    <
-                        !std::is_pointer<T>::value &&
-                        !std::is_reference<T>::value &&
-                        !IsTServicePtr<T>(),
-                        void
-                    >::type
+                static typename std::enable_if<Traits::IsNotInterfaceValue<T>(), void>::type
                 PackResult(T && res, Serializer &serializer, TStubCreator &)
                 {
                     serializer.PutParams(std::forward<T>(res));
                 }
 
                 template <typename T, typename TStubCreator>
-                static typename std::enable_if
-                    <
-                        IsTServicePtr<T>(),
-                        void
-                    >::type
+                static typename std::enable_if<Traits::IsTServicePtr<T>(), void>::type
                 PackResult(T res, Serializer &serializer, TStubCreator &stubCreator)
                 {
                     using PSType = typename Registry::Registry<typename T::element_type>::template Type<TSerializer>;
@@ -118,12 +68,7 @@ namespace Mif
                 }
 
                 template <typename T, typename TStubCreator>
-                static typename std::enable_if
-                    <
-                        std::is_pointer<T>::value ||
-                        std::is_reference<T>::value,
-                        void
-                    >::type
+                static typename std::enable_if<Traits::IsPtrOrRef<T>(), void>::type
                 PackResult(T &&, typename TSerializer::Serializer &, TStubCreator &)
                 {
                     static_assert(!std::is_pointer<T>::value && !std::is_reference<T>::value,
@@ -312,9 +257,7 @@ namespace Mif
                 typename std::enable_if
                     <
                         !std::is_same<TResult, void>::value &&
-                        !std::is_pointer<TResult>::value &&
-                        !std::is_reference<TResult>::value &&
-                        !IsTServicePtr<TResult>(),
+                        Traits::IsNotInterfaceValue<TResult>(),
                         TResult
                     >::type
                 ExtractResult(Deserializer &deserializer)
@@ -325,7 +268,7 @@ namespace Mif
                 template <typename TResult>
                 typename std::enable_if
                     <
-                        IsTServicePtr<TResult>(),
+                        Traits::IsTServicePtr<TResult>(),
                         TResult
                     >::type
                 ExtractResult(Deserializer &deserializer)
@@ -349,8 +292,7 @@ namespace Mif
                 template <typename TResult>
                 typename std::enable_if
                     <
-                        std::is_pointer<TResult>::value ||
-                        std::is_reference<TResult>::value,
+                        Traits::IsPtrOrRef<TResult>(),
                         TResult
                     >::type
                 ExtractResult(Deserializer &)
@@ -419,14 +361,7 @@ namespace Mif
 
                 // Specialization for all types that are not inherited from IService and not IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        !std::is_base_of<Service::IService, ExtractType<T>>::value &&
-                        !std::is_same<Service::IService, ExtractType<T>>::value &&
-                        !IsTServicePtr<ExtractType<T>>()
-                        ,
-                        T
-                    >::type &&
+                typename std::enable_if<Traits::IsNotInterface<T>(), T>::type &&
                 PrepareParam(T && param, ObjectCleaner &)
                 {
                     return std::forward<T>(param);
@@ -434,33 +369,15 @@ namespace Mif
 
                 // Specialization for pointers on interfaces based on IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        std::is_pointer<T>::value &&
-                            (
-                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
-                                std::is_same<Service::IService, ExtractType<T>>::value
-                            )
-                        ,
-                        std::string
-                    >::type
+                typename std::enable_if<Traits::IsInterfaceRawPtr<T>(), std::string>::type
                 PrepareParam(T && param, ObjectCleaner &cleaner)
                 {
-                    return PrepareParam(Service::TIntrusivePtr<ExtractType<T>>{param}, cleaner);
+                    return PrepareParam(Service::TIntrusivePtr<Traits::ExtractType<T>>{param}, cleaner);
                 }
 
                 // Specialization for references on interfaces based on IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        std::is_reference<T>::value &&
-                            (
-                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
-                                std::is_same<Service::IService, ExtractType<T>>::value
-                            )
-                        ,
-                        std::string
-                    >::type
+                typename std::enable_if<Traits::IsInterfaceRef<T>(), std::string>::type
                 PrepareParam(T && param, ObjectCleaner &cleaner)
                 {
                     return PrepareParam(&param, cleaner);
@@ -468,18 +385,12 @@ namespace Mif
 
                 // Specialization for smart pointers on interfaces based on IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        !std::is_pointer<T>::value &&
-                        IsTServicePtr<ExtractType<T>>()
-                        ,
-                        std::string
-                    >::type
+                typename std::enable_if<Traits::IsInterfaceSmartPtr<T>(), std::string>::type
                 PrepareParam(T && param, ObjectCleaner &cleaner)
                 {
                     if (!param)
                         return {};
-                    using InterfaceType = typename ExtractType<T>::element_type;
+                    using InterfaceType = typename Traits::ExtractType<T>::element_type;
                     using PSType = typename Registry::Registry<InterfaceType>::template Type<TSerializer>;
                     auto instanceId = m_stubCreator(std::forward<T>(param), PSType::InterfaceId);
                     cleaner.AppendId(instanceId);
@@ -490,29 +401,8 @@ namespace Mif
             template
                 <
                     typename T,
-                    bool = false ||
-                        (
-                            (   // Condition for pointers on interfaces based on IService
-                                std::is_pointer<T>::value &&
-                                    (
-                                        std::is_base_of<Service::IService, ExtractType<T>>::value ||
-                                        std::is_same<Service::IService, ExtractType<T>>::value
-                                    )
-                            )
-                            ||
-                            (   // Condition for references on interfaces based on IService
-                                std::is_reference<T>::value &&
-                                    (
-                                        std::is_base_of<Service::IService, ExtractType<T>>::value ||
-                                        std::is_same<Service::IService, ExtractType<T>>::value
-                                    )
-                            )
-                            ||
-                            (   // Condition for smart pointers on interfaces based on IService
-                                !std::is_pointer<T>::value &&
-                                IsTServicePtr<ExtractType<T>>()
-                            )
-                        )
+                    bool = Traits::IsInterfaceRawPtr<T>() || Traits::IsInterfaceRef<T>() ||
+                            Traits::IsInterfaceSmartPtr<T>()
                 >
             struct InterfaceTypeToString
             {
@@ -682,13 +572,7 @@ namespace Mif
 
                 // Specialization for all types that are not inherited from IService and not IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        !std::is_base_of<Service::IService, ExtractType<T>>::value &&
-                        !std::is_same<Service::IService, ExtractType<T>>::value &&
-                        !IsTServicePtr<ExtractType<T>>(),
-                        T
-                    >::type &&
+                typename std::enable_if<Traits::IsNotInterface<T>(), T>::type &&
                 PrepareParam(T && param, Services &)
                 {
                     return std::forward<T>(param);
@@ -696,34 +580,16 @@ namespace Mif
 
                 // Specialization for pointers on interfaces based on IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        std::is_pointer<T>::value &&
-                            (
-                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
-                                std::is_same<Service::IService, ExtractType<T>>::value
-                            )
-                        ,
-                        T
-                    >::type
+                typename std::enable_if<Traits::IsInterfaceRawPtr<T>(), T>::type
                 PrepareParam(std::string const &param, Services &services)
                 {
-                    return PrepareParam<Service::TServicePtr<ExtractType<T>>>(param, services).get();
+                    return PrepareParam<Service::TServicePtr<Traits::ExtractType<T>>>(param, services).get();
                 }
 
                 /*
                 // Specialization for references on interfaces based on IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        std::is_reference<T>::value &&
-                            (
-                                std::is_base_of<Service::IService, ExtractType<T>>::value ||
-                                std::is_same<Service::IService, ExtractType<T>>::value
-                            )
-                        ,
-                        ExtractType<T>
-                    >::type &
+                typename std::enable_if<Traits::IsInterfaceRef<T>(), Traits::ExtractType<T>>::type &
                 PrepareParam(std::string const &param, Services &services)
                 {
                     (void)param;
@@ -734,13 +600,7 @@ namespace Mif
 
                 // Specialization for smart pointers on interfaces based on IService
                 template <typename T>
-                typename std::enable_if
-                    <
-                        !std::is_pointer<T>::value &&
-                        IsTServicePtr<ExtractType<T>>()
-                        ,
-                        T
-                    >::type
+                typename std::enable_if<Traits::IsInterfaceSmartPtr<T>(), T>::type
                 PrepareParam(std::string const &param, Services &services)
                 {
                     // TODO: add implementation for reference on smart pointer
@@ -748,7 +608,7 @@ namespace Mif
                         return {};
                     StubCreator stubCreator{m_stubCreator};
                     Sender sender{m_sender};
-                    using InterfaceType = typename ExtractType<T>::element_type;
+                    using InterfaceType = typename Traits::ExtractType<T>::element_type;
                     using PSType = typename Registry::Registry<InterfaceType>::template Type<TSerializer>;
                     auto const instanceId = m_manager->CloneReference(param, PSType::InterfaceId);
                     using ProxyType = typename PSType::Proxy;
@@ -756,111 +616,6 @@ namespace Mif
                     services.push_back(instance);
                     return instance->template Cast<InterfaceType>();
                 }
-            };
-
-            template <typename, typename, typename>
-            class BaseProxies;
-
-            template <typename TSerializer, typename TInterface, typename TBase, typename ... TBases>
-            class BaseProxies<TSerializer, TInterface, std::tuple<TBase, TBases ... >>
-                : public Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
-                    <
-                        BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
-                    >
-            {
-            protected:
-                using Registry::Registry<TBase>::template Type<TSerializer>::template ProxyItem
-                        <
-                            BaseProxies<TSerializer, TInterface, std::tuple<TBases ... >>
-                        >::ProxyItem;
-
-                virtual ~BaseProxies() = default;
-            };
-
-            template <typename TSerializer, typename TInterface>
-            class BaseProxies<TSerializer, TInterface, std::tuple<>>
-                : public Service::Inherit<TInterface>
-                , public Service::Detail::IProxyBase_Mif_Remote_
-            {
-            protected:
-                template <typename ... TParams>
-                BaseProxies(TParams && ... params)
-                    : m_proxy(std::forward<TParams>(params) ... )
-                {
-                }
-
-                virtual ~BaseProxies() = default;
-
-                template <typename TResult, typename ... TParams>
-                TResult _Mif_Remote_Call_Method(std::string const &interfaceId, std::string const &method, TParams && ... params) const
-                {
-                    return m_proxy.template RemoteCall<TResult>(interfaceId, method, std::forward<TParams>(params) ... );
-                }
-
-            private:
-                mutable Proxy<TSerializer> m_proxy;
-
-                // IProxyBase_Mif_Remote_
-                virtual bool _Mif_Remote_QueryRemoteInterface(void **service,
-                        std::type_info const &typeInfo, std::string const &serviceId,
-                        Service::IService **holder) override final
-                {
-                    return m_proxy.QueryRemoteInterface(service, typeInfo, serviceId, holder);
-                }
-            };
-
-            template <typename TSerializer, typename T>
-            using InheritProxy = BaseProxies<TSerializer, T, Service::MakeInheritedIist<T>>;
-
-            template <typename, typename>
-            class BaseStubs;
-
-            template <typename TSerializer, typename TBase, typename ... TBases>
-            class BaseStubs<TSerializer, std::tuple<TBase, TBases ... >>
-                : public Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
-                    <
-                        BaseStubs<TSerializer, std::tuple<TBases ... >>
-                    >
-            {
-            protected:
-                using BaseType = typename Registry::Registry<TBase>::template Type<TSerializer>::template StubItem
-                        <
-                            BaseStubs<TSerializer, std::tuple<TBases ... >>
-                        >;
-                using Serializer = typename BaseType::Serializer;
-                using Deserializer = typename BaseType::Deserializer;
-
-                using BaseType::StubItem;
-
-                virtual ~BaseStubs() = default;
-            };
-
-            template <typename TSerializer>
-            class BaseStubs<TSerializer, std::tuple<>>
-                : public ::Mif::Remote::Detail::Stub<TSerializer>
-            {
-            protected:
-                using BaseType = ::Mif::Remote::Detail::Stub<TSerializer>;
-                using Serializer = typename BaseType::Serializer;
-                using Deserializer = typename BaseType::Deserializer;
-
-                using BaseType::Stub;
-
-                virtual ~BaseStubs() = default;
-            };
-
-            template <typename TSerializer, typename T>
-            class InheritStub
-                : public BaseStubs<TSerializer, Service::MakeInheritedIist<T>>
-            {
-            protected:
-                using BaseType = BaseStubs<TSerializer, Service::MakeInheritedIist<T>>;
-                using Serializer = typename BaseType::Serializer;
-                using Deserializer = typename BaseType::Deserializer;
-
-                using BaseType::BaseStubs;
-
-                virtual ~InheritStub() = default;
             };
 
         }  // namespace Detail
