@@ -178,29 +178,28 @@ namespace Mif
                     return newInstanceId;
                 }
 
-                template <std::size_t I>
-                typename std::enable_if<I != 0, IStubPtr>::type
-                CreateStub(Service::IServicePtr instance, std::string const &instanceId, std::string const &interfaceId)
+                struct CreateStub
                 {
-                    using PSType = typename Detail::Registry::template Item<I>::Type::template Type<TSerializer>;
-                    if (PSType::InterfaceId == interfaceId)
-                    {
-                        auto self = Service::TServicePtr<ObjectManager>{this};
-                        auto stubCreator = GetStubCreator();
-                        auto sender = std::bind(&ThisType::Send, static_cast<ThisType *>(m_owner),
-                                std::placeholders::_1, std::placeholders::_2);
-                        return std::make_shared<typename PSType::Stub>(std::move(instance), instanceId,
-                                m_owner->GetProxyObjectManager()/*self*/, std::move(stubCreator), std::move(sender));
-                    }
-                    return CreateStub<I - 1>(std::move(instance), instanceId, interfaceId);
-                }
+                    using Serializer = TSerializer;
+                    using Result = IStubPtr;
 
-                template <std::size_t I>
-                typename std::enable_if<I == 0, IStubPtr>::type
-                CreateStub(Service::IServicePtr, std::string const &, std::string const &interfaceId)
-                {
-                    throw std::runtime_error{"Failed to create stub for interface with id \"" + interfaceId + "\". Stub not found."};
-                }
+                    template <typename T>
+                    static Result Do(ObjectManager *objectManager, Service::IServicePtr instance,
+                        std::string const &instanceId, std::string const &interfaceId)
+                    {
+                        if (T::InterfaceId == interfaceId)
+                        {
+                            auto self = Service::TServicePtr<ObjectManager>{objectManager};
+                            auto stubCreator = objectManager->GetStubCreator();
+                            auto sender = std::bind(&ThisType::Send, objectManager->m_owner,
+                                    std::placeholders::_1, std::placeholders::_2);
+                            return std::make_shared<typename T::Stub>(std::move(instance), instanceId,
+                                    objectManager->m_owner->GetProxyObjectManager(),
+                                    std::move(stubCreator), std::move(sender));
+                        }
+                        return {};
+                    }
+                };
 
                 std::string AppendStub(Service::IServicePtr instance, std::string const &interfaceId)
                 {
@@ -216,7 +215,7 @@ namespace Mif
                     }
 
 
-                    auto stub = CreateStub<Detail::Registry::Counter::GetLast(Common::Detail::FakeHierarchy{})>(
+                    auto stub = Detail::Registry::ForItem::Do<CreateStub>(this,
                             std::move(instance), instanceId, interfaceId);
 
                     {

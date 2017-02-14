@@ -15,6 +15,7 @@
 // MIF
 #include <mif/net/client_factory.h>
 #include <mif/net/tcp_server.h>
+#include <mif/remote/ps_client.h>
 #include <mif/remote/serialization/serialization.h>
 #include <mif/remote/serialization/boost.h>
 #include <mif/service/make.h>
@@ -22,9 +23,6 @@
 
 // COMMON
 #include "common/ps/iface.h"
-
-// MIF
-#include <mif/remote/ps_client.h>
 
 // THIS
 #include "common/id/service.h"

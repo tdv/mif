@@ -243,7 +243,9 @@ namespace Mif
                 bool QueryRemoteInterface(void **service, std::type_info const &typeInfo,
                         std::string const &serviceId, Service::IService **holder)
                 {
-                    return CreateProxy<0>(service, std::type_index{typeInfo}, serviceId, holder);
+                    return Registry::ForItem::Do<CreateProxy>(m_manager, m_instance,
+                            static_cast<Sender const &>(m_sender), static_cast<StubCreator const &>(m_stubCreator),
+                            service, std::type_index{typeInfo}, serviceId, holder);
                 }
 
             private:
@@ -266,11 +268,7 @@ namespace Mif
                 }
 
                 template <typename TResult>
-                typename std::enable_if
-                    <
-                        Traits::IsTServicePtr<TResult>(),
-                        TResult
-                    >::type
+                typename std::enable_if<Traits::IsTServicePtr<TResult>(), TResult>::type
                 ExtractResult(Deserializer &deserializer)
                 {
                     auto const instanceId = std::get<0>(deserializer.template GetParams<std::string>());
@@ -290,11 +288,7 @@ namespace Mif
                 }
 
                 template <typename TResult>
-                typename std::enable_if
-                    <
-                        Traits::IsPtrOrRef<TResult>(),
-                        TResult
-                    >::type
+                typename std::enable_if<Traits::IsPtrOrRef<TResult>(), TResult>::type
                 ExtractResult(Deserializer &)
                 {
                     static_assert(!std::is_pointer<TResult>::value && !std::is_reference<TResult>::value,
@@ -304,60 +298,41 @@ namespace Mif
                 }
 
                 template <typename TResult>
-                typename std::enable_if
-                    <
-                        std::is_same<TResult, void>::value,
-                        TResult
-                    >::type
+                typename std::enable_if<std::is_same<TResult, void>::value, TResult>::type
                 ExtractResult(Deserializer &de)
                 {
                 }
 
-                template <std::size_t I>
-                bool CreateProxy(typename Registry::template Item<I>::Index::value_type, void **service,
-                        std::type_index const &typeId, std::string const &serviceId, Service::IService **holder)
+                struct CreateProxy
                 {
-                    using PSType = typename Registry::template Item<I>::Type::template Type<TSerializer>;
-                    using InterfaceType = typename PSType::InterfaceType;
-                    using ProxyType = typename PSType::Proxy;
-                    if (std::type_index{typeid(InterfaceType)} == typeId)
-                    {
-                        auto const instanceId = m_manager->QueryInterface(m_instance, PSType::InterfaceId, serviceId);
-                        if (instanceId.empty())
-                            return false;
-                        Sender sender{m_sender};
-                        StubCreator stubCreator{m_stubCreator};
-                        auto proxy = Service::Make<ProxyType, InterfaceType>(m_manager, instanceId,
-                                std::move(sender), std::move(stubCreator));
-                        *service = proxy.get();
-                        (*holder = proxy->template Cast<Service::IService>().get())->AddRef();
-                        return true;
-                    }
+                    using Serializer = TSerializer;
+                    using Result = bool;
 
-                    return false;
-                }
+                    template <typename T>
+                    static Result Do(IObjectManagerPtr manager, std::string const &instance,
+                            Sender const &sender, StubCreator const &stubCreator,
+                            void **service, std::type_index const &typeId,
+                            std::string const &serviceId, Service::IService **holder)
+                     {
+                         using InterfaceType = typename T::InterfaceType;
+                         using ProxyType = typename T::Proxy;
+                         if (std::type_index{typeid(InterfaceType)} == typeId)
+                         {
+                             auto const instanceId = manager->QueryInterface(instance, T::InterfaceId, serviceId);
+                             if (instanceId.empty())
+                                 return false;
+                             Sender newSender{sender};
+                             StubCreator newStubCreator{stubCreator};
+                             auto proxy = Service::Make<ProxyType, InterfaceType>(manager, instanceId,
+                                     std::move(newSender), std::move(newStubCreator));
+                             *service = proxy.get();
+                             (*holder = proxy->template Cast<Service::IService>().get())->AddRef();
+                             return true;
+                         }
 
-                template <std::size_t I>
-                bool CreateProxy(...)
-                {
-                    return false;
-                }
-
-                template <std::size_t I>
-                typename std::enable_if<I == Common::Detail::FakeHierarchyLength::value, bool>::type
-                CreateProxy(void **, std::type_index const &, std::string const &, Service::IService **)
-                {
-                    return false;
-                }
-
-                template <std::size_t I>
-                typename std::enable_if<I != Common::Detail::FakeHierarchyLength::value, bool>::type
-                CreateProxy(void **service, std::type_index const &typeId, std::string const &serviceId, Service::IService **holder)
-                {
-                    if (CreateProxy<I>(std::size_t{}, service, typeId, serviceId, holder))
-                        return true;
-                    return CreateProxy<I + 1>(service, typeId, serviceId, holder);
-                }
+                         return false;
+                     }
+                };
 
                 // Specialization for all types that are not inherited from IService and not IService
                 template <typename T>
@@ -476,7 +451,7 @@ namespace Mif
 
                 virtual Service::IServicePtr Query(std::string const &interfaceId, std::string const &serviceId) override final
                 {
-                    return QueryInterface<0>(interfaceId, serviceId);
+                    return Registry::ForItem::Do<QueryInterface>(m_instance, interfaceId, serviceId);
                 }
 
                 virtual Service::IServicePtr GetInstance() override final
@@ -492,45 +467,27 @@ namespace Mif
                 Sender m_sender;
                 using Services = std::list<Service::IServicePtr>;
 
-                template <std::size_t I>
-                Service::IServicePtr QueryInterface(typename Registry::template Item<I>::Index::value_type,
-                        std::string const &interfaceId, std::string const &serviceId)
+                struct QueryInterface
                 {
-                    using PSType = typename Registry::template Item<I>::Type::template Type<TSerializer>;
-                    using InterfaceType = typename PSType::InterfaceType;
-                    if (interfaceId == PSType::InterfaceId)
+                    using Serializer = TSerializer;
+                    using Result = Service::IServicePtr;
+
+                    template <typename T>
+                    static Result Do(Service::IServicePtr instance, std::string const &interfaceId,
+                            std::string const &serviceId)
                     {
-                        auto instance = m_instance->Query<InterfaceType>(serviceId);
-                        if (!instance)
-                            return {};
-                        auto result = instance->template Cast<Service::IService>();
-                        return result;
+                        using InterfaceType = typename T::InterfaceType;
+                        if (interfaceId == T::InterfaceId)
+                        {
+                            auto newInstance = instance->template Query<InterfaceType>(serviceId);
+                            if (!newInstance)
+                                return {};
+                            return newInstance->template Cast<Service::IService>();
+                        }
+
+                        return {};
                     }
-
-                    return {};
-                }
-
-                template <std::size_t I>
-                Service::IServicePtr QueryInterface(...)
-                {
-                    return {};
-                }
-
-                template <std::size_t I>
-                typename std::enable_if<I == Common::Detail::FakeHierarchyLength::value, Service::IServicePtr>::type
-                QueryInterface(std::string const &, std::string const &)
-                {
-                    return {};
-                }
-
-                template <std::size_t I>
-                typename std::enable_if<I != Common::Detail::FakeHierarchyLength::value, Service::IServicePtr>::type
-                QueryInterface(std::string const &interfaceId, std::string const &serviceId)
-                {
-                    if (auto instance = QueryInterface<I>(std::size_t{}, interfaceId, serviceId))
-                        return instance;
-                    return QueryInterface<I + 1>(interfaceId, serviceId);
-                }
+                };
 
             protected:
                 virtual void InvokeMethod(std::string const &method, Deserializer &, Serializer &)
