@@ -18,7 +18,7 @@ namespace Service
 {
 
     struct IMyCompany
-        : public Mif::Service::IService
+        : public Mif::Service::Inherit<Mif::Service::IService>
     {
         virtual Data::ID AddEmployee(Data::Employee const &employee) = 0;
         virtual void RemoveAccount(Data::ID const &id) = 0;

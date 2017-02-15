@@ -15,7 +15,6 @@
 #include <boost/asio/ip/tcp.hpp>
 
 // MIF
-#include "mif/common/thread_pool.h"
 #include "mif/net/iclient_factory.h"
 
 namespace Mif
@@ -31,14 +30,12 @@ namespace Mif
                 , public IControl
             {
             public:
-                TCPSession(boost::asio::ip::tcp::socket socket,
-                    std::shared_ptr<Common::IThreadPool> workers, IClientFactory &factory);
+                TCPSession(boost::asio::ip::tcp::socket socket, IClientFactory &factory);
 
                 IClientFactory::ClientPtr Start();
 
             private:
                 boost::asio::ip::tcp::socket m_socket;
-                std::shared_ptr<Common::IThreadPool> m_workers;
                 IClientFactory &m_factory;
                 IClientFactory::ClientPtr m_client;
 

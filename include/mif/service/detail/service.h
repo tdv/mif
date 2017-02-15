@@ -10,6 +10,7 @@
 
 // STD
 #include <atomic>
+#include <stdexcept>
 #include <utility>
 
 // MIF
@@ -23,14 +24,14 @@ namespace Mif
         {
 
             struct Fake_Service__
-                : public IService
+                : public Inherit<IService>
             {
             };
 
             template <typename T>
             class Service_Impl__ final
                 : public std::enable_if<std::is_base_of<IService, T>::value || std::is_same<IService, T>::value, T>::type
-                , public Detail::Fake_Service__
+                , public Fake_Service__
             {
             public:
                 Service_Impl__()
@@ -63,6 +64,31 @@ namespace Mif
                         delete this;
 
                     return counter;
+                }
+
+                virtual bool Query(std::type_info const &typeInfo, void **service,
+                        std::string const &serviceId, IService **holder) override final
+                {
+                    if (!service || *service)
+                    {
+                        throw std::invalid_argument{"[Mif::Service::Detail::Service_Impl__::Query] "
+                                "Failed to query interface. Parameter \"service\" not empty. "
+                                "Must be a pointer to pointer of the void type initialized by nullptr."};
+                    }
+
+                    if (typeInfo == typeid(IService))
+                    {
+                        *service = static_cast<Fake_Service__ *>(this);
+                        return true;
+                    }
+
+                    if (T::QueryInterfaceInternal(service, static_cast<T *>(this), typeInfo, serviceId))
+                        return true;
+
+                    if (auto *proxy = dynamic_cast<IProxyBase_Mif_Remote_ *>(this))
+                        return proxy->_Mif_Remote_QueryRemoteInterface(service, typeInfo, serviceId, holder);
+
+                    return false;
                 }
             };
 

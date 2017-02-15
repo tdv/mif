@@ -10,6 +10,7 @@
 
 // STD
 #include <cstdint>
+#include <type_traits>
 
 namespace Mif
 {
@@ -31,6 +32,9 @@ namespace Mif
 
             template <std::size_t N>
             using MakeHierarchy = Hierarchy<N>;
+
+            using FakeHierarchyLength = std::integral_constant<std::size_t, 100>;
+            using FakeHierarchy = MakeHierarchy<FakeHierarchyLength::value>;
 
         }   // namespace Detail
 

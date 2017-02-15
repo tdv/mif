@@ -28,7 +28,7 @@ namespace Mif
     {
 
         class Factory
-            : public IFactory
+            : public Inherit<IFactory>
         {
         public:
             template <ServiceId Id, typename ... TArgs>

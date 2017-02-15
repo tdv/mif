@@ -7,9 +7,11 @@ string(TOLOWER "${PROJECT}" PROJECT_LC)
 include (../common/cmake/mif.cmake)
 
 include_directories(${CMAKE_SOURCE_DIR}/common/include)
+include_directories(${CMAKE_SOURCE_DIR}/../common/include)
 
 set(COMMON_HEADERS
     ${COMMON_HEADERS}
+    ${CMAKE_SOURCE_DIR}/../common/include
     ${CMAKE_SOURCE_DIR}/common/include
 )
 

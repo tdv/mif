@@ -15,6 +15,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/frame_writer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/gzip_decompressor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/gzip_compressor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/parallel_handler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp_clients.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/detail/tcp_session.cpp

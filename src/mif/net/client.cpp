@@ -38,8 +38,10 @@ namespace Mif
 
         void Client::OnClose()
         {
+            bool needToClose = m_makredAsClosed;
             m_makredAsClosed = true;
-            Close();
+            if (needToClose)
+                Close();
         }
 
         bool Client::CloseMe()

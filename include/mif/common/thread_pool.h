@@ -29,6 +29,8 @@ namespace Mif
             virtual std::shared_ptr<IThreadPool> CreateOrderedPoster() = 0;
         };
 
+        using IThreadPoolPtr = std::shared_ptr<IThreadPool>;
+
         std::shared_ptr<IThreadPool> CreateThreadPool(std::uint16_t threadCount);
 
     }   // namespace Common

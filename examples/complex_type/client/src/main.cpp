@@ -8,20 +8,12 @@
 // STD
 #include <iostream>
 
-// BOOST
-#include <boost/archive/xml_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-
 // MIF
-#include <mif/net/client_factory.h>
 #include <mif/net/tcp_clients.h>
-#include <mif/remote/proxy_client.h>
-#include <mif/remote/serialization/serialization.h>
-#include <mif/remote/serialization/boost.h>
 
 // COMMON
+#include "common/client.h"
 #include "common/ps/imy_company.h"
-#include "common/protocol_chain.h"
 
 void ShowEmployees(Service::Data::Employees const &employees)
 {
@@ -44,30 +36,17 @@ int main(int argc, char const **argv)
     }
     try
     {
-        using BoostSerializer = Mif::Remote::Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
-        using BoostDeserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
-        using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<BoostSerializer, BoostDeserializer>;
-
-        using ProxyClient = Mif::Remote::ProxyClient<SerializerTraits>;
-
-        using ClientsChain = Service::Ipc::ProtocolChain<ProxyClient>;
-
-        using ProxyFactory = Mif::Net::ClientFactory<ClientsChain>;
-
         std::chrono::microseconds timeout{10 * 1000 * 1000};
 
         std::cout << "Starting client on \"" << argv[1] << ":" << argv[2] << "\"" << std::endl;
 
-        auto clientFactgory = std::make_shared<ProxyFactory>
-            (
-                Mif::Common::MakeCreator<ProxyClient>(timeout)
-            );
+        auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout);
 
-        Mif::Net::TCPClients clients(4, clientFactgory);
+        Mif::Net::TCPClients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<ClientsChain>(clients.RunClient(argv[1], argv[2]));
+        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(argv[1], argv[2]));
 
-        auto client = proxy->GetClientItem<ProxyClient>();
+        auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
 
         auto service = client->CreateService<Service::IMyCompany>("MyCompany");
 

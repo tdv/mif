@@ -22,12 +22,17 @@ namespace Mif
         {
 
             struct IObjectManager
-                : public Service::IService
+                : public Service::Inherit<Service::IService>
             {
                 virtual ~IObjectManager() = default;
                 virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) = 0;
                 virtual void DestroyObject(std::string const &instanceId) = 0;
+                virtual std::string QueryInterface(std::string const &instanceId, std::string const &interfaceId,
+                        std::string const &serviceId) = 0;
+                virtual std::string CloneReference(std::string const &instanceId, std::string const &interfaceId) = 0;
             };
+
+            using IObjectManagerPtr = Service::TServicePtr<IObjectManager>;
 
         }   // namespace Detail
     }   // namespace Remote

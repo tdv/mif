@@ -24,7 +24,7 @@ namespace Mif
         class TCPClients final
         {
         public:
-            TCPClients(std::uint16_t workers, std::shared_ptr<IClientFactory> factory);
+            TCPClients(IClientFactoryPtr factory);
             ~TCPClients();
 
             IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port);
