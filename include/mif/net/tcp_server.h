@@ -24,8 +24,7 @@ namespace Mif
         class TCPServer final
         {
         public:
-            TCPServer(std::string const &host, std::string const &port,
-                std::uint16_t workers, std::shared_ptr<IClientFactory> factory);
+            TCPServer(std::string const &host, std::string const &port, IClientFactoryPtr factory);
 
             ~TCPServer();
 

@@ -29,6 +29,8 @@ namespace Mif
             virtual ClientPtr Create(IControlPtr control, IPublisherPtr publisher) = 0;
         };
 
+        using IClientFactoryPtr = std::shared_ptr<IClientFactory>;
+
     }   // namespace Net
 }   // namespace Mif
 

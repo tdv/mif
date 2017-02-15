@@ -81,11 +81,6 @@ namespace Mif
                 : public Service::Inherit<Detail::IObjectManager>
             {
             public:
-                ObjectManager(ObjectManager const &) = delete;
-                ObjectManager(ObjectManager &&) = delete;
-                ObjectManager& operator = (ObjectManager const &) = delete;
-                ObjectManager& operator = (ObjectManager &&) = delete;
-
                 ObjectManager(ThisType *owner, Service::IFactoryPtr factory)
                     : m_owner{owner}
                     , m_factory{factory}
@@ -178,13 +173,13 @@ namespace Mif
                     return newInstanceId;
                 }
 
-                struct CreateStub
+                struct CreateStubVisitor
                 {
                     using Serializer = TSerializer;
                     using Result = IStubPtr;
 
                     template <typename T>
-                    static Result Do(ObjectManager *objectManager, Service::IServicePtr instance,
+                    static Result Visit(ObjectManager *objectManager, Service::IServicePtr instance,
                         std::string const &instanceId, std::string const &interfaceId)
                     {
                         if (T::InterfaceId == interfaceId)
@@ -215,7 +210,7 @@ namespace Mif
                     }
 
 
-                    auto stub = Detail::Registry::ForItem::Do<CreateStub>(this,
+                    auto stub = Detail::Registry::Visitor::Accept<CreateStubVisitor>(this,
                             std::move(instance), instanceId, interfaceId);
 
                     {

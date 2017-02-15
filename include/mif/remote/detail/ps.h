@@ -243,7 +243,7 @@ namespace Mif
                 bool QueryRemoteInterface(void **service, std::type_info const &typeInfo,
                         std::string const &serviceId, Service::IService **holder)
                 {
-                    return Registry::ForItem::Do<CreateProxy>(m_manager, m_instance,
+                    return Registry::Visitor::Accept<CreateProxyVisitor>(m_manager, m_instance,
                             static_cast<Sender const &>(m_sender), static_cast<StubCreator const &>(m_stubCreator),
                             service, std::type_index{typeInfo}, serviceId, holder);
                 }
@@ -303,13 +303,13 @@ namespace Mif
                 {
                 }
 
-                struct CreateProxy
+                struct CreateProxyVisitor
                 {
                     using Serializer = TSerializer;
                     using Result = bool;
 
                     template <typename T>
-                    static Result Do(IObjectManagerPtr manager, std::string const &instance,
+                    static Result Visit(IObjectManagerPtr manager, std::string const &instance,
                             Sender const &sender, StubCreator const &stubCreator,
                             void **service, std::type_index const &typeId,
                             std::string const &serviceId, Service::IService **holder)
@@ -451,7 +451,7 @@ namespace Mif
 
                 virtual Service::IServicePtr Query(std::string const &interfaceId, std::string const &serviceId) override final
                 {
-                    return Registry::ForItem::Do<QueryInterface>(m_instance, interfaceId, serviceId);
+                    return Registry::Visitor::Accept<QueryInterfaceVisitor>(m_instance, interfaceId, serviceId);
                 }
 
                 virtual Service::IServicePtr GetInstance() override final
@@ -467,13 +467,13 @@ namespace Mif
                 Sender m_sender;
                 using Services = std::list<Service::IServicePtr>;
 
-                struct QueryInterface
+                struct QueryInterfaceVisitor
                 {
                     using Serializer = TSerializer;
                     using Result = Service::IServicePtr;
 
                     template <typename T>
-                    static Result Do(Service::IServicePtr instance, std::string const &interfaceId,
+                    static Result Visit(Service::IServicePtr instance, std::string const &interfaceId,
                             std::string const &serviceId)
                     {
                         using InterfaceType = typename T::InterfaceType;

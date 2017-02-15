@@ -26,10 +26,8 @@ namespace Mif
         namespace Detail
         {
 
-            TCPSession::TCPSession(boost::asio::ip::tcp::socket socket,
-                std::shared_ptr<Common::IThreadPool> workers, IClientFactory &factory)
+            TCPSession::TCPSession(boost::asio::ip::tcp::socket socket, IClientFactory &factory)
                 : m_socket{std::move(socket)}
-                , m_workers{workers->CreateOrderedPoster()}
                 , m_factory{factory}
             {
             }
@@ -49,12 +47,14 @@ namespace Mif
             {
                 try
                 {
-                    auto self(shared_from_this());
+                    auto self = shared_from_this();
 
-                    m_socket.get_io_service().post([self, buffer] ()
+                    auto data = std::make_shared<Common::Buffer>(std::move(buffer));
+
+                    m_socket.get_io_service().post([self, data] ()
                             {
-                                boost::asio::async_write(self->m_socket, boost::asio::buffer(buffer),
-                                        [self, buffer] (boost::system::error_code error, std::size_t /*length*/)
+                                boost::asio::async_write(self->m_socket, boost::asio::buffer(*data),
+                                        [self, data] (boost::system::error_code error, std::size_t /*length*/)
                                         {
                                             if (error)
                                             {
@@ -106,7 +106,7 @@ namespace Mif
             void TCPSession::DoRead()
             {
                 auto buffer = std::make_shared<Common::Buffer>(8192);   // TODO: parametrize it
-                auto self(shared_from_this());
+                auto self = shared_from_this();
                 m_socket.async_read_some(boost::asio::buffer(*buffer),
                     [self, buffer] (boost::system::error_code error, std::size_t length)
                     {
@@ -114,7 +114,7 @@ namespace Mif
                         {
                             if (!error)
                             {
-                                self->m_workers->Post([self, length, buffer] ()
+                                self->m_socket.get_io_service().post([self, length, buffer] ()
                                         {
                                             try
                                             {
