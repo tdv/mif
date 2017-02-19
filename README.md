@@ -1,4 +1,4 @@
-# MIF (MetaInfo)
+# MIF (MetaInfo Framework)
 Каркас для разработки веб-сервисов.
 
 # Текущее состояние
