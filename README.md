@@ -33,8 +33,9 @@ Version 1.0.0 - in progress ...
 - Сборка с установленными в систему библиотеками
 
 Пример сборки с предварительной загрузкой всех необходимых библиотек
-
+-- hit
 git clone https://github.com/tdv/mif.git
+-- hit
 cd mif
 ./download_third_party.sh
 mkdir build
