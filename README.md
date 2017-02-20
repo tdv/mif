@@ -33,6 +33,7 @@ Version 1.0.0 - in progress ...
 - Сборка с установленными в систему библиотеками
 
 Пример сборки с предварительной загрузкой всех необходимых библиотек
+
 git clone https://github.com/tdv/mif.git
 cd mif
 ./download_third_party.sh
@@ -42,7 +43,8 @@ cmake ..
 make
 
 Сборка примеров осуществляется после сборки MIF библиотек
-Пример
+Пример:
+
 cd mif/examples/hello_world
 mkdir build
 cd build
@@ -50,9 +52,13 @@ cmake ..
 make
 
 Собранный пример может быть запущен в разных консолях
+
 Сервер:
+
 ./helloworld_server localhost 5555
+
 Клиент:
+
 ./helloworld_client localhost 5555
 
 # Установка
