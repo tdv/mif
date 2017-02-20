@@ -33,23 +33,32 @@ Version 1.0.0 - in progress ...
 - Сборка с установленными в систему библиотеками
 
 Пример сборки с предварительной загрузкой всех необходимых библиотек
--- hit
+
 git clone https://github.com/tdv/mif.git
--- hit
+
 cd mif
+
 ./download_third_party.sh
+
 mkdir build
+
 cd build
+
 cmake ..
+
 make
 
 Сборка примеров осуществляется после сборки MIF библиотек
 Пример:
 
 cd mif/examples/hello_world
+
 mkdir build
+
 cd build
+
 cmake ..
+
 make
 
 Собранный пример может быть запущен в разных консолях
