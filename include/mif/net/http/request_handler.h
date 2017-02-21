@@ -10,6 +10,7 @@
 
 // STD
 #include <functional>
+#include <map>
 #include <memory>
 
 // MIF
@@ -24,6 +25,8 @@ namespace Mif
         {
 
             using ServerHandler = std::function<void (IInputPack const &, IOutputPack &)>;
+            using ServerHandlers = std::map<std::string/*resource*/, ServerHandler>;
+
             using ClientHandler = std::function<void (IInputPack const &)>;
 
         }   // namespace Http

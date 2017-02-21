@@ -19,7 +19,7 @@
 #include "mif/net/http/connection.h"
 
 // THIS
-#include "detail/http_constants.h"
+#include "http/detail/constants.h"
 
 namespace Mif
 {
@@ -114,7 +114,7 @@ namespace Mif
 
                             {
                                 auto const headers = pack.GetHeaders();
-                                auto const sessionIter = headers.find(Detail::HttpConstants::Header::Session::GetString());
+                                auto const sessionIter = headers.find(Http::Detail::Constants::Header::Session::GetString());
                                 if (sessionIter == std::end(headers))
                                     throw std::runtime_error{"No session from server."};
                                 if (sessionIter->second != m_sessionId)
@@ -160,9 +160,9 @@ namespace Mif
                             auto connection = GetConnection();
                             auto pack = connection->CreateRequest();
                             
-                            pack->SetHeader(Detail::HttpConstants::Header::Connection::GetString(),
-                                Detail::HttpConstants::Value::Connection::KeepAlive::GetString());
-                            pack->SetHeader(Detail::HttpConstants::Header::Session::GetString(), m_sessionId);
+                            pack->SetHeader(Http::Detail::Constants::Header::Connection::GetString(),
+                                Http::Detail::Constants::Value::Connection::KeepAlive::GetString());
+                            pack->SetHeader(Http::Detail::Constants::Header::Session::GetString(), m_sessionId);
 
                             pack->SetData(std::move(buffer));
 

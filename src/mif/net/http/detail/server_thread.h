@@ -19,6 +19,7 @@
 #include <event2/util.h>
 
 // MIF
+#include "mif/common/thread_pool.h"
 #include "mif/net/http/request_handler.h"
 
 // THIS
@@ -36,9 +37,10 @@ namespace Mif
                 class ServerThread final
                 {
                 public:
-                    ServerThread(std::string const &host, std::string const &port, ServerHandler const &handler,
-                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
-                    ServerThread(evutil_socket_t socket, ServerHandler const &handler,
+                    ServerThread(std::string const &host, std::string const &port, Common::IThreadPoolPtr workers,
+                            ServerHandler const &handler, Methods const &allowedMethods, std::size_t headersSize,
+                            std::size_t bodySize, std::size_t requestTimeout);
+                    ServerThread(evutil_socket_t socket, Common::IThreadPoolPtr workers, ServerHandler const &handler,
                         Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
                     ~ServerThread();

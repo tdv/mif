@@ -19,6 +19,7 @@
 #include <event2/http.h>
 
 // MIF
+#include "mif/common/thread_pool.h"
 #include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
 
@@ -42,10 +43,10 @@ namespace Mif
                     Server(Server &&) = delete;
                     Server& operator = (Server &&) = delete;
 
-                    Server(std::string const &host, std::string const &port, ServerHandler const &handler,
-                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
-                    Server(evutil_socket_t socket, ServerHandler const &handler, Methods const &allowedMethods,
-                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
+                    Server(std::string const &host, std::string const &port, Common::IThreadPoolPtr workers, ServerHandler const &handler,
+                            Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
+                    Server(evutil_socket_t socket, Common::IThreadPoolPtr workers, ServerHandler const &handler, Methods const &allowedMethods,
+                            std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
                     ~Server() noexcept;
 
@@ -54,6 +55,7 @@ namespace Mif
                     void Stop();
 
                 private:
+                    Common::IThreadPoolPtr m_workers;
                     ServerHandler m_handler;
                     evutil_socket_t m_socket = -1;
 
@@ -68,8 +70,8 @@ namespace Mif
                     Utility::EventBasePtr m_base;
                     HttpPtr m_http{nullptr, &evhttp_free};
 
-                    Server(ServerHandler const &handler, Methods const &allowedMethods,
-                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
+                    Server(Common::IThreadPoolPtr workers, ServerHandler const &handler, Methods const &allowedMethods,
+                            std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
                     static void OnTimer(evutil_socket_t, short, void *arg);
                     static void OnRequest(evhttp_request *req, void *arg);
