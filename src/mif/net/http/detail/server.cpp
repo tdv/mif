@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     11.2016
-//  Copyright (C) 2016 tdv
+//  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
 // STD
@@ -13,6 +13,7 @@
 #include "mif/common/log.h"
 
 // THIS
+#include "constants.h"
 #include "input_pack.h"
 #include "output_pack.h"
 #include "server.h"
@@ -187,6 +188,19 @@ namespace Mif
                                     {
                                         MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Server] "
                                                 << "Failed to process request. Error: " << e.what();
+                                        try
+                                        {
+                                            IOutputPack &pack = *out;
+                                            pack.SetHeader(Constants::Header::Connection::GetString(),
+                                                    Constants::Value::Connection::Close::GetString());
+                                            pack.SetCode(Code::BadMethod);
+                                            out->Send();
+                                        }
+                                        catch (std::exception const &ex)
+                                        {
+                                            MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Server] "
+                                                    << "Failed to close connection. Error: " << ex.what();
+                                        }
                                     }
                                 }
                             );

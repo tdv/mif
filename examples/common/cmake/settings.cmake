@@ -22,6 +22,8 @@ set(LIBRARIES
     boost_filesystem
     boost_thread
     boost_system
+    jsoncpp
+    event
     pthread
     z
 )

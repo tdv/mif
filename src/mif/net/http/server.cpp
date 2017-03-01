@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     11.2016
-//  Copyright (C) 2016 tdv
+//  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
 // STD
@@ -35,7 +35,7 @@ namespace Mif
                 {
                     auto handler = std::bind(&Impl::OnRequest, this, std::placeholders::_1, std::placeholders::_2);
 
-                    auto workers  =Common::CreateThreadPool(workerThreads);
+                    auto workers = Common::CreateThreadPool(workerThreads);
 
                     Detail::LibEventInitializer::Init();
 
@@ -70,13 +70,28 @@ namespace Mif
 
                 void OnRequest(IInputPack const &in, IOutputPack &out)
                 {
-                    auto iter = m_handlers.find(in.GetPath());
-                    if (iter == std::end(m_handlers))
+                    for (std::string path = in.GetPath() ; ; )
                     {
-                        throw std::runtime_error{"[Mif::Net::Http::Server::Impl] Failed to process request. "
-                                "Handler for resource \"" + in.GetPath() + "\" not found."};
+                        auto iter = m_handlers.find(path);
+                        if (iter != std::end(m_handlers))
+                        {
+                            iter->second(in, out);
+                            return;
+                        }
+
+                        if (path.length() == 1 && path == "/")
+                            break;
+
+                        auto const pos = path.find_last_of('/');
+                        if (pos == std::string::npos)
+                            break;
+                        path = path.substr(0, pos);
+                        if (path.empty())
+                            path = "/";
                     }
-                    iter->second(in, out);
+
+                    throw std::runtime_error{"[Mif::Net::Http::Server::Impl] Failed to process request. "
+                            "Handler for resource \"" + in.GetPath() + "\" not found."};
                 }
             };
 

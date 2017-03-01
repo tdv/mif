@@ -14,8 +14,8 @@
 #include <memory>
 
 // BOOST
-#include <boost/archive/xml_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
+//#include <boost/archive/xml_iarchive.hpp>
+//#include <boost/archive/xml_oarchive.hpp>
 
 // MIF
 #include <mif/common/thread_pool.h>
@@ -28,7 +28,8 @@
 #include <mif/net/clients/gzip_decompressor.h>
 #include <mif/remote/ps_client.h>
 #include <mif/remote/serialization/serialization.h>
-#include <mif/remote/serialization/boost.h>
+//#include <mif/remote/serialization/boost.h>
+#include <mif/remote/serialization/json.h>
 #include <mif/service/ifactory.h>
 #include <mif/service/factory.h>
 #include <mif/service/make.h>
@@ -40,8 +41,8 @@ namespace Service
         namespace Detail
         {
 
-            using Serializer = Mif::Remote::Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
-            using Deserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
+            using Serializer = Mif::Remote::Serialization::Json::Serializer;
+            using Deserializer = Mif::Remote::Serialization::Json::Deserializer;
             using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<Serializer, Deserializer>;
 
         }   // namespace Detail
@@ -53,12 +54,12 @@ namespace Service
 
             using ProtocolChain = Mif::Net::ClientsChain
                 <
-                    Mif::Net::Clients::FrameReader,
-                    Mif::Net::Clients::ParallelHandler,
-                    Mif::Net::Clients::GZipDecompressor,
-                    PSClient,
-                    Mif::Net::Clients::GZipCompressor,
-                    Mif::Net::Clients::FrameWriter
+                    //Mif::Net::Clients::FrameReader,
+                    //Mif::Net::Clients::ParallelHandler,
+                    //Mif::Net::Clients::GZipDecompressor,
+                    PSClient//,
+                    //Mif::Net::Clients::GZipCompressor,
+                    //Mif::Net::Clients::FrameWriter
                 >;
 
             using ClientFactory = Mif::Net::ClientFactory<ProtocolChain>;
