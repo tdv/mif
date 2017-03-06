@@ -36,28 +36,20 @@ Version 1.0.0 - in progress ...
 
 git clone https://github.com/tdv/mif.git  
 cd mif  
-./download_third_party.sh
-
-mkdir build
-
-cd build
-
-cmake ..
-
-make
+./download_third_party.sh  
+mkdir build  
+cd build  
+cmake ..  
+make  
 
 Сборка примеров осуществляется после сборки MIF библиотек
 Пример:
 
-cd mif/examples/hello_world
-
-mkdir build
-
-cd build
-
-cmake ..
-
-make
+cd mif/examples/hello_world  
+mkdir build  
+cd build  
+cmake ..  
+make  
 
 Собранный пример может быть запущен в разных консолях
 
