@@ -273,7 +273,7 @@ namespace Mif
                             if (!iter->second.empty() && !evutil_ascii_strcasecmp(iter->second.c_str(), "keep-alive"))
                             {
                                 response.SetHeader(Detail::Constants::Header::Connection::GetString(),
-                                    Detail::Constants::Value::Connection::KeepAlive::GetString());
+                                        Detail::Constants::Value::Connection::KeepAlive::GetString());
                             }
                         }
 

@@ -70,24 +70,29 @@ namespace Mif
 
                 void OnRequest(IInputPack const &in, IOutputPack &out)
                 {
-                    for (std::string path = in.GetPath() ; ; )
+                    auto process = [this, &in, &out] (std::string const &path)
+                            {
+                                auto iter = m_handlers.find(path);
+                                if (iter != std::end(m_handlers))
+                                {
+                                    iter->second(in, out);
+                                    return true;
+                                }
+                                return false;
+                            };
+
+                    auto url = in.GetPath();
+                    if (process(url))
+                        return;
+                    if (!url.empty() && url.back() != '/')
+                    url.append("/");
+                    for (auto pos = url.find_last_of('/') ; pos != std::string::npos ; pos = url.find_last_of('/'))
                     {
-                        auto iter = m_handlers.find(path);
-                        if (iter != std::end(m_handlers))
-                        {
-                            iter->second(in, out);
+                        url = url.substr(0, pos);
+                        auto const path = url.empty() ? std::string{"/"} : url;
+
+                        if (process(path))
                             return;
-                        }
-
-                        if (path.length() == 1 && path == "/")
-                            break;
-
-                        auto const pos = path.find_last_of('/');
-                        if (pos == std::string::npos)
-                            break;
-                        path = path.substr(0, pos);
-                        if (path.empty())
-                            path = "/";
                     }
 
                     throw std::runtime_error{"[Mif::Net::Http::Server::Impl] Failed to process request. "

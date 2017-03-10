@@ -9,19 +9,28 @@
 #define __MIF_NET_HTTP_WEB_SERVICE_H__
 
 // STD
+#include <atomic>
 #include <cstdint>
 #include <functional>
+#include <clocale>
 #include <map>
 #include <memory>
+#include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
 
+// BOOST
+#include <boost/algorithm/string.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 // MIF
 #include "mif/common/crc32.h"
 #include "mif/net/http/iweb_service.h"
 #include "mif/net/http/request_handler.h"
+#include "mif/serialization/traits.h"
 #include "mif/service/make.h"
 
 namespace Mif
@@ -31,12 +40,75 @@ namespace Mif
         namespace Http
         {
 
-            template <typename T>
-            struct UrlParamConverter
+            struct UrlParamConverter final
             {
-                static T Convert(std::string const &)
+                template <typename T>
+                static typename std::enable_if<std::is_same<T, std::string>::value, T>::type
+                Convert(std::string const &value)
                 {
-                    return {};
+                    return value;
+                }
+
+                template <typename T>
+                static typename std::enable_if<std::is_integral<T>::value, T>::type
+                Convert(std::string const &value)
+                {
+                    return static_cast<T>(std::stoll(value));
+                }
+
+                template <typename T>
+                static typename std::enable_if<std::is_floating_point<T>::value, T>::type
+                Convert(std::string const &value)
+                {
+                    return static_cast<T>(std::stod(value));
+                }
+
+                template <typename T>
+                static typename std::enable_if<Serialization::Traits::IsIterable<T>(), T>::type
+                Convert(std::string const &value)
+                {
+                    std::set<std::string> items;
+                    boost::split(items, value, boost::is_any_of(";"));
+                    T seq;
+                    std::transform(std::begin(items), std::end(items), std::inserter(seq, std::begin(seq)),
+                            std::ptr_fun(UrlParamConverter::template Convert<typename T::value_type>));
+                    return seq;
+                }
+
+                template <typename T>
+                static typename std::enable_if<std::is_same<T, boost::posix_time::ptime::date_type>::value, T>::type
+                Convert(std::string const &value)
+                {
+                    std::istringstream stream{value};
+                    stream.imbue(std::locale(std::locale::classic(),
+                            new boost::posix_time::time_input_facet("%Y.%m.%d")));
+                    boost::posix_time::ptime pt;
+                    stream >> pt;
+                    return pt.date();
+                }
+
+                template <typename T>
+                static typename std::enable_if<std::is_same<T, boost::posix_time::ptime::time_duration_type>::value, T>::type
+                Convert(std::string const &value)
+                {
+                    std::istringstream stream{value};
+                    stream.imbue(std::locale(std::locale::classic(),
+                            new boost::posix_time::time_input_facet("%H:%M:%S")));
+                    boost::posix_time::ptime pt;
+                    stream >> pt;
+                    return pt.time_of_day();
+                }
+
+                template <typename T>
+                static typename std::enable_if<std::is_same<T, boost::posix_time::ptime>::value, T>::type
+                Convert(std::string const &value)
+                {
+                    std::istringstream stream{value};
+                    stream.imbue(std::locale(std::locale::classic(),
+                            new boost::posix_time::time_input_facet("%Y.%m.%d %H:%M:%S")));
+                    boost::posix_time::ptime pt;
+                    stream >> pt;
+                    return pt;
                 }
             };
 
@@ -79,7 +151,9 @@ namespace Mif
                         for (auto const &i : params)
                         {
                             if (Common::Crc32str(i.first) == ExtractType<T>::Id)
+                            {
                                 return {i.first, i.second};
+                            }
                         }
                         return {};
                     }
@@ -102,13 +176,14 @@ namespace Mif
                 {
                     IWebServiceHandlerPtr hanlder{new WebServiceHandler<C, R, Args ... >{object, method}};
                     m_handlers.emplace(resource, std::move(hanlder));
+                    m_statistics.resources[resource];
                 }
 
                 template
                 <
                     typename T,
                     std::uint32_t ID,
-                    template <typename> class TConverter = UrlParamConverter
+                    typename TConverter = UrlParamConverter
                 >
                 class Prm final
                 {
@@ -127,12 +202,16 @@ namespace Mif
                         return *m_value;
                     }
 
+                    Type const& Get() const
+                    {
+                        return operator T const  & ();
+                    }
+
                 private:
                     template <typename, typename, typename ... >
                     friend class WebServiceHandler;
 
                     static constexpr std::uint32_t Id = ID;
-                    using Converter = TConverter<T>;
 
                     std::string m_name;
                     std::unique_ptr<T> const m_value;
@@ -143,7 +222,7 @@ namespace Mif
 
                     Prm(std::string const &name, std::string const &value)
                         : m_name{name}
-                        , m_value{new T{Converter::Convert(value)}}
+                        , m_value{new T{TConverter::template Convert<T>(value)}}
                     {
                     }
                 };
@@ -154,9 +233,27 @@ namespace Mif
                     return Common::Crc32(name);
                 }
 
+                struct Statistics
+                {
+                    struct ItemCounter
+                    {
+                        std::atomic_ullong total{0};
+                        std::atomic_ullong bad{0};
+                    };
+
+                    using Resources = std::map<std::string, ItemCounter>;
+
+                    ItemCounter general;
+                    Resources resources;
+                };
+
+                Statistics const& GetStatistics() const;
+
             private:
                 using IWebServiceHandlerPtr = std::unique_ptr<IWebServiceHandler>;
                 using Handlers = std::map<std::string, IWebServiceHandlerPtr>;
+
+                Statistics m_statistics;
                 Handlers m_handlers;
 
                 //--------------------------------------------------------------------------------------------------

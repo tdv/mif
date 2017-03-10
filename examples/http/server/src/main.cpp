@@ -29,14 +29,34 @@ class MyWebService
 {
 public:
 
-    MyWebService()
+    MyWebService(std::string const &pathPrefix)
     {
-        AddHandler("/stat", this, &MyWebService::Stat);
+        AddHandler(pathPrefix + "/stat", this, &MyWebService::Stat);
     }
 
-    std::string Stat(Prm<std::string, Name("format")> const &format)
+    std::string Stat(Prm<std::string, Name("format")> const &format,
+                     Prm<int, Name("count")> const &count,
+                     Prm<std::set<int>, Name("ids")> const &ids,
+                     Prm<boost::posix_time::ptime::date_type, Name("date")> const &date,
+                     Prm<boost::posix_time::ptime::time_duration_type, Name("time")> const &time,
+                     Prm<boost::posix_time::ptime, Name("dt")> const &dt)
     {
-        std::cout << "OnStat" << std::endl;
+        std::cout << "Count: " << count.Get() << std::endl;
+        for (auto const &i : ids.Get())
+            std::cout << "Id: " << i << std::endl;
+        std::cout << "Date: " << date.Get() << std::endl;
+        std::cout << "Time: " << time.Get() << std::endl;
+        std::cout << "DataTime: " << dt.Get() << std::endl;
+        std::cout << "Statistics" << std::endl;
+        auto const &stat = GetStatistics();
+        std::cout << "\tTotal: " << stat.general.total << std::endl;
+        std::cout << "\tTotal bad: " << stat.general.bad << std::endl;
+        std::cout << "\tResources: " << std::endl;
+        for (auto const &r : stat.resources)
+        {
+            std::cout << "\t\tTotal " << r.first << " " << r.second.total << std::endl;
+            std::cout << "\t\tTotal bad " << r.first << " " << r.second.bad << std::endl;
+        }
         return format ? "Yes" : "No";
     }
 };
@@ -63,7 +83,7 @@ int main(int argc, char const **argv)
                 {Mif::Net::Http::Method::Type::Get},
                 {
                     //{"/", Mif::Net::Http::MakeServlet(clientFactory)}
-                    {"/api", Mif::Net::Http::MakeWebService<MyWebService>()}
+                {"/api", Mif::Net::Http::MakeWebService<MyWebService>("/api")}
                 }
             };
         (void)server;
