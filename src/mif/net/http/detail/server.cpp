@@ -11,9 +11,9 @@
 
 // MIF
 #include "mif/common/log.h"
+#include "mif/net/http/constants.h"
 
 // THIS
-#include "constants.h"
 #include "input_pack.h"
 #include "output_pack.h"
 #include "server.h"

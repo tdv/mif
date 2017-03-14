@@ -25,12 +25,18 @@
 // BOOST
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/stream.hpp>
 
 // MIF
 #include "mif/common/crc32.h"
+#include "mif/net/http/constants.h"
 #include "mif/net/http/iweb_service.h"
 #include "mif/net/http/request_handler.h"
 #include "mif/serialization/traits.h"
+#include "mif/serialization/json.h"
 #include "mif/service/make.h"
 
 namespace Mif
@@ -112,9 +118,201 @@ namespace Mif
                 }
             };
 
+            struct ContentParamConverter final
+            {
+                template <typename T>
+                static T Convert(Common::Buffer const &buffer)
+                {
+                    if (buffer.empty())
+                        throw std::invalid_argument{"[Mif::Net::Http::ContentParamConverter] No content."};
+                    return UrlParamConverter::template Convert<T>(std::string{std::begin(buffer), std::end(buffer)});
+                }
+            };
+
+            struct JsonContentParamConverter final
+            {
+                template <typename T>
+                static T Convert(Common::Buffer const &buffer)
+                {
+                    if (buffer.empty())
+                        throw std::invalid_argument{"[Mif::Net::Http::JsonContentParamConverter] No content."};
+                    return Serialization::Json::Deserialize<T>(buffer);
+                }
+            };
+
+            struct PlainTextSerializer
+            {
+                static constexpr char const* GetContentType()
+                {
+                    return "text/html; charset=ISO-8859-1";
+                }
+
+                template <typename T>
+                static Common::Buffer Serialize(T const &data)
+                {
+                    Common::Buffer buffer;
+
+                    {
+                        boost::iostreams::filtering_ostream stream{boost::iostreams::back_inserter(buffer)};
+                        stream << data;
+                        stream.flush();
+                    }
+
+                    return buffer;
+                }
+            };
+
+            struct JsonSerializer
+            {
+                static constexpr char const* GetContentType()
+                {
+                    return "application/json";
+                }
+
+                template <typename T>
+                static Common::Buffer Serialize(T const &data)
+                {
+                    return Serialization::Json::Serialize(data);
+                }
+            };
+
             class WebService
                 : public Service::Inherit<IWebService>
             {
+            private:
+                template <typename, typename, typename ... >
+                class WebServiceHandler;;
+
+            protected:
+                WebService() = default;
+                ~WebService() = default;
+
+                template
+                <
+                    typename T,
+                    std::uint32_t ID,
+                    typename TConverter = UrlParamConverter
+                >
+                class Prm final
+                {
+                public:
+                    using PrmType = Prm<T, ID, TConverter>;
+                    using Type = T;
+                    static constexpr std::uint32_t Id = ID;
+                    using Converter = TConverter;
+
+                    explicit operator bool() const noexcept
+                    {
+                        return !!m_value;
+                    }
+
+                    explicit operator T const & () const
+                    {
+                        if (!*this)
+                            throw std::runtime_error{"[Mif::Net::Http::WebService::Prm] \"" + m_name + "\" has no value."};
+                        return *m_value;
+                    }
+
+                    Type const& Get() const
+                    {
+                        return operator T const  & ();
+                    }
+
+                private:
+                    template <typename, typename, typename ... >
+                    friend class WebServiceHandler;
+
+                    std::string m_name;
+                    std::unique_ptr<T> const m_value;
+
+                    Prm() = default;
+                    Prm(Prm &&) = default;
+                    Prm(Prm const &) = delete;
+
+                    Prm(std::string const &name, std::string const &value)
+                        : m_name{name}
+                        , m_value{new T{Converter::template Convert<T>(value)}}
+                    {
+                    }
+                };
+
+                template <typename T, typename TConverter = ContentParamConverter>
+                class Content final
+                {
+                public:
+                    using ContentType = Content<T, TConverter>;
+                    using Type = T;
+                    using Converter = TConverter;
+
+                    explicit operator bool() const noexcept
+                    {
+                        return !!m_value;
+                    }
+
+                    explicit operator T const & () const
+                    {
+                        if (!*this)
+                            throw std::runtime_error{"[Mif::Net::Http::WebService::Content] No content."};
+                        return *m_value;
+                    }
+
+                    Type const& Get() const
+                    {
+                        return operator T const  & ();
+                    }
+
+                private:
+                    template <typename, typename, typename ... >
+                    friend class WebServiceHandler;
+
+                    std::unique_ptr<T> const m_value;
+
+                    Content() = default;
+                    Content(Content &&) = default;
+                    Content(Content const &) = delete;
+
+                    Content(Common::Buffer const &value)
+                        : m_value{new Type{Converter::template Convert<Type>(value)}}
+                    {
+                    }
+                };
+
+                template <typename TSerializer = PlainTextSerializer>
+                class Result final
+                {
+                public:
+                    template <typename T>
+                    Result(T const &data, std::string const &contentType = TSerializer::GetContentType())
+                        : m_value{TSerializer::Serialize(data)}
+                        , m_contentType{contentType}
+                    {
+                    }
+
+                    template <typename TOther>
+                    Result(Result<TOther> const &other)
+                        : m_value{other.m_value}
+                        , m_contentType{other.m_contentType}
+                    {
+                    }
+
+                    Common::Buffer GetValue()
+                    {
+                        return std::move(m_value);
+                    }
+
+                    std::string const& GetContetntType() const
+                    {
+                        return m_contentType;
+                    }
+
+                private:
+                    template <typename>
+                    friend class Result;
+
+                    Common::Buffer m_value;
+                    std::string m_contentType;
+                };
+
             private:
                 struct IWebServiceHandler
                 {
@@ -146,7 +344,7 @@ namespace Mif
                             >::type;
 
                     template <typename T>
-                    ExtractType<T> GetPrm(IInputPack::Params const &params)
+                    typename ExtractType<T>::PrmType GetPrm(IInputPack::Params const &params, Common::Buffer const &) const
                     {
                         for (auto const &i : params)
                         {
@@ -158,17 +356,42 @@ namespace Mif
                         return {};
                     }
 
+                    template <typename T>
+                    typename ExtractType<T>::ContentType GetPrm(IInputPack::Params const &, Common::Buffer const &content) const
+                    {
+                        return {content};
+                    }
+
                     // IWebServiceHandler
                     virtual void OnRequest(IInputPack const &request, IOutputPack &response) override final
                     {
-                        (m_object->*m_method)(GetPrm<Args>(request.GetParams()) ... );
-                        (void)response;
+                        ProcessRequest<R>(request, response);
+                    }
+
+                    template <typename T>
+                    typename std::enable_if<std::is_same<T, void>::value, void>::type
+                    ProcessRequest(IInputPack const &request, IOutputPack &)
+                    {
+                        auto const params = request.GetParams();
+                        auto const content = request.GetData();
+                        (m_object->*m_method)(GetPrm<Args>(params, content) ... );
+                    }
+
+                    template <typename T>
+                    typename std::enable_if<!std::is_same<T, void>::value, void>::type
+                    ProcessRequest(IInputPack const &request, IOutputPack &response)
+                    {
+                        auto const params = request.GetParams();
+                        auto const content = request.GetData();
+                        Result<> res{(m_object->*m_method)(GetPrm<Args>(params, content) ... )};
+                        auto const &contentType = res.GetContetntType();
+                        if (!contentType.empty())
+                            response.SetHeader(Constants::Header::ContentType::GetString(), contentType);
+                        response.SetData(std::move(res.GetValue()));
                     }
                 };
 
             protected:
-                WebService() = default;
-                ~WebService() = default;
 
                 template <typename C, typename R, typename ... Args>
                 typename std::enable_if<std::is_base_of<WebService, C>::value, void>::type
@@ -178,54 +401,6 @@ namespace Mif
                     m_handlers.emplace(resource, std::move(hanlder));
                     m_statistics.resources[resource];
                 }
-
-                template
-                <
-                    typename T,
-                    std::uint32_t ID,
-                    typename TConverter = UrlParamConverter
-                >
-                class Prm final
-                {
-                public:
-                    using Type = T;
-
-                    explicit operator bool() const noexcept
-                    {
-                        return !!m_value;
-                    }
-
-                    explicit operator T const & () const
-                    {
-                        if (!*this)
-                            throw std::runtime_error{"[Mif::Net::Http::WebService::Prm] \"" + m_name + "\" has no value."};
-                        return *m_value;
-                    }
-
-                    Type const& Get() const
-                    {
-                        return operator T const  & ();
-                    }
-
-                private:
-                    template <typename, typename, typename ... >
-                    friend class WebServiceHandler;
-
-                    static constexpr std::uint32_t Id = ID;
-
-                    std::string m_name;
-                    std::unique_ptr<T> const m_value;
-
-                    Prm() = default;
-                    Prm(Prm &&) = default;
-                    Prm(Prm const &) = delete;
-
-                    Prm(std::string const &name, std::string const &value)
-                        : m_name{name}
-                        , m_value{new T{TConverter::template Convert<T>(value)}}
-                    {
-                    }
-                };
 
                 template <std::size_t N>
                 static constexpr std::uint32_t Name(char const (&name)[N])

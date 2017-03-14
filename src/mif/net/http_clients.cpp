@@ -17,9 +17,7 @@
 #include "mif/common/uuid_generator.h"
 #include "mif/net/http_clients.h"
 #include "mif/net/http/connection.h"
-
-// THIS
-#include "http/detail/constants.h"
+#include "mif/net/http/constants.h"
 
 namespace Mif
 {
@@ -114,7 +112,7 @@ namespace Mif
 
                             {
                                 auto const headers = pack.GetHeaders();
-                                auto const sessionIter = headers.find(Http::Detail::Constants::Header::Session::GetString());
+                                auto const sessionIter = headers.find(Http::Constants::Header::Session::GetString());
                                 if (sessionIter == std::end(headers))
                                     throw std::runtime_error{"No session from server."};
                                 if (sessionIter->second != m_sessionId)
@@ -160,9 +158,9 @@ namespace Mif
                             auto connection = GetConnection();
                             auto pack = connection->CreateRequest();
                             
-                            pack->SetHeader(Http::Detail::Constants::Header::Connection::GetString(),
-                                Http::Detail::Constants::Value::Connection::KeepAlive::GetString());
-                            pack->SetHeader(Http::Detail::Constants::Header::Session::GetString(), m_sessionId);
+                            pack->SetHeader(Http::Constants::Header::Connection::GetString(),
+                                Http::Constants::Value::Connection::KeepAlive::GetString());
+                            pack->SetHeader(Http::Constants::Header::Session::GetString(), m_sessionId);
 
                             pack->SetData(std::move(buffer));
 

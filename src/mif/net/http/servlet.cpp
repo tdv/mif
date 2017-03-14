@@ -20,10 +20,8 @@
 
 // MIF
 #include "mif/common/log.h"
+#include "mif/net/http/constants.h"
 #include "mif/net/http/servlet.h"
-
-// THIS
-#include "detail/constants.h"
 
 namespace Mif
 {
@@ -175,7 +173,7 @@ namespace Mif
                             {
                                 auto const headers = request.GetHeaders();
                                 {
-                                    auto const iter = headers.find(Detail::Constants::Header::Session::GetString());
+                                    auto const iter = headers.find(Constants::Header::Session::GetString());
                                     if (iter != std::end(headers))
                                         sessionId = iter->second;
                                 }
@@ -212,7 +210,7 @@ namespace Mif
                                     {
                                         response.SetData(std::move(responseData));
                                         if (!sessionId.empty())
-                                            response.SetHeader(Detail::Constants::Header::Session::GetString(), sessionId);
+                                            response.SetHeader(Constants::Header::Session::GetString(), sessionId);
                                         SetKeepAliveFromClient(headers, response);
                                     }
                                     else
@@ -222,8 +220,8 @@ namespace Mif
                                             std::rethrow_exception(ex);
 
                                         response.SetHeader(
-                                            Detail::Constants::Header::Connection::GetString(),
-                                            Detail::Constants::Value::Connection::Close::GetString());
+                                            Constants::Header::Connection::GetString(),
+                                            Constants::Value::Connection::Close::GetString());
                                     }
                                 }
                             }
@@ -267,13 +265,13 @@ namespace Mif
 
                         void SetKeepAliveFromClient(IInputPack::Headers const &requestHeaders, IOutputPack &response) const
                         {
-                            auto const iter = requestHeaders.find(Detail::Constants::Header::Connection::GetString());
+                            auto const iter = requestHeaders.find(Constants::Header::Connection::GetString());
                             if (iter == std::end(requestHeaders) && !iter->second.empty())
                                 return;
                             if (!iter->second.empty() && !evutil_ascii_strcasecmp(iter->second.c_str(), "keep-alive"))
                             {
-                                response.SetHeader(Detail::Constants::Header::Connection::GetString(),
-                                        Detail::Constants::Value::Connection::KeepAlive::GetString());
+                                response.SetHeader(Constants::Header::Connection::GetString(),
+                                        Constants::Value::Connection::KeepAlive::GetString());
                             }
                         }
 
@@ -297,8 +295,8 @@ namespace Mif
 
                         void OnExceptionResponse(Http::IOutputPack &pack, Http::Code code, std::string const &message)
                         {
-                            pack.SetHeader(Detail::Constants::Header::Connection::GetString(),
-                                Detail::Constants::Value::Connection::Close::GetString());
+                            pack.SetHeader(Constants::Header::Connection::GetString(),
+                                Constants::Value::Connection::Close::GetString());
                             pack.SetCode(code);
                             pack.SetData({std::begin(message), std::end(message)});
                         }

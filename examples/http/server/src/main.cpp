@@ -34,12 +34,15 @@ public:
         AddHandler(pathPrefix + "/stat", this, &MyWebService::Stat);
     }
 
-    std::string Stat(Prm<std::string, Name("format")> const &format,
+    Result<Mif::Net::Http::JsonSerializer>
+    /*std::string*/ Stat(Prm<std::string, Name("format")> const &format,
                      Prm<int, Name("count")> const &count,
                      Prm<std::set<int>, Name("ids")> const &ids,
                      Prm<boost::posix_time::ptime::date_type, Name("date")> const &date,
                      Prm<boost::posix_time::ptime::time_duration_type, Name("time")> const &time,
-                     Prm<boost::posix_time::ptime, Name("dt")> const &dt)
+                     Prm<boost::posix_time::ptime, Name("dt")> const &dt,
+                     Content<std::string> const &content,
+                     Content<std::vector<int>, Mif::Net::Http::JsonContentParamConverter> const &jsonData)
     {
         std::cout << "Count: " << count.Get() << std::endl;
         for (auto const &i : ids.Get())
@@ -57,7 +60,15 @@ public:
             std::cout << "\t\tTotal " << r.first << " " << r.second.total << std::endl;
             std::cout << "\t\tTotal bad " << r.first << " " << r.second.bad << std::endl;
         }
-        return format ? "Yes" : "No";
+
+        std::cout << "Content: " << content.Get() << std::endl;
+
+        for (auto const &i : jsonData.Get())
+            std::cout << "VectData: " << i << std::endl;
+
+        //return std::string{format ? "Yes" : "No"};
+        (void)format;
+        return std::vector<int>{100, 200, 300};
     }
 };
 
@@ -80,7 +91,7 @@ int main(int argc, char const **argv)
         //auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout, factory);
 
         Mif::Net::Http::Server server{argv[1], argv[2], 2, 24,
-                {Mif::Net::Http::Method::Type::Get},
+                {Mif::Net::Http::Method::Type::Get, Mif::Net::Http::Method::Type::Post},
                 {
                     //{"/", Mif::Net::Http::MakeServlet(clientFactory)}
                 {"/api", Mif::Net::Http::MakeWebService<MyWebService>("/api")}

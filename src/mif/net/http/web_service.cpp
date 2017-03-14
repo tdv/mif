@@ -12,9 +12,6 @@
 #include "mif/common/log.h"
 #include "mif/net/http/web_service.h"
 
-// THIS
-#include "detail/constants.h"
-
 namespace Mif
 {
     namespace Net
@@ -42,16 +39,16 @@ namespace Mif
                             iter->second->OnRequest(request, response);
                             {
                                 auto const headers = request.GetHeaders();
-                                auto const keepAlive = headers.find(Detail::Constants::Header::Connection::GetString());
+                                auto const keepAlive = headers.find(Constants::Header::Connection::GetString());
                                 if (keepAlive != std::end(headers))
                                 {
                                     auto const &value = keepAlive->second;
-                                    auto const *keepAliveValue = Detail::Constants::Value::Connection::KeepAlive::GetString();
+                                    auto const *keepAliveValue = Constants::Value::Connection::KeepAlive::GetString();
                                     auto const len = strlen(keepAliveValue);
                                     if (value.length() == len && !strncasecmp(value.c_str(),  keepAliveValue, len))
                                     {
-                                        response.SetHeader(Detail::Constants::Header::Connection::GetString(),
-                                                Detail::Constants::Value::Connection::KeepAlive::GetString());
+                                        response.SetHeader(Constants::Header::Connection::GetString(),
+                                                Constants::Value::Connection::KeepAlive::GetString());
                                     }
                                 }
                             }
@@ -95,8 +92,8 @@ namespace Mif
 
             void WebService::OnExceptionResponse(IOutputPack &pack, Code code, std::string const &message)
             {
-                pack.SetHeader(Detail::Constants::Header::Connection::GetString(),
-                    Detail::Constants::Value::Connection::Close::GetString());
+                pack.SetHeader(Constants::Header::Connection::GetString(),
+                    Constants::Value::Connection::Close::GetString());
                 pack.SetCode(code);
                 pack.SetData({std::begin(message), std::end(message)});
             }
