@@ -26,6 +26,8 @@ namespace Mif
                 virtual void OnRequest(IInputPack const &request, IOutputPack &response) = 0;
             };
 
+            using IWebServicePtr = Service::TIntrusivePtr<IWebService>;
+
         }   // namespace Http
     }   // namespace Net
 }   // namespace Mif

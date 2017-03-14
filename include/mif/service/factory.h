@@ -40,6 +40,12 @@ namespace Mif
                 m_creators.insert(std::make_pair(Id, std::move(creator)));
             }
 
+            void AddInstance(ServiceId id, IServicePtr service)
+            {
+                LockGuard lock(m_lock);
+                m_creators.insert(std::make_pair(id, [service] { return service; } ));
+            }
+
             // IFactory
             virtual IServicePtr Create(ServiceId id) override final
             {

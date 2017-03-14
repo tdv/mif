@@ -439,15 +439,6 @@ namespace Mif
                 void OnExceptionResponse(IOutputPack &pack, Code code, std::string const &message);
             };
 
-            template <typename TService, typename ... TArgs>
-            inline typename std::enable_if<std::is_base_of<WebService, TService>::value, ServerHandler>::type
-            MakeWebService(TArgs && ... args)
-            {
-                auto service = Service::Make<TService, IWebService>(std::forward<TArgs>(args) ... );
-                auto handler = std::bind(&IWebService::OnRequest, service, std::placeholders::_1, std::placeholders::_2);
-                return handler;
-            }
-
         }   // namespace Http
     }   // namespace Net
 }   // namespace Mif

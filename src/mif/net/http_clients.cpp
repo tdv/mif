@@ -36,9 +36,11 @@ namespace Mif
                 public:
                     using OnCloseHandler = std::function<void (std::string const &)>;
 
-                    Session(std::string const &host, std::string const &port, OnCloseHandler const &onCloseHandler)
+                    Session(std::string const &host, std::string const &port, std::string const &resource,
+                            OnCloseHandler const &onCloseHandler)
                         : m_host{host}
                         , m_port{port}
+                        , m_resource{resource}
                         , m_sessionId{Common::UuidGenerator{}.Generate()}
                         , m_onCloseHandler{onCloseHandler}
                     {
@@ -67,6 +69,7 @@ namespace Mif
 
                     std::string m_host;
                     std::string m_port;
+                    std::string m_resource;
                     std::string m_sessionId;
                     OnCloseHandler m_onCloseHandler;
 
@@ -164,7 +167,7 @@ namespace Mif
 
                             pack->SetData(std::move(buffer));
 
-                            connection->MakeRequest(Http::Method::Type::Post, "", std::move(pack));
+                            connection->MakeRequest(Http::Method::Type::Post, m_resource, std::move(pack));
                         }
                         catch (std::exception const &e)
                         {
@@ -225,13 +228,13 @@ namespace Mif
             {
             }
 
-            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port)
+            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port, std::string const &resource)
             {
                 try
                 {
                     auto lock = m_lock;
                     auto sessions = m_sessions;
-                    auto session = std::make_shared<Detail::Session>(host, port,
+                    auto session = std::make_shared<Detail::Session>(host, port, resource,
                             [lock, sessions] (std::string const &id)
                             {
                                 SessionPtr session;
@@ -285,9 +288,10 @@ namespace Mif
         {
         }
 
-        IClientFactory::ClientPtr HTTPClients::RunClient(std::string const &host, std::string const &port)
+        IClientFactory::ClientPtr HTTPClients::RunClient(std::string const &host, std::string const &port,
+                std::string const &resource)
         {
-            return m_impl->RunClient(host, port);
+            return m_impl->RunClient(host, port, resource);
         }
 
 

@@ -26,7 +26,8 @@ namespace Mif
             HTTPClients(std::shared_ptr<IClientFactory> factory);
             ~HTTPClients();
 
-            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port);
+            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port,
+                    std::string const &resource = "");
 
         private:
             class Impl;
