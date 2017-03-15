@@ -44,7 +44,7 @@ int main(int argc, char const **argv)
 
         auto clientFactory = Service::Ipc::MakeWebClientFactory(timeout, factory);
 
-        Mif::Net::Http::Server server{argv[1], argv[2], 2, 24,
+        Mif::Net::Http::Server server{argv[1], argv[2], 8,
                 {Mif::Net::Http::Method::Type::Get, Mif::Net::Http::Method::Type::Post},
                 {
                     {adminLocation, Mif::Net::Http::MakeServlet(clientFactory)},

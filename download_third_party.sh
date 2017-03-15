@@ -3,7 +3,7 @@ cd third_party_sources
 git clone --branch v1.2.8 https://github.com/madler/zlib.git
 #git clone --branch boost-1.62.0 https://github.com/boostorg/boost.git
 git clone --branch 1.8.0 https://github.com/open-source-parsers/jsoncpp.git
-git clone --branch release-2.1.6-beta https://github.com/libevent/libevent.git
+git clone --branch release-2.1.8-stable https://github.com/libevent/libevent.git
 
 wget https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz
 tar zxvf boost_1_63_0.tar.gz

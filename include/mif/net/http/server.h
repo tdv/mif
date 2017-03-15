@@ -28,7 +28,7 @@ namespace Mif
             {
             public:
                 Server(std::string const &host, std::string const &port,
-                    std::uint16_t httpThreads, std::uint16_t workerThreads,
+                    std::uint16_t workers,
                     Methods const &allowedMethods,
                     ServerHandlers const &handlers,
                     std::size_t headersSize = -1,

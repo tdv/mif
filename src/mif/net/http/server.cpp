@@ -10,7 +10,6 @@
 #include <vector>
 
 // MIF
-#include "mif/common/thread_pool.h"
 #include "mif/net/http/server.h"
 
 // THIS
@@ -28,33 +27,30 @@ namespace Mif
             {
             public:
                 Impl(std::string const &host, std::string const &port,
-                        std::uint16_t httpThreads, std::uint16_t workerThreads,
-                        ServerHandlers const &handlers, Methods const &allowedMethods,
+                        std::uint16_t workers, ServerHandlers const &handlers, Methods const &allowedMethods,
                         std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
                     : m_handlers{handlers}
                 {
                     auto handler = std::bind(&Impl::OnRequest, this, std::placeholders::_1, std::placeholders::_2);
 
-                    auto workers = Common::CreateThreadPool(workerThreads);
-
                     Detail::LibEventInitializer::Init();
 
-                    m_items.reserve(httpThreads);
+                    m_items.reserve(workers);
 
                     evutil_socket_t socket = -1;
 
-                    while (httpThreads--)
+                    while (workers--)
                     {
                         if (socket == -1)
                         {
-                            ItemPtr item{new Detail::ServerThread{host, port, workers,
-                                handler, allowedMethods, headersSize, bodySize, requestTimeout}};
+                            ItemPtr item{new Detail::ServerThread{host, port, handler,
+                                    allowedMethods, headersSize, bodySize, requestTimeout}};
                             socket = item->GetSocket();
                             m_items.push_back(std::move(item));
                         }
                         else
                         {
-                            m_items.push_back(std::move(ItemPtr{new Detail::ServerThread{socket, workers,
+                            m_items.push_back(std::move(ItemPtr{new Detail::ServerThread{socket,
                                 handler, allowedMethods, headersSize, bodySize, requestTimeout}}));
                         }
                     }
@@ -102,10 +98,9 @@ namespace Mif
 
 
             Server::Server(std::string const &host, std::string const &port,
-                std::uint16_t httpThreads, std::uint16_t workerThreads,
-                Methods const &allowedMethods, ServerHandlers const &handlers,
+                std::uint16_t workers, Methods const &allowedMethods, ServerHandlers const &handlers,
                 std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
-                : m_impl{new Impl{host, port, httpThreads, workerThreads, handlers, allowedMethods, headersSize, bodySize, requestTimeout}}
+                : m_impl{new Impl{host, port, workers, handlers, allowedMethods, headersSize, bodySize, requestTimeout}}
             {
             }
 

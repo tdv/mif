@@ -27,10 +27,9 @@ namespace Mif
             namespace Detail
             {
 
-                Server::Server(Common::IThreadPoolPtr workers, ServerHandler const &handler, Methods const &allowedMethods,
-                            std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
-                    : m_workers{workers}
-                    , m_handler{handler}
+                Server::Server(ServerHandler const &handler, Methods const &allowedMethods, std::size_t headersSize,
+                        std::size_t bodySize, std::size_t requestTimeout)
+                    : m_handler{handler}
                     , m_base{Utility::CreateEventBase()}
                 {
                     {
@@ -53,10 +52,9 @@ namespace Mif
                     }
                 }
 
-                Server::Server(std::string const &host, std::string const &port, Common::IThreadPoolPtr workers,
-                            ServerHandler const &handler, Methods const &allowedMethods, std::size_t headersSize,
-                            std::size_t bodySize, std::size_t requestTimeout)
-                    : Server{workers, handler, allowedMethods, headersSize, bodySize, requestTimeout}
+                Server::Server(std::string const &host, std::string const &port, ServerHandler const &handler, Methods const &allowedMethods,
+                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
+                    : Server{handler, allowedMethods, headersSize, bodySize, requestTimeout}
                 {
                     if (host.empty())
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Server] Host must not be empty."};
@@ -70,9 +68,9 @@ namespace Mif
                     m_socket = evhttp_bound_socket_get_fd(info);
                 }
 
-                Server::Server(evutil_socket_t socket, Common::IThreadPoolPtr workers, ServerHandler const &handler,
-                        Methods const &allowedMethods, std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
-                    : Server{workers, handler, allowedMethods, headersSize, bodySize, requestTimeout}
+                Server::Server(evutil_socket_t socket, ServerHandler const &handler, Methods const &allowedMethods,
+                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
+                    : Server{handler, allowedMethods, headersSize, bodySize, requestTimeout}
                 {
                     if (socket == -1)
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Server] Invalid input socket."};
@@ -177,33 +175,29 @@ namespace Mif
                         auto in = std::make_shared<InputPack >(req);
                         auto out = std::make_shared<OutputPack>(req);
                         ServerHandler handler{m_handler};
-                        m_workers->Post([in, out, handler]
-                                {
-                                    try
-                                    {
-                                        handler(*in, *out);
-                                        out->Send();
-                                    }
-                                    catch (std::exception const &e)
-                                    {
-                                        MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Server] "
-                                                << "Failed to process request. Error: " << e.what();
-                                        try
-                                        {
-                                            IOutputPack &pack = *out;
-                                            pack.SetHeader(Constants::Header::Connection::GetString(),
-                                                    Constants::Value::Connection::Close::GetString());
-                                            pack.SetCode(Code::BadMethod);
-                                            out->Send();
-                                        }
-                                        catch (std::exception const &ex)
-                                        {
-                                            MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Server] "
-                                                    << "Failed to close connection. Error: " << ex.what();
-                                        }
-                                    }
-                                }
-                            );
+                        try
+                        {
+                            handler(*in, *out);
+                            out->Send();
+                        }
+                        catch (std::exception const &e)
+                        {
+                            MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Server] "
+                                    << "Failed to process request. Error: " << e.what();
+                            try
+                            {
+                                IOutputPack &pack = *out;
+                                pack.SetHeader(Constants::Header::Connection::GetString(),
+                                        Constants::Value::Connection::Close::GetString());
+                                pack.SetCode(Code::BadMethod);
+                                out->Send();
+                            }
+                            catch (std::exception const &ex)
+                            {
+                                MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Server] "
+                                        << "Failed to close connection. Error: " << ex.what();
+                            }
+                        }
                     }
                     catch (std::invalid_argument const &e)
                     {
