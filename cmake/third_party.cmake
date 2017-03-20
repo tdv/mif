@@ -20,6 +20,7 @@ set (ZLIB_LIBRARIES
 set (BOOST_LIBRARIES
     iostreams
     serialization
+    program_options
     log
     filesystem
     thread

@@ -18,6 +18,7 @@ set(LIBRARIES
     mif
     boost_iostreams
     boost_serialization
+    boost_program_options
     boost_log
     boost_filesystem
     boost_thread
