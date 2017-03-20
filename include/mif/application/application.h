@@ -55,6 +55,12 @@ namespace Mif
         private:
             int m_argc;
             char const **m_argv;
+
+            std::string m_pidFileName;
+            std::string m_configFileName;
+            std::string m_logFileName;
+            std::uint32_t m_logLevel;
+
             boost::program_options::options_description m_optionsDescr;
             boost::program_options::variables_map m_options;
 

@@ -114,6 +114,7 @@ namespace Mif
         Application::Application(int argc, char const **argv)
             : m_argc{argc}
             , m_argv{argv}
+            , m_logLevel{Common::Log::Level::Trace}
             , m_optionsDescr{"Allowed options"}
             , m_name{boost::filesystem::path{argv[0]}.filename().c_str()}
             , m_description{"MIF application"}
@@ -123,8 +124,11 @@ namespace Mif
                     ("version,v", "Show program version.")
             #if defined(__linux__) || defined(__unix__)
                     ("daemon,d", "Run as daemon.")
+                    ("pidfile,p", boost::program_options::value<std::string>(&m_pidFileName), "Path to pid-file.")
             #endif
-                    ("config,c", boost::program_options::value<std::string>(), "Config file name (full path).");
+                    ("config,c", boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
+                    ("logfile", boost::program_options::value<std::string>(&m_logFileName), "Log file name (full path | pattern).")
+                    ("loglevel", boost::program_options::value<std::uint32_t>(&m_logLevel)->default_value(Common::Log::Level::Trace), "Log level.");
         }
 
         Application::~Application()
