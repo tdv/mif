@@ -5,9 +5,18 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
+// C
+#if defined(__linux__) || defined(__unix__)
+#include <unistd.h>
+#include <signal.h>
+#endif
+
 // STD
+#include <condition_variable>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <thread>
 
@@ -26,6 +35,82 @@ namespace Mif
     namespace Application
     {
 
+        class Application::Daemon final
+        {
+        public:
+        #if defined(__linux__) || defined(__unix__)
+            Daemon(std::function<void ()> onStart, std::function<void ()> onStop)
+            {
+                if (daemon(0, 0))
+                    throw std::runtime_error{"[Mif::Application::Daemon] The application could not be started in daemon mode."};
+
+                MIF_LOG(Info) << "[Mif::Application::Daemon] Starting application in a daemon mode...";
+
+                try
+                {
+                    onStart();
+                }
+                catch (std::exception const &e)
+                {
+                    MIF_LOG(Fatal) << "[Mif::Application::Daemon] Failed to start application. Error: " << e.what();
+                }
+                catch (...)
+                {
+                    MIF_LOG(Fatal) << "[Mif::Application::Daemon] Failed to start application. Error: unknown error.";
+                }
+
+                signal(SIGINT, ShutdownSignal);
+                signal(SIGQUIT, ShutdownSignal);
+                signal(SIGTERM, ShutdownSignal);
+
+                signal(SIGPIPE, SIG_IGN);
+
+                m_mutex.reset(new std::mutex);
+                m_cv.reset(new std::condition_variable);
+
+                std::unique_lock<std::mutex> lock{*m_mutex};
+
+                MIF_LOG(Info) << "[Mif::Application::Daemon] The application is started in daemon mode.";
+
+                m_cv->wait(lock);
+
+                MIF_LOG(Info) << "[Mif::Application::Daemon] Stopping daemon ...";
+
+                m_cv.reset();
+                m_mutex.reset();
+
+                try
+                {
+                    onStop();
+                }
+                catch (std::exception const &e)
+                {
+                    MIF_LOG(Warning) << "[Mif::Application::Daemon] Failed to correct stop application. Error: " << e.what();
+                }
+                catch (...)
+                {
+                    MIF_LOG(Warning) << "[Mif::Application::Daemon] Failed to correct stop application. Error: unknown error.";
+                }
+
+                MIF_LOG(Info) << "[Mif::Application::Daemon] Stopped daemon.";
+            }
+        private:
+            static std::unique_ptr<std::mutex> m_mutex;
+            static std::unique_ptr<std::condition_variable> m_cv;
+
+            static void ShutdownSignal(int)
+            {
+                if (m_cv)
+                    m_cv->notify_all();
+            }
+        #endif
+        };
+
+        #if defined(__linux__) || defined(__unix__)
+        std::unique_ptr<std::mutex> Application::Daemon::m_mutex;
+        std::unique_ptr<std::condition_variable> Application::Daemon::m_cv;
+        #endif
+
         Application::Application(int argc, char const **argv)
             : m_argc{argc}
             , m_argv{argv}
@@ -40,6 +125,10 @@ namespace Mif
                     ("daemon,d", "Run as daemon.")
             #endif
                     ("config,c", boost::program_options::value<std::string>(), "Config file name (full path).");
+        }
+
+        Application::~Application()
+        {
         }
 
         void Application::OnStart()
@@ -136,7 +225,7 @@ namespace Mif
 
         void Application::Start()
         {
-            bool RunAsDaemon = false;
+            bool NeedRunAsDaemon = false;
 
             auto locator = Service::RootLocator::Get();
 
@@ -150,7 +239,7 @@ namespace Mif
 
             #if defined(__linux__) || defined(__unix__)
                 if (m_options.count("daemon"))
-                    RunAsDaemon = true;
+                    NeedRunAsDaemon = true;
             #endif
             }
             catch (std::exception const &e)
@@ -162,36 +251,10 @@ namespace Mif
 
             try
             {
-                if (!RunAsDaemon)
-                {
-                    std::exception_ptr exception{};
-
-                    std::thread t{
-                            [this, &exception]
-                            {
-                                try
-                                {
-                                    OnStart();
-                                    std::cout << "Press 'Enter' for quit." << std::endl;
-                                    std::cin.get();
-                                    Stop();
-                                }
-                                catch (...)
-                                {
-                                    exception = std::current_exception();
-                                }
-                            }
-                        };
-
-                    t.join();
-
-                    if (exception)
-                        std::rethrow_exception(exception);
-                }
+                if (!NeedRunAsDaemon)
+                    RunInThisProcess();
                 else
-                {
-                    // TODO: run as daemon
-                }
+                    RunAsDaemon();
             }
             catch (std::exception const &e)
             {
@@ -217,6 +280,43 @@ namespace Mif
         void Application::LoadConfig()
         {
             ;
+        }
+
+        void Application::RunAsDaemon()
+        {
+            #if defined(__linux__) || defined(__unix__)
+
+            if (!m_daemon)
+                m_daemon.reset(new Daemon{ [this] { OnStart(); }, [this] { OnStop(); } });
+
+            #endif
+        }
+
+        void Application::RunInThisProcess()
+        {
+            std::exception_ptr exception{};
+
+            std::thread t{
+                    [this, &exception]
+                    {
+                        try
+                        {
+                            OnStart();
+                            std::cout << "Press 'Enter' for quit." << std::endl;
+                            std::cin.get();
+                            Stop();
+                        }
+                        catch (...)
+                        {
+                            exception = std::current_exception();
+                        }
+                    }
+                };
+
+            t.join();
+
+            if (exception)
+                std::rethrow_exception(exception);
         }
 
     }   // namespace Application

@@ -9,6 +9,7 @@
 #define __MIF_APPLICATION_APPLICATION_H__
 
 // STD
+#include <memory>
 #include <string>
 #include <type_traits>
 
@@ -21,20 +22,17 @@ namespace Mif
     namespace Application
     {
 
+        class Application;
+
+        template <typename T>
+        typename std::enable_if<std::is_base_of<Application, T>::value, int>::type
+        Run(int argc, char const **argv);
+
         class Application
         {
-        public:
-
-            template <typename T>
-            friend
-            typename std::enable_if<std::is_base_of<Application, T>::value, int>::type
-            Run(int argc, char const **argv)
-            {
-                return T{argc, argv}.Run();
-            }
-
         protected:
             Application(int argc, char const **argv);
+            virtual ~Application();
 
             virtual void OnStart();
             virtual void OnStop();
@@ -64,16 +62,29 @@ namespace Mif
             std::string m_version;
             std::string m_description;
 
+            class Daemon;
+            std::unique_ptr<Daemon> m_daemon;
+
             Application(Application const &) = delete;
             Application& operator = (Application const &) = delete;
             Application(Application &&) = delete;
             Application& operator = (Application &&) = delete;
+
+            template <typename T>
+            friend
+            typename std::enable_if<std::is_base_of<Application, T>::value, int>::type
+            Run(int argc, char const **argv)
+            {
+                return T{argc, argv}.Run();
+            }
 
             int Run();
 
             void Start();
             void Stop();
             void LoadConfig();
+            void RunAsDaemon();
+            void RunInThisProcess();
         };
 
     }   // namespace Application
