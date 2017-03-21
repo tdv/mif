@@ -17,6 +17,8 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
+#include "mif/application/iconfig.h"
+
 namespace Mif
 {
     namespace Application
@@ -43,6 +45,8 @@ namespace Mif
             void AddCustomOptions(boost::program_options::options_description const &options);
             boost::program_options::variables_map const& GetOptions() const;
 
+            IConfigPtr GetConfig() const;
+
             void SetName(std::string const &name);
             std::string const& GetName() const;
 
@@ -56,8 +60,10 @@ namespace Mif
             int m_argc;
             char const **m_argv;
 
+            bool m_runAsDaemon = false;
             std::string m_pidFileName;
             std::string m_configFileName;
+            std::string m_configFileFormat;
             std::string m_logDirName;
             std::string m_logPattern;
             std::uint32_t m_logLevel;
@@ -68,6 +74,8 @@ namespace Mif
             std::string m_name;
             std::string m_version;
             std::string m_description;
+
+            IConfigPtr m_config;
 
             class Daemon;
             std::unique_ptr<Daemon> m_daemon;
@@ -87,11 +95,11 @@ namespace Mif
 
             int Run();
 
-            void ProcessLogOptions();
+            void InitLog(bool pathFromConfig, bool levelFromConfig);
 
             void Start();
             void Stop();
-            void LoadConfig();
+            IConfigPtr LoadConfig() const;
             void RunAsDaemon();
             void RunInThisProcess();
         };

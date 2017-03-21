@@ -14,22 +14,25 @@
 // STD
 #include <condition_variable>
 #include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
 
 // BOOST
-//#include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options/parsers.hpp>
 
 // MIF
+#include "mif/application/id/config.h"
 #include "mif/application/application.h"
 #include "mif/common/log.h"
 #include "mif/common/log_init.h"
 #include "mif/service/root_locator.h"
+#include "mif/service/create.h"
 
 namespace Mif
 {
@@ -128,11 +131,11 @@ namespace Mif
                     ("pidfile,p", boost::program_options::value<std::string>(&m_pidFileName), "Path to pid-file.")
             #endif
                     ("config,c", boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
-                    ("logdir", boost::program_options::value<std::string>(&m_logDirName)->default_value(
-                            boost::filesystem::canonical(boost::filesystem::path{argv[0]}.parent_path()).c_str()), "Log directory name.")
-                    ("logpattern", boost::program_options::value<std::string>(&m_logPattern)->default_value(
-                            m_name + "_%5N.log"), "Log file pattern.")
-                    ("loglevel", boost::program_options::value<std::uint32_t>(&m_logLevel)->default_value(Common::Log::Level::Trace), "Log level.");
+                    ("configformat", boost::program_options::value<std::string>(&m_configFileFormat)->default_value(
+                            "json"), "Config file format (available formats: json, xml, ini).")
+                    ("logdir", boost::program_options::value<std::string>(&m_logDirName), "Log directory name.")
+                    ("logpattern", boost::program_options::value<std::string>(&m_logPattern), "Log file pattern.")
+                    ("loglevel", boost::program_options::value<std::uint32_t>(&m_logLevel), "Log level.");
         }
 
         Application::~Application()
@@ -175,6 +178,11 @@ namespace Mif
         std::string const& Application::GetName() const
         {
             return m_name;
+        }
+
+        IConfigPtr Application::GetConfig() const
+        {
+            return m_config;
         }
 
         void Application::SetVersion(std::string const &version)
@@ -222,7 +230,48 @@ namespace Mif
                     return EXIT_SUCCESS;
                 }
 
-                ProcessLogOptions();
+                bool pathFromConfig = false;
+                bool levelFromConfig = false;
+
+                if (m_options.count("config"))
+                {
+                    auto config = LoadConfig();
+                    if (config)
+                    {
+                        if (config->Exists("data"))
+                            m_config = config->GetConfig("data");
+
+                        if (config->Exists("common"))
+                        {
+                            auto common = config->GetConfig("common");
+
+                            if (!m_options.count("daemon") && common->Exists("daemon"))
+                                m_runAsDaemon = common->GetValue<bool>("daemon");
+
+                            if (common->Exists("log"))
+                            {
+                                auto log = common->GetConfig("log");
+                                if (!m_options.count("logdir") && log->Exists("dir"))
+                                {
+                                    m_logDirName = log->GetValue("dir");
+                                    pathFromConfig = true;
+                                }
+                                if (!m_options.count("logpattern") && log->Exists("pattern"))
+                                {
+                                    m_logPattern = log->GetValue("pattern");
+                                    pathFromConfig = true;
+                                }
+                                if (!m_options.count("loglevel") && log->Exists("level"))
+                                {
+                                    m_logLevel = static_cast<Common::Log::Level>(log->GetValue<std::uint32_t>("level"));
+                                    levelFromConfig = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                InitLog(pathFromConfig, levelFromConfig);
 
                 Start();
             }
@@ -233,9 +282,9 @@ namespace Mif
             return EXIT_FAILURE;
         }
 
-        void Application::ProcessLogOptions()
+        void Application::InitLog(bool pathFromConfig, bool levelFromConfig)
         {
-            if (m_options.count("loglevel"))
+            if (m_options.count("loglevel") || levelFromConfig)
             {
                 if (m_logLevel > Common::Log::Level::Trace)
                 {
@@ -245,7 +294,7 @@ namespace Mif
                 }
             }
 
-            if (m_options.count("logdir") || m_options.count("logpattern"))
+            if (m_options.count("logdir") || m_options.count("logpattern") || pathFromConfig)
             {
                 if (!boost::filesystem::exists(m_logDirName))
                 {
@@ -257,7 +306,7 @@ namespace Mif
                 }
                 Common::InitFileLog(static_cast<Common::Log::Level>(m_logLevel), m_logDirName, m_logPattern);
             }
-            else if (m_options.count("loglevel"))
+            else if (m_options.count("loglevel") || levelFromConfig)
             {
                 Common::InitConsoleLog(static_cast<Common::Log::Level>(m_logLevel));
             }
@@ -265,21 +314,13 @@ namespace Mif
 
         void Application::Start()
         {
-            bool NeedRunAsDaemon = false;
-
             auto locator = Service::RootLocator::Get();
 
             try
             {
-                if (m_options.count("config"))
-                {
-                    LoadConfig();
-                    // TODO: set RunAsDaemon from config
-                }
-
             #if defined(__linux__) || defined(__unix__)
                 if (m_options.count("daemon"))
-                    NeedRunAsDaemon = true;
+                    m_runAsDaemon = true;
             #endif
             }
             catch (std::exception const &e)
@@ -291,7 +332,7 @@ namespace Mif
 
             try
             {
-                if (!NeedRunAsDaemon)
+                if (!m_runAsDaemon)
                     RunInThisProcess();
                 else
                     RunAsDaemon();
@@ -317,9 +358,35 @@ namespace Mif
             }
         }
 
-        void Application::LoadConfig()
+        IConfigPtr Application::LoadConfig() const
         {
-            ;
+            if (!boost::filesystem::exists(m_configFileName))
+            {
+                throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] "
+                    "Failed to load config from file \"" + m_configFileName + "\". File not found."};
+            }
+            if (!boost::filesystem::is_regular_file(m_configFileName))
+            {
+                throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] "
+                        "Failed to load config file. "
+                        "The path \"" + m_configFileName + "\" is not a regular file."};
+            }
+
+            auto file = std::make_shared<std::ifstream>(m_configFileName, std::ios_base::in);
+            if (!file->is_open())
+            {
+                throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] "
+                        "Failed to open config file \"" + m_configFileName + "\""};
+            }
+
+            if (m_configFileFormat == "json")
+                return Service::Create<Id::Service::Config::Json, IConfig>(file);
+            else if (m_configFileFormat == "xml")
+                return Service::Create<Id::Service::Config::Xml, IConfig>(file);
+            else if (m_configFileFormat == "ini")
+                return Service::Create<Id::Service::Config::Ini, IConfig>(file);
+
+            throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] Unsupported format \"" + m_configFileFormat + "\""};
         }
 
         void Application::RunAsDaemon()
