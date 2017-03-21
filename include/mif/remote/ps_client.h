@@ -343,9 +343,11 @@ namespace Mif
                     if (deserializer->IsResponse())
                     {
                         Response response{GetCurTime(), std::move(deserializer)};
-                        LockGuard lock{m_dataLock};
-                        CleanOldResponses();
-                        m_responses.insert(std::make_pair(uuid, std::move(response)));
+                        {
+                            LockGuard lock{m_dataLock};
+                            CleanOldResponses();
+                            m_responses.insert(std::make_pair(uuid, std::move(response)));
+                        }
                         m_condVar.notify_all();
                     }
                     else if (m_responses.find(uuid) == std::end(m_responses))
