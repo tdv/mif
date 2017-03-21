@@ -21,7 +21,8 @@
 #include <thread>
 
 // BOOST
-#include <boost/filesystem/path.hpp>
+//#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/program_options/parsers.hpp>
 
 // MIF
@@ -127,7 +128,10 @@ namespace Mif
                     ("pidfile,p", boost::program_options::value<std::string>(&m_pidFileName), "Path to pid-file.")
             #endif
                     ("config,c", boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
-                    ("logfile", boost::program_options::value<std::string>(&m_logFileName), "Log file name (full path | pattern).")
+                    ("logdir", boost::program_options::value<std::string>(&m_logDirName)->default_value(
+                            boost::filesystem::canonical(boost::filesystem::path{argv[0]}.parent_path()).c_str()), "Log directory name.")
+                    ("logpattern", boost::program_options::value<std::string>(&m_logPattern)->default_value(
+                            m_name + "_%5N.log"), "Log file pattern.")
                     ("loglevel", boost::program_options::value<std::uint32_t>(&m_logLevel)->default_value(Common::Log::Level::Trace), "Log level.");
         }
 
@@ -218,6 +222,8 @@ namespace Mif
                     return EXIT_SUCCESS;
                 }
 
+                ProcessLogOptions();
+
                 Start();
             }
             catch (std::exception const &e)
@@ -225,6 +231,36 @@ namespace Mif
                 MIF_LOG(Fatal) << "[Mif::Application::Application::Run] Failed to start application. Error: " << e.what();
             }
             return EXIT_FAILURE;
+        }
+
+        void Application::ProcessLogOptions()
+        {
+            if (m_options.count("loglevel"))
+            {
+                if (m_logLevel > Common::Log::Level::Trace)
+                {
+                    throw std::invalid_argument{"[Mif::Application::Application::Run] "
+                            "Invalid log level valie \"" + std::to_string(m_logLevel) + "\". "
+                            "The value of the logging level should not exceed \"" + std::to_string(Common::Log::Level::Trace) + "\"."};
+                }
+            }
+
+            if (m_options.count("logdir") || m_options.count("logpattern"))
+            {
+                if (!boost::filesystem::exists(m_logDirName))
+                {
+                    if (!boost::filesystem::create_directories(m_logDirName))
+                    {
+                        throw std::runtime_error{"[Mif::Application::Application::Run] "
+                                "Failed to create log directory \"" + m_logDirName + "\""};
+                    }
+                }
+                Common::InitFileLog(static_cast<Common::Log::Level>(m_logLevel), m_logDirName, m_logPattern);
+            }
+            else if (m_options.count("loglevel"))
+            {
+                Common::InitConsoleLog(static_cast<Common::Log::Level>(m_logLevel));
+            }
         }
 
         void Application::Start()
