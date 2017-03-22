@@ -148,7 +148,7 @@ namespace Mif
             #endif
                     (Option::Config::GetString(), boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
                     (Option::ConfigFormat::GetString(), boost::program_options::value<std::string>(&m_configFileFormat)->default_value(
-                            "json"), "Config file format (available formats: json, xml, ini).")
+                            "json"), "Config file format (available formats: json, xml).")
                     (Option::LogDir::GetString(), boost::program_options::value<std::string>(&m_logDirName), "Log directory name.")
                     (Option::LogPattern::GetString(), boost::program_options::value<std::string>(&m_logPattern), "Log file pattern.")
                     (Option::LogLevel::GetString(), boost::program_options::value<std::uint32_t>(&m_logLevel), "Log level.");
@@ -399,8 +399,6 @@ namespace Mif
                 return Service::Create<Id::Service::Config::Json, IConfig>(file);
             else if (m_configFileFormat == "xml")
                 return Service::Create<Id::Service::Config::Xml, IConfig>(file);
-            else if (m_configFileFormat == "ini")
-                return Service::Create<Id::Service::Config::Ini, IConfig>(file);
 
             throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] Unsupported format \"" + m_configFileFormat + "\""};
         }

@@ -25,8 +25,7 @@ namespace Mif
                     enum
                     {
                         Json = Common::Crc32("Mif.Application.Service.Config.Json"),
-                        Xml = Common::Crc32("Mif.Application.Service.Config.Xml"),
-                        Ini = Common::Crc32("Mif.Application.Service.Config.Ini")
+                        Xml = Common::Crc32("Mif.Application.Service.Config.Xml")
                     };
 
                 }   // namespace Config

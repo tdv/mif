@@ -1,0 +1,12 @@
+{
+	"common": {
+		"daemon": 0,
+		"pid": null,
+		"log": {
+			"level": 4,
+			"dir": ".",
+			"pattern": "log_%5N.log"
+		}
+	},
+	"data": null
+}

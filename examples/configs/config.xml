@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<document>
+	<common>
+		<daemon>0</daemon>
+		<pid/>
+		<log>
+			<level>4</level>
+			<dir>.</dir>
+			<pattern>log_%5N.log</pattern>
+		</log>
+	</common>
+	<data/>
+</document>

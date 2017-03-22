@@ -32,7 +32,6 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http_clients.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/application.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/json.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/ini.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/xml.cpp
 )
 
