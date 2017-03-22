@@ -55,11 +55,13 @@ make
 
 Сервер:
 
-./helloworld_server localhost 5555
+./helloworld_server
 
 Клиент:
 
-./helloworld_client localhost 5555
+./helloworld_client
+
+Для получения описания всех параметров запуска примеров нужно запустить приложение с параметром --help
 
 # Установка
 make install
