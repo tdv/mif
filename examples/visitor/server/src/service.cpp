@@ -5,11 +5,8 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <iostream>
-#include <mutex>
-
 // MIF
+#include <mif/common/log.h>
 #include <mif/service/creator.h>
 #include <mif/service/make.h>
 
@@ -49,32 +46,22 @@ namespace Service
             public:
                 Service()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "Service" << std::endl;
+                    MIF_LOG(Info) << "Service";
                 }
 
                 ~Service()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "~Service" << std::endl;
+                    MIF_LOG(Info) << "~Service";
                 }
 
             private:
-                using LockType = std::mutex;
-                using LockGuard = std::lock_guard<LockType>;
-
-                mutable LockType m_lock;
-
                 // IViewer
                 virtual void Accept(IMessageVisitorPtr visitor) override final
                 {
                     if (!visitor)
                         throw std::invalid_argument{"Empty pointer on IMessageVisitor"};
 
-                    {
-                        LockGuard lock(m_lock);
-                        std::cout << "Accept" << std::endl;
-                    }
+                    MIF_LOG(Info) << "Accept";
 
                     auto message = Mif::Service::Make<Message, IMessage>("Message from remote service.");
 

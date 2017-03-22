@@ -2,13 +2,12 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     10.2016
-//  Copyright (C) 2016 tdv
+//  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <iostream>
-
 // MIF
+#include <mif/application/application.h>
+#include <mif/common/log.h>
 #include <mif/net/tcp_clients.h>
 
 // COMMON
@@ -19,38 +18,53 @@ void ShowEmployees(Service::Data::Employees const &employees)
 {
     for (auto const &e : employees)
     {
-        std::cout << "Employee. Id: " << e.first << " "
+        MIF_LOG(Info) << "Employee. Id: " << e.first << " "
             << "Name: " << e.second.name << " "
             << "LastName: " << e.second.lastName << " "
             << "Age: " << e.second.age << " "
-            << "Position: " << e.second.position << std::endl;
+            << "Position: " << e.second.position;
     }
 }
 
-int main(int argc, char const **argv)
+class Applicatin
+    : public Mif::Application::Application
 {
-    if (argc != 3)
+public:
+    Applicatin(int argc, char const **argv)
+        : Mif::Application::Application{argc, argv}
     {
-        std::cerr << "Bad params. Usage: complextype_client <host> <port>" << std::endl;
-        return -1;
-    }
-    try
-    {
-        std::chrono::microseconds timeout{10 * 1000 * 1000};
+        boost::program_options::options_description options{"Server options"};
+        options.add_options()
+                ("host", boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
+                ("port", boost::program_options::value<std::string>()->default_value("55555"), "Server port");
 
-        std::cout << "Starting client on \"" << argv[1] << ":" << argv[2] << "\"" << std::endl;
+        AddCustomOptions(options);
+    }
+
+private:
+    // Mif.Application.Application
+    virtual void OnStart() override final
+    {
+        auto const &options = GetOptions();
+
+        auto const host = options["host"].as<std::string>();
+        auto const port = options["port"].as<std::string>();
+
+        MIF_LOG(Info) << "Starting client on " << host << ":" << port;
+
+        std::chrono::microseconds timeout{10 * 1000 * 1000};
 
         auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout);
 
         Mif::Net::TCPClients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(argv[1], argv[2]));
+        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port));
+
+        MIF_LOG(Info) << "Client is successfully started.";
 
         auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
 
         auto service = client->CreateService<Service::IMyCompany>("MyCompany");
-
-        std::cout << "Client started." << std::endl;
 
         {
             Service::Data::Employee e;
@@ -59,7 +73,7 @@ int main(int argc, char const **argv)
             e.age = 25;
             e.position = "manager";
             auto const eId = service->AddEmployee(e);
-            std::cout << "Employee Id: " << eId << std::endl;
+            MIF_LOG(Info) << "Employee Id: " << eId;
         }
 
         {
@@ -69,7 +83,7 @@ int main(int argc, char const **argv)
             e.age = 30;
             e.position = "developer";
             auto const eId = service->AddEmployee(e);
-            std::cout << "Employee Id: " << eId << std::endl;
+            MIF_LOG(Info) << "Employee Id: " << eId;
         }
 
         auto const &employees = service->GetEmployees();
@@ -79,30 +93,24 @@ int main(int argc, char const **argv)
         {
             auto id = std::begin(employees)->first;
             service->RemoveAccount(id);
-            std::cout << "Removed account " << id << std::endl;
+            MIF_LOG(Info) << "Removed account " << id;
             auto const &employees = service->GetEmployees();
             ShowEmployees(employees);
 
             try
             {
-                std::cout << "Removed again account " << id << std::endl;
+                MIF_LOG(Info) << "Removed again account " << id;
                 service->RemoveAccount(id);
             }
             catch (std::exception const &e)
             {
-                std::cerr << "Error: " << e.what() << std::endl;
+                MIF_LOG(Warning) << "Error: " << e.what();
             }
         }
-
-        std::cout << "Press Enter for quit." << std::endl;
-
-        std::cin.get();
-
-        std::cout << "Client stopped." << std::endl;
     }
-    catch (std::exception const &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-    return 0;
+};
+
+int main(int argc, char const **argv)
+{
+    return Mif::Application::Run<Applicatin>(argc, argv);
 }

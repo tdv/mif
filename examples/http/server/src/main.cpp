@@ -5,9 +5,6 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <iostream>
-
 // MIF
 #include <mif/application/application.h>
 #include <mif/common/log.h>

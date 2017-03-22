@@ -5,11 +5,9 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <iostream>
-#include <mutex>
-
 // MIF
+#include <mif/application/application.h>
+#include <mif/common/log.h>
 #include <mif/net/tcp_clients.h>
 
 // COMMON
@@ -27,19 +25,13 @@ namespace Service
             : public Mif::Service::Inherit<IMessageVisitor>
         {
         private:
-            using LockType = std::mutex;
-            using LockGuard = std::lock_guard<LockType>;
-
-            LockType m_lock;
-
             // IMessageVisitor
             virtual void Visit(IMessagePtr message) override final
             {
                 if (!message)
                     throw std::invalid_argument{"Empty message pointer."};
 
-                LockGuard lock{m_lock};
-                std::cout << "Message: " << message->GetText() << std::endl;
+                MIF_LOG(Info) << "Message: " << message->GetText();
             }
         };
 
@@ -47,43 +39,54 @@ namespace Service
     }   // namespace Detail
 }   // namespace Service
 
-int main(int argc, char const **argv)
+class Applicatin
+    : public Mif::Application::Application
 {
-    if (argc != 3)
+public:
+    Applicatin(int argc, char const **argv)
+        : Mif::Application::Application{argc, argv}
     {
-        std::cerr << "Bad params. Usage: protostack_client <host> <port>" << std::endl;
-        return -1;
-    }
-    try
-    {
-        std::chrono::microseconds const timeout{10 * 1000 * 1000};
+        boost::program_options::options_description options{"Server options"};
+        options.add_options()
+                ("host", boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
+                ("port", boost::program_options::value<std::string>()->default_value("55555"), "Server port");
 
-        std::cout << "Starting client on \"" << argv[1] << ":" << argv[2] << "\"" << std::endl;
+        AddCustomOptions(options);
+    }
+
+private:
+    // Mif.Application.Application
+    virtual void OnStart() override final
+    {
+        auto const &options = GetOptions();
+
+        auto const host = options["host"].as<std::string>();
+        auto const port = options["port"].as<std::string>();
+
+        MIF_LOG(Info) << "Starting client on " << host << ":" << port;
+
+        std::chrono::microseconds const timeout{10 * 1000 * 1000};
 
         auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout);
 
         Mif::Net::TCPClients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(argv[1], argv[2]));
+        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port));
+
+        MIF_LOG(Info) << "Client is successfully started.";
 
         auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
 
         auto service = client->CreateService<Service::IViewer>("Service");
 
-        std::cout << "Client started." << std::endl;
+        MIF_LOG(Info) << "Client started.";
 
         auto visitor = Mif::Service::Make<Service::Detail::MessageVisitor, Service::IMessageVisitor>();
         service->Accept(visitor);
-
-        std::cout << "Press Enter for quit." << std::endl;
-
-        std::cin.get();
-
-        std::cout << "Client stopped." << std::endl;
     }
-    catch (std::exception const &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-    return 0;
+};
+
+int main(int argc, char const **argv)
+{
+    return Mif::Application::Run<Applicatin>(argc, argv);
 }

@@ -5,11 +5,8 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <iostream>
-#include <mutex>
-
 // MIF
+#include <mif/common/log.h>
 #include <mif/service/creator.h>
 
 // COMMON
@@ -29,74 +26,54 @@ namespace Service
             public:
                 Service()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "Service" << std::endl;
+                    MIF_LOG(Info) << "Service";
                 }
 
                 ~Service()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "~Service" << std::endl;
+                    MIF_LOG(Info) << "~Service";
                 }
 
             private:
-                using LockType = std::mutex;
-                using LockGuard = std::lock_guard<LockType>;
-
-                mutable LockType m_lock;
-
                 // IHuman
                 virtual std::string GetName() const override final
                 {
-                    {
-                        LockGuard lock(m_lock);
-                        std::cout << "GetName" << std::endl;
-                    }
+                    MIF_LOG(Info) << "GetName";
                     return "Ivan";
                 }
 
                 virtual std::size_t GetAge() const override final
                 {
-                    {
-                        LockGuard lock(m_lock);
-                        std::cout << "GetAge" << std::endl;
-                    }
+                    MIF_LOG(Info) << "GetAge";
                     return 33;
                 }
 
                 // IDeveloper
                 virtual void Development() override final
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "Development" << std::endl;
+                    MIF_LOG(Info) << "Development";
                 }
 
                 virtual void BugFixes() override final
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "BugFixes" << std::endl;
+                    MIF_LOG(Info) << "BugFixes";
                 }
 
                 // IManager
                 virtual void Planning() override final
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "Planning" << std::endl;
+                    MIF_LOG(Info)  << "Planning";
                 }
 
                 virtual void Monitoring() override final
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "Monitoring" << std::endl;
+                    MIF_LOG(Info) << "Monitoring";
                 }
 
                 // IEmployee
                 virtual double GetRate() override final
                 {
-                    {
-                        LockGuard lock(m_lock);
-                        std::cout << "GetRate" << std::endl;
-                    }
+                    MIF_LOG(Info) << "GetRate";
                     return 100000.00;
                 }
             };

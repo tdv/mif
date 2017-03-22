@@ -2,15 +2,15 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     09.2016
-//  Copyright (C) 2016 tdv
+//  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
 // STD
-#include <iostream>
 #include <list>
 #include <mutex>
 
 // MIF
+#include <mif/common/log.h>
 #include <mif/service/creator.h>
 
 // THIS
@@ -30,14 +30,12 @@ namespace Service
             public:
                 HelloWorld()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "HelloWorld" << std::endl;
+                    MIF_LOG(Info) << "HelloWorld";
                 }
 
                 ~HelloWorld()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "~HelloWorld" << std::endl;
+                    MIF_LOG(Info) << "~HelloWorld";
                 }
 
             private:
@@ -50,8 +48,8 @@ namespace Service
                 // IHelloWorld
                 virtual void AddWord(std::string const &word) override final
                 {
+                    MIF_LOG(Info) << "AddWord: " << word;
                     LockGuard lock(m_lock);
-                    std::cout << "AddWord: " << word << std::endl;
                     m_words.push_back(word);
                 }
 
@@ -60,14 +58,14 @@ namespace Service
                     std::string text;
                     {
                         LockGuard lock(m_lock);
-                        std::cout << "GetText. Creating text in " << m_words.size() << " words." << std::endl;
+                        MIF_LOG(Info) << "GetText. Creating text in " << m_words.size() << " words.";
                         for (auto const &word : m_words)
                         {
                             if (!text.empty())
                                 text += " ";
                             text += word;
                         }
-                        std::cout << "GetText. Created text in " << m_words.size() << " words. Text \"" << text << "\"" << std::endl;
+                        MIF_LOG(Info) << "GetText. Created text in " << m_words.size() << " words. Text \"" << text << "\"";
                     }
                     return text;
                 }
@@ -76,7 +74,7 @@ namespace Service
                 virtual void Clean() override final
                 {
                     LockGuard lock(m_lock);
-                    std::cout << "Clean. Remove " << m_words.size() << " words." << std::endl;
+                    MIF_LOG(Info) << "Clean. Remove " << m_words.size() << " words.";
                     decltype(m_words){}.swap(m_words);
                 }
 

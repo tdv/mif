@@ -2,14 +2,14 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     10.2016
-//  Copyright (C) 2016 tdv
+//  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
 // STD
-#include <iostream>
 #include <mutex>
 
 // MIF
+#include <mif/common/log.h>
 #include <mif/service/creator.h>
 
 // COMMON
@@ -29,14 +29,12 @@ namespace Service
             public:
                 MyCompany()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "MyCompany" << std::endl;
+                    MIF_LOG(Info) << "MyCompany";
                 }
 
                 ~MyCompany()
                 {
-                    LockGuard lock(m_lock);
-                    std::cout << "~MyCompany" << std::endl;
+                    MIF_LOG(Info) << "~MyCompany";
                 }
 
             private:
@@ -55,12 +53,12 @@ namespace Service
                         LockGuard lock(m_lock);
                         id = std::to_string(m_employees.size());
                         m_employees[id] = employee;
-                        std::cout << "AddEmployee. "
-                            << "Name: " << employee.name << " "
-                            << "LastName: " << employee.lastName << " "
-                            << "Age: " << employee.age << " "
-                            << "Position: " << employee.position << std::endl;
                     }
+                    MIF_LOG(Info) << "AddEmployee. "
+                        << "Name: " << employee.name << " "
+                        << "LastName: " << employee.lastName << " "
+                        << "Age: " << employee.age << " "
+                        << "Position: " << employee.position;
                     return id;
                 }
 
@@ -70,17 +68,16 @@ namespace Service
                     auto iter = m_employees.find(id);
                     if (iter == std::end(m_employees))
                     {
-                        std::cout << "RemoveAccount. "
-                            << "Employee with id " << id << " not found." << std::endl;
+                        MIF_LOG(Warning) << "RemoveAccount. " << "Employee with id " << id << " not found.";
                         throw std::runtime_error{"RemoveAccount. Employee with id " + id + " not found."};
                     }
                     else
                     {
-                        std::cout << "Removed employee account for Id: " << iter->first << " "
+                        MIF_LOG(Info) << "Removed employee account for Id: " << iter->first << " "
                             << "Name: " << iter->second.name << " "
                             << "LastName: " << iter->second.lastName << " "
                             << "Age: " << iter->second.age << " "
-                            << "Position: " << iter->second.position << std::endl;
+                            << "Position: " << iter->second.position;
 
                         m_employees.erase(iter);
                     }
@@ -92,14 +89,14 @@ namespace Service
                     {
                         LockGuard lock(m_lock);
                         employees = m_employees;
-                        std::cout << "GetEmployees." << std::endl;
+                        MIF_LOG(Info) << "GetEmployees.";
                         for (auto const &i : employees)
                         {
-                            std::cout << "Id: " << i.first << " "
+                            MIF_LOG(Info) << "Id: " << i.first << " "
                                 << "Name: " << i.second.name << " "
                                 << "LastName: " << i.second.lastName << " "
                                 << "Age: " << i.second.age << " "
-                                << "Position: " << i.second.position << std::endl;
+                                << "Position: " << i.second.position;
                         }
                     }
                     return employees;

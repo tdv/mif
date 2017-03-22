@@ -5,10 +5,9 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <iostream>
-
 // MIF
+#include <mif/application/application.h>
+#include <mif/common/log.h>
 #include <mif/net/tcp_server.h>
 
 // COMMON
@@ -18,38 +17,59 @@
 // THIS
 #include "common/id/service.h"
 
-int main(int argc, char const **argv)
+class Applicatin
+    : public Mif::Application::Application
 {
-    if (argc != 3)
+public:
+    Applicatin(int argc, char const **argv)
+        : Mif::Application::Application{argc, argv}
     {
-        std::cerr << "Bad params. Usage: helloworld_server <host> <port>" << std::endl;
-        return -1;
+        boost::program_options::options_description options{"Server options"};
+        options.add_options()
+                ("host", boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
+                ("port", boost::program_options::value<std::string>()->default_value("55555"), "Server port")
+                ("workers", boost::program_options::value<std::uint16_t>()->default_value(8), "Workers thread count");
+
+        AddCustomOptions(options);
     }
-    try
+
+private:
+    std::unique_ptr<Mif::Net::TCPServer> m_server;
+
+    // Mif.Application.Application
+    virtual void OnStart() override final
     {
+        auto const &options = GetOptions();
+
+        auto const host = options["host"].as<std::string>();
+        auto const port = options["port"].as<std::string>();
+        auto const workers = options["workers"].as<std::uint16_t>();
+
+        MIF_LOG(Info) << "Starting server on " << host << ":" << port;
+
         auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
         factory->AddClass<Service::Id::HelloWorld>();
 
-        std::cout << "Starting server on \"" << argv[1] << ":" << argv[2] << "\" ..." << std::endl;
-
         std::chrono::microseconds const timeout{10 * 1000 * 1000};
 
-        auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout, factory);
+        auto clientFactory = Service::Ipc::MakeClientFactory(workers, timeout, factory);
 
-        auto server = std::make_shared<Mif::Net::TCPServer>(
-            argv[1], argv[2], clientFactory);
-        (void)server;
-        
-        std::cout << "Started server. Press Enter for quit." << std::endl;
-        
-        std::cin.get();
-        
-        std::cout << "Server stopped." << std::endl;
+        m_server.reset(new Mif::Net::TCPServer{host, port, clientFactory});
 
+        MIF_LOG(Info) << "Server is successfully started.";
     }
-    catch (std::exception const &e)
+
+    virtual void OnStop() override final
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        MIF_LOG(Info) << "Stopping server ...";
+
+        m_server.reset();
+
+        MIF_LOG(Info) << "Server is successfully stopped.";
     }
-    return 0;
+};
+
+int main(int argc, char const **argv)
+{
+    return Mif::Application::Run<Applicatin>(argc, argv);
 }
