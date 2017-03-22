@@ -52,9 +52,15 @@ namespace Mif
                     ::Json::Value::const_iterator m_end;
 
                     // ICollection
-                    virtual bool HasNext() const override final
+                    virtual bool Next() override final
                     {
-                        return m_cur != m_end;
+                        if (m_cur != m_end)
+                        {
+                            ++m_cur;
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     virtual bool IsEmpty() const override final
@@ -62,8 +68,12 @@ namespace Mif
                         return m_array.empty();
                     }
 
-                    virtual Service::IServicePtr First() override final;
-                    virtual Service::IServicePtr Next() override final;
+                    virtual void Reset() override final
+                    {
+                        m_cur = std::begin(m_array);
+                    }
+
+                    virtual Service::IServicePtr Get() override final;
                 };
 
                 class Config
@@ -194,28 +204,15 @@ namespace Mif
                     }
                 };
 
-                Service::IServicePtr Collection::First()
+                Service::IServicePtr Collection::Get()
                 {
-                    if (IsEmpty())
+                    if (!IsEmpty() || m_cur == m_end)
                     {
-                        throw std::runtime_error{"[Mif::Application::Detail::Collection::First] "
-                                "Failed to get first item. Empty collection."};
+                        throw std::runtime_error{"[Mif::Application::Detail::Collection::Get] "
+                                "Failed to get item. No item."};
                     }
 
                     return Service::Make<Config>(*m_cur);
-                }
-
-                Service::IServicePtr Collection::Next()
-                {
-                    if (!IsEmpty() && HasNext())
-                    {
-                        throw std::runtime_error{"[Mif::Application::Detail::Collection::Next] "
-                                "Failed to get next item. No next item."};
-                    }
-
-                    auto item = Service::Make<Config>(*m_cur);
-                    ++m_cur;
-                    return item;
                 }
 
             }   // namespace

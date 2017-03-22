@@ -19,10 +19,10 @@ namespace Mif
         struct ICollection
             : public Service::Inherit<Service::IService>
         {
-            virtual bool HasNext() const = 0;
             virtual bool IsEmpty() const = 0;
-            virtual Service::IServicePtr First() = 0;
-            virtual Service::IServicePtr Next() = 0;
+            virtual void Reset() = 0;
+            virtual Service::IServicePtr Get() = 0;
+            virtual bool Next() = 0;
         };
 
         using ICollectionPtr = Service::TServicePtr<ICollection>;
