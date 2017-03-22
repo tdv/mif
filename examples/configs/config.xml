@@ -2,7 +2,6 @@
 <document>
 	<common>
 		<daemon>0</daemon>
-		<pid/>
 		<log>
 			<level>4</level>
 			<dir>.</dir>

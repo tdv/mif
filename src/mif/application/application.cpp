@@ -47,7 +47,6 @@ namespace Mif
             MIF_DECLARE_SRTING_PROVIDER(Help, "help")
             MIF_DECLARE_SRTING_PROVIDER(Version, "version")
             MIF_DECLARE_SRTING_PROVIDER(Daemon, "daemon")
-            MIF_DECLARE_SRTING_PROVIDER(PidFile, "pidfile")
             MIF_DECLARE_SRTING_PROVIDER(Config, "config")
             MIF_DECLARE_SRTING_PROVIDER(ConfigFormat, "configformat")
             MIF_DECLARE_SRTING_PROVIDER(LogDir, "logdir")
@@ -153,7 +152,6 @@ namespace Mif
                     (Option::Version::GetString(), "Show program version.")
             #if defined(__linux__) || defined(__unix__)
                     (Option::Daemon::GetString(), "Run as daemon.")
-                    (Option::PidFile::GetString(), boost::program_options::value<std::string>(&m_pidFileName), "Path to pid-file.")
             #endif
                     (Option::Config::GetString(), boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
                     (Option::ConfigFormat::GetString(), boost::program_options::value<std::string>(&m_configFileFormat)->default_value(
