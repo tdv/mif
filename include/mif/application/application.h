@@ -71,8 +71,8 @@ namespace Mif
             boost::program_options::options_description m_optionsDescr;
             boost::program_options::variables_map m_options;
 
-            std::string m_name;
             std::string m_version;
+            std::string m_name;
             std::string m_description;
 
             IConfigPtr m_config;

@@ -1,3 +1,7 @@
+include (cmake/version.cmake)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/mif/common/version.h)
+
 set(MIF_SOURCES
     ${MIF_SOURCES}
     

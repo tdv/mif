@@ -1,0 +1,42 @@
+//-------------------------------------------------------------------
+//  MetaInfo Framework (MIF)
+//  https://github.com/tdv/mif
+//  Created:     03.2017
+//  Copyright (C) 2016-2017 tdv
+//-------------------------------------------------------------------
+
+#ifndef __MIF_COMMON_VERSION_H__
+#define __MIF_COMMON_VERSION_H__
+
+namespace Mif
+{
+    namespace Common
+    {
+
+        struct Version final
+        {
+            static int Major() noexcept
+            {
+                return ${MIF_VERSION_MAJOR};
+            }
+
+            static int Minor() noexcept
+            {
+                return ${MIF_VERSION_MINOR};
+            }
+
+            static int Patch() noexcept
+            {
+                return ${MIF_VERSION_PATCH};
+            }
+
+            static char const* GetAsString() noexcept
+            {
+                return "${MIF_VERSION_MAJOR}.${MIF_VERSION_MINOR}.${MIF_VERSION_PATCH}";
+            }
+        };
+
+    }	// namespace Common
+}	// namespace Mif
+
+#endif	// !__MIF_COMMON_VERSION_H__

@@ -32,6 +32,7 @@
 #include "mif/common/log.h"
 #include "mif/common/log_init.h"
 #include "mif/common/static_string.h"
+#include "mif/common/version.h"
 #include "mif/service/root_locator.h"
 #include "mif/service/create.h"
 
@@ -54,6 +55,13 @@ namespace Mif
             MIF_DECLARE_SRTING_PROVIDER(LogLevel, "loglevel")
 
         }   // namespace Option
+
+        namespace
+        {
+
+            MIF_DECLARE_SRTING_PROVIDER(ProjectPageLink, "https://github.com/tdv/mif")
+
+        }   // namespace
 
         class Application::Daemon final
         {
@@ -136,6 +144,7 @@ namespace Mif
             , m_argv{argv}
             , m_logLevel{Common::Log::Level::Trace}
             , m_optionsDescr{"Allowed options"}
+            , m_version{"snapshot"}
             , m_name{boost::filesystem::path{argv[0]}.filename().c_str()}
             , m_description{"MIF application"}
         {
@@ -242,7 +251,8 @@ namespace Mif
                 {
                     std::cout << "Application: " << m_name << std::endl
                               << "Veraion: " << m_version << std::endl
-                              << "Description: " << m_description << std::endl;
+                              << "Description: " << m_description << std::endl
+                              << "MIF " << Common::Version::GetAsString() << " " << ProjectPageLink::GetString() << std::endl;
                     return EXIT_SUCCESS;
                 }
 
