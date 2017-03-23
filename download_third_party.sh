@@ -9,3 +9,8 @@ wget https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.
 tar zxvf boost_1_63_0.tar.gz
 mv boost_1_63_0 boost
 rm boost_1_63_0.tar.gz
+
+wget https://github.com/postgres/postgres/archive/REL9_6_2.tar.gz
+tar zxvf REL9_6_2.tar.gz
+mv postgres-REL9_6_2 libpq
+rm REL9_6_2.tar.gz

@@ -9,3 +9,6 @@ set (MIF_JSONCPP_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/jsoncpp/")
 
 # libevent
 set (MIF_EVENT_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/libevent/")
+
+# libpq
+set (MIF_LIBPQ_LOCAL_PATH "${THITD_PARTY_SOURCES_PATH}/libpq/")

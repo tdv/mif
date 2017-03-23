@@ -33,6 +33,10 @@ set (EVENT_LIBRARIES
     event_extra
 )
 
+set (LIBPQ_LIBRARIES
+    pq
+)
+
 set (MIF_ZLIB_CMAKE_ARGS
 )
 
@@ -160,6 +164,34 @@ function (mif_add_boost_project from_git)
     endif()
 endfunction()
 
+function (mif_add_libpq_project from_git)
+    set (LIBPQ_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/libpq)
+    set (LIBPQ_INCLUDE_DIR ${LIBPQ_INSTALL_DIR}/include)
+    set (LIBPQ_LIBRARIES_DIR ${LIBPQ_INSTALL_DIR}/lib)
+    include_directories (SYSTEM ${LIBPQ_INCLUDE_DIR})
+    link_directories(${LIBPQ_LIBRARIES_DIR})
+    if (from_git)
+        ExternalProject_Add(libpq-project
+            GIT_REPOSITORY ${MIF_LIBPQ_GITHUB_URL}
+            GIT_TAG ${MIF_LIBPQ_GITHUB_TAG}
+            BUILD_IN_SOURCE 1
+            UPDATE_COMMAND ""
+            CONFIGURE_COMMAND ./configure --with-openssl --without-readline --prefix=${LIBPQ_INSTALL_DIR}
+            BUILD_COMMAND make -C src/interfaces/libpq
+            INSTALL_COMMAND make -C src/interfaces/libpq install
+        )
+    else()
+        ExternalProject_Add(libpq-project
+            SOURCE_DIR ${MIF_LIBPQ_LOCAL_PATH}
+            BUILD_IN_SOURCE 1
+            UPDATE_COMMAND ""
+            CONFIGURE_COMMAND ./configure --with-openssl --without-readline --prefix=${LIBPQ_INSTALL_DIR}
+            BUILD_COMMAND make -C src/interfaces/libpq
+            INSTALL_COMMAND make -C src/interfaces/libpq install
+        )
+    endif()
+endfunction()
+
 function (mif_add_third_party_paths lib)
     string (TOUPPER ${lib} LIB_NAME_UP)
     if (NOT DEFINED ${LIB_NAME_UP}_INCLUDE_DIR)
@@ -185,6 +217,7 @@ if (MIF_NEED_THIRD_PARTY_BUILD)
                 mif_add_git_third_party_project(${lib})
             endforeach (lib)
             mif_add_boost_project(TRUE)
+            mif_add_libpq_project(TRUE)
         else()
             message(FATAL_ERROR "[MIF] No support of getting third_party from not a github source")
         endif()
@@ -194,12 +227,14 @@ if (MIF_NEED_THIRD_PARTY_BUILD)
             mif_add_local_third_party_project(${lib})
         endforeach (lib)
         mif_add_boost_project(FALSE)
+        mif_add_libpq_project(FALSE)
     endif()
 else()
     mif_add_third_party_paths(zlib)
     mif_add_third_party_paths(boost)
     mif_add_third_party_paths(jsoncpp)
     mif_add_third_party_paths(event)
+    mif_add_third_party_paths(libpq)
 endif()
 
 set (BOOST_LIBS_LIST "")
@@ -215,3 +250,4 @@ foreach (lib ${MIF_THIRD_PARTY_LIBS})
 endforeach()
 
 list (APPEND MIF_THIRD_PARTY_PROJECTS boost-project)
+list (APPEND MIF_THIRD_PARTY_PROJECTS libpq-project)

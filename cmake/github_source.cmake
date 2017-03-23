@@ -13,3 +13,7 @@ set (MIF_JSONCPP_GITHUB_TAG "1.8.0")
 # libevent
 set (MIF_EVENT_GITHUB_URL "https://github.com/libevent/libevent.git")
 set (MIF_EVENT_GITHUB_TAG "release-2.1.8-stable")
+
+# postgres
+set (MIF_LIBPQ_GITHUB_URL "https://github.com/postgres/postgres.git")
+set (MIF_LIBPQ_GITHUB_TAG "REL9_6_2")
