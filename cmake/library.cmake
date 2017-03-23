@@ -47,6 +47,7 @@ set (MIF_DEPENDENCIES_LIBRARIES
     ${JSONCPP_LIBRARIES}
     ${ZLIB_LIBRARIES}
     ${EVENT_LIBRARIES}
+    ${LIBPQ_LIBRARIES}
 )
 
 include_directories (include)

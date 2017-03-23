@@ -176,18 +176,22 @@ function (mif_add_libpq_project from_git)
             GIT_TAG ${MIF_LIBPQ_GITHUB_TAG}
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --with-openssl --without-readline --prefix=${LIBPQ_INSTALL_DIR}
+            CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${LIBPQ_INSTALL_DIR}
             BUILD_COMMAND make -C src/interfaces/libpq
             INSTALL_COMMAND make -C src/interfaces/libpq install
+                    && cp src/include/postgres_ext.h ${LIBPQ_INSTALL_DIR}/include
+                    && cp src/include/pg_config_ext.h ${LIBPQ_INSTALL_DIR}/include
         )
     else()
         ExternalProject_Add(libpq-project
             SOURCE_DIR ${MIF_LIBPQ_LOCAL_PATH}
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --with-openssl --without-readline --prefix=${LIBPQ_INSTALL_DIR}
+            CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${LIBPQ_INSTALL_DIR}
             BUILD_COMMAND make -C src/interfaces/libpq
             INSTALL_COMMAND make -C src/interfaces/libpq install
+                    && cp src/include/postgres_ext.h ${LIBPQ_INSTALL_DIR}/include
+                    && cp src/include/pg_config_ext.h ${LIBPQ_INSTALL_DIR}/include
         )
     endif()
 endfunction()

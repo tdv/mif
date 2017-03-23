@@ -5,6 +5,9 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
+// LIBPQ
+#include <libpq-fe.h>
+
 // MIF
 #include "mif/db/iconnection.h"
 #include "mif/db/id/service.h"
