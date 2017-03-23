@@ -33,7 +33,7 @@ public:
     Applicatin(int argc, char const **argv)
         : Mif::Application::Application{argc, argv}
     {
-        boost::program_options::options_description options{"Server options"};
+        boost::program_options::options_description options{"Client options"};
         options.add_options()
                 ("host", boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
                 ("port", boost::program_options::value<std::string>()->default_value("55555"), "Server port");
