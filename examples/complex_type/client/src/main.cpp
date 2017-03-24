@@ -14,18 +14,6 @@
 #include "common/client.h"
 #include "common/ps/imy_company.h"
 
-void ShowEmployees(Service::Data::Employees const &employees)
-{
-    for (auto const &e : employees)
-    {
-        MIF_LOG(Info) << "Employee. Id: " << e.first << " "
-            << "Name: " << e.second.name << " "
-            << "LastName: " << e.second.lastName << " "
-            << "Age: " << e.second.age << " "
-            << "Position: " << e.second.position;
-    }
-}
-
 class Applicatin
     : public Mif::Application::Application
 {
@@ -42,6 +30,18 @@ public:
     }
 
 private:
+    void ShowEmployees(Service::Data::Employees const &employees) const
+    {
+        for (auto const &e : employees)
+        {
+            MIF_LOG(Info) << "Employee. Id: " << e.first << " "
+                << "Name: " << e.second.name << " "
+                << "LastName: " << e.second.lastName << " "
+                << "Age: " << e.second.age << " "
+                << "Position: " << e.second.position;
+        }
+    }
+
     // Mif.Application.Application
     virtual void OnStart() override final
     {
