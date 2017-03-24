@@ -8,7 +8,11 @@
 #ifndef __MIF_DB_ICONNECTION_H__
 #define __MIF_DB_ICONNECTION_H__
 
+// STD
+#include <string>
+
 // MIF
+#include <mif/db/istatement.h>
 #include "mif/service/iservice.h"
 
 namespace Mif
@@ -19,6 +23,8 @@ namespace Mif
         struct IConnection
             : public Service::Inherit<Service::IService>
         {
+            virtual void ExecuteDirect(std::string const &query) = 0;
+            virtual IStatementPtr CreateStatement(std::string const &query) = 0;
         };
 
         using IConnectionPtr = Service::TServicePtr<IConnection>;

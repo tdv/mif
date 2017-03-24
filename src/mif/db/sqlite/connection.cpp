@@ -16,19 +16,31 @@ namespace Mif
     {
         namespace Detail
         {
-
-            class Connection
-                : public Service::Inherit<IConnection>
+            namespace
             {
-            public:
-                Connection()
+
+                class Connection
+                    : public Service::Inherit<IConnection>
                 {
-                }
+                public:
+                    Connection()
+                    {
+                    }
 
-            private:
-                // IConnection
-            };
+                private:
+                    // IConnection
+                    virtual void ExecuteDirect(std::string const &query) override final
+                    {
+                        (void)query;
+                    }
 
+                    virtual IStatementPtr CreateStatement(std::string const &query) override final
+                    {
+                        (void)query;
+                        return {};
+                    }
+                };
+            }   // namespace
         }   // namespace Detail
     }   // namespace Db
 }   // namespace Mif

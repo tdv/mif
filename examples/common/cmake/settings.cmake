@@ -26,5 +26,7 @@ set(LIBRARIES
     jsoncpp
     event
     pthread
+    pq.a
     z
+    rt
 )

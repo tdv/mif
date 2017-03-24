@@ -9,6 +9,7 @@
 #define __MIF_DB_ISTATEMENT_H__
 
 // MIF
+#include "mif/db/irecordset.h"
 #include "mif/service/iservice.h"
 
 namespace Mif
@@ -19,6 +20,7 @@ namespace Mif
         struct IStatement
             : public Service::Inherit<Service::IService>
         {
+            virtual IRecordsetPtr Execute() = 0;
         };
 
         using IStatementPtr = Service::TServicePtr<IStatement>;
