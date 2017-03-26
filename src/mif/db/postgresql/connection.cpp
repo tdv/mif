@@ -35,23 +35,10 @@ namespace Mif
                     : public Service::Inherit<IConnection>
                 {
                 public:
-                    Connection(std::string const &host, std::uint16_t port, std::string const &user, std::string const &password,
-                            std::string const &db, std::uint32_t connectionTimeout)
+                    Connection(std::string const &connectionString)
                     {
-                        std::string connectionString;
-                        {
-                            std::stringstream stream;
-
-                            stream << "host='" << host << "' "
-                                   << "port='" << port << "' "
-                                   << "user='" << user << "' "
-                                   << "password='" << password << "' "
-                                   << "dbname='" << db << "' "
-                                   << "connect_timeout='" << connectionTimeout << "' "
-                                   << "sslmode='" << "disable" << "'";
-
-                            connectionString = stream.str();
-                        }
+                        if (connectionString.empty())
+                            throw std::invalid_argument{"[Mif::Db::PostgreSql::Connection] Empty connection string."};
 
                         m_connection.reset(PQconnectdb(connectionString.c_str()));
 
@@ -60,8 +47,22 @@ namespace Mif
 
                         auto const *message = PQerrorMessage(m_connection.get());
 
-                        throw std::runtime_error{"[Mif::Db::PostgreSql::Detail::Connection] Failed to open connection. "
+                        throw std::runtime_error{"[Mif::Db::PostgreSql::Connection] Failed to open connection. "
                                 "Error: " + std::string{message ? message : "unknown"}};
+                    }
+
+                    Connection(std::string const &host, std::uint16_t port, std::string const &user, std::string const &password,
+                            std::string const &db, std::uint32_t connectionTimeout)
+                        : Connection{
+                                "host='" + host +  "' "
+                                "port='" + std::to_string(port) + "' "
+                                "user='" + user + "' "
+                                "password='" + password + "' "
+                                "dbname='" + db + "' "
+                                "connect_timeout='" + std::to_string(connectionTimeout) + "' "
+                                "sslmode='disable'"
+                            }
+                    {
                     }
 
                 private:
@@ -72,7 +73,7 @@ namespace Mif
                     virtual void ExecuteDirect(std::string const &query) override final
                     {
                         if (query.empty())
-                            throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Connection::ExecuteDirect] Empry query string."};
+                            throw std::invalid_argument{"[Mif::Db::PostgreSql::Connection::ExecuteDirect] Empry query string."};
 
                         Detail::Statement::ResultPtr result{PQexec(m_connection.get(), query.c_str()),
                                 [] (PGresult *res) { if (res) PQclear(res); } };
@@ -81,7 +82,7 @@ namespace Mif
                             return;
 
                         auto const *message = PQerrorMessage(m_connection.get());
-                        throw std::runtime_error{"[Mif::Db::PostgreSql::Detail::Connection::ExecuteDirect] "
+                        throw std::runtime_error{"[Mif::Db::PostgreSql::Connection::ExecuteDirect] "
                                 "Failed to execute query \"" + query + "\" Error: " + std::string{message ? message : "unknown"}};
                     }
 
@@ -106,4 +107,11 @@ MIF_SERVICE_CREATOR
     std::string,
     std::string,
     std::uint32_t
+)
+
+MIF_SERVICE_CREATOR
+(
+    Mif::Db::Id::Service::PostgreSQL,
+    Mif::Db::PostgreSql::Connection,
+    std::string
 )

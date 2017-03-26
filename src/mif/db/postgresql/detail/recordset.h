@@ -34,17 +34,28 @@ namespace Mif
                 public:
                     Recordset(PGconn *connection, Service::IService *holder, std::string const &statementName);
 
-                    virtual ~Recordset();
-
                 private:
                     PGconn *m_connection;
                     Service::IServicePtr m_holder;
                     std::string m_statementName;
+                    bool m_hasNext = true;
+                    int m_currentRow = -1;
+                    std::size_t m_fieldsCount = 0;
 
                     using ResultPtr = std::unique_ptr<PGresult, decltype(&PQclear)>;
                     ResultPtr m_result{nullptr, [] (PGresult *res) { if (res) PQclear(res); } };
 
+                    void CheckIndex(std::size_t index) const;
+
                     // IRecordset
+                    virtual bool Read() override final;
+                    virtual std::size_t GetFieldsCount() const override final;
+                    virtual bool IsNull(std::size_t index) const override final;
+                    virtual std::string GetFieldName(std::size_t index) const override final;
+                    virtual std::string GetAsString(std::size_t index) const override final;
+                    virtual std::int32_t GetAsInt32(std::size_t index) const override final;
+                    virtual std::int64_t GetAsInt64(std::size_t index) const override final;
+                    virtual double GetAsDouble(std::size_t index) const override final;
                 };
 
             }   // namespace Detail

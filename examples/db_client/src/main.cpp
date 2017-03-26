@@ -32,7 +32,7 @@ int main(/*int argc, char const **argv*/)
 
         connection->ExecuteDirect("BEGIN;");
         connection->ExecuteDirect(
-                "create table if not exists test "
+                "create table test "
                 "("
                 "test_id bigserial not null primary key,"
                 "key varchar not null,"
@@ -40,7 +40,7 @@ int main(/*int argc, char const **argv*/)
                 ")"
             );
         connection->ExecuteDirect(
-                "create unique index if not exists test_unique_key_index on test (key);"
+                "create unique index test_unique_key_index on test (key);"
             );
         connection->ExecuteDirect(
                 "insert into test (key, value) "
@@ -51,7 +51,19 @@ int main(/*int argc, char const **argv*/)
         auto statement = connection->CreateStatement("select key, value from test order by key;");
         auto recordset = statement->Execute();
 
-        (void)recordset;
+        auto const count = recordset->GetFieldsCount();
+        MIF_LOG(Info) << "Fields count: " << count;
+        for (std::size_t i = 0 ; i < count ; ++i)
+            MIF_LOG(Info) << "\"" << recordset->GetFieldName(i) << "\" is the name of the field "  << i <<  ".";
+
+        while (recordset->Read())
+        {
+            for (std::size_t i = 0 ; i < count ; ++i)
+            {
+                MIF_LOG(Info) << recordset->GetFieldName(i) << ": "
+                        << (recordset->IsNull(i) ? std::string{"null"} : recordset->GetAsString(i));
+            }
+        }
 
         connection->ExecuteDirect(
                 "drop table test;"
