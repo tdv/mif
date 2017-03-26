@@ -45,7 +45,7 @@ namespace Mif
                     std::string m_query;
 
                     // IStatement
-                    virtual IRecordsetPtr Execute() override final;
+                    virtual IRecordsetPtr Execute(Parameters const &parameters) override final;
                 };
 
             }   // namespace Detail

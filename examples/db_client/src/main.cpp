@@ -48,8 +48,12 @@ int main(/*int argc, char const **argv*/)
                 "from generate_series(1, 10) as t(i);"
             );
 
-        auto statement = connection->CreateStatement("select key, value from test order by key;");
-        auto recordset = statement->Execute();
+        auto statement = connection->CreateStatement(
+                "select * from test "
+                "where test_id >= $1 and test_id <= $2 "
+                "order by test_id;"
+            );
+        auto recordset = statement->Execute({"5", "7"});
 
         auto const count = recordset->GetFieldsCount();
         MIF_LOG(Info) << "Fields count: " << count;

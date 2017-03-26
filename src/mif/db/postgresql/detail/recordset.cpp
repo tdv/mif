@@ -6,10 +6,12 @@
 //-------------------------------------------------------------------
 
 // STD
+#include <cstring>
 #include <stdexcept>
 
 // BOOST
 #include <boost/scoped_array.hpp>
+#include <boost/shared_array.hpp>
 
 // THIS
 #include "recordset.h"
@@ -23,10 +25,10 @@ namespace Mif
             namespace Detail
             {
 
-                Recordset::Recordset(PGconn *connection, Service::IService *holder, std::string const &statementName)
+                Recordset::Recordset(PGconn *connection, Service::IService *holder,
+                        std::string const &statementName, Parameters const &parameters)
                     : m_connection{connection}
                     , m_holder{holder}
-                    , m_statementName{statementName}
                 {
                     if (!m_connection)
                         throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Recordset] Empty connection pointer."};
@@ -34,10 +36,39 @@ namespace Mif
                     if (!m_holder)
                         throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Recordset] Empty connection holder pointer."};
 
-                    if (m_statementName.empty())
+                    if (statementName.empty())
                         throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Recordset] Empty query."};
 
-                    m_result.reset(PQexecPrepared(m_connection, m_statementName.c_str(), 0, nullptr, nullptr, nullptr, 0));
+                    using ParamHolder = boost::shared_array<char>;
+                    std::list<ParamHolder> paramHolders;
+                    boost::scoped_array<char *> paramValues;
+
+                    if (!parameters.empty())
+                    {
+                        paramValues.reset(new char * [parameters.size()]);
+                        std::size_t index = 0;
+                        for (auto const &prm : parameters)
+                        {
+                            if (prm.empty())
+                            {
+                                paramValues[index] = nullptr;
+                            }
+                            else
+                            {
+                                auto const &value = prm;
+                                auto const length = value.length();
+                                ParamHolder holder{new char [length + 1]};
+                                std::strncpy(holder.get(), value.c_str(), length + 1);
+                                paramHolders.push_back(holder);
+                                paramValues[index] = holder.get();
+                            }
+
+                            ++index;
+                        }
+                    }
+
+                    m_result.reset(PQexecPrepared(m_connection, statementName.c_str(), parameters.size(),
+                            paramValues.get(), nullptr, nullptr, 0));
 
                     if (!m_result)
                         throw std::runtime_error{"[Mif::Db::PostgreSql::Detail::Recordset] Failed to open recordset."};
@@ -112,6 +143,25 @@ namespace Mif
                     }
 
                     return name;
+                }
+
+                std::size_t Recordset::GetFieldIndex(std::string const &name) const
+                {
+                    if (name.empty())
+                    {
+                        throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Recordset::GetFieldIndex] "
+                                "Failed to get field index. Empty field name."};
+                    }
+
+                    auto const index = PQfnumber(m_result.get(), name.c_str());
+
+                    if (index < 0)
+                    {
+                        throw std::runtime_error{"[Mif::Db::PostgreSql::Detail::Recordset::GetFieldIndex] "
+                                "Failed to get field index for the field name \"" + name + "\""};
+                    }
+
+                    return index;
                 }
 
                 std::string Recordset::GetAsString(std::size_t index) const

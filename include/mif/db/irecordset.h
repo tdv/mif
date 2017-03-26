@@ -27,6 +27,7 @@ namespace Mif
             virtual std::size_t GetFieldsCount() const = 0;
             virtual bool IsNull(std::size_t index) const = 0;
             virtual std::string GetFieldName(std::size_t index) const = 0;
+            virtual std::size_t GetFieldIndex(std::string const &name) const = 0;
             virtual std::string GetAsString(std::size_t index) const = 0;
             virtual std::int32_t GetAsInt32(std::size_t index) const = 0;
             virtual std::int64_t GetAsInt64(std::size_t index) const = 0;

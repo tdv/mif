@@ -9,6 +9,7 @@
 #define __MIF_DB_POSTGRESQL_DETAIL_RECORDSET_H__
 
 // STD
+#include <list>
 #include <memory>
 #include <string>
 
@@ -32,12 +33,14 @@ namespace Mif
                     : public Service::Inherit<IRecordset>
                 {
                 public:
-                    Recordset(PGconn *connection, Service::IService *holder, std::string const &statementName);
+                    using Parameters = std::list<std::string/*value*/>;
+
+                    Recordset(PGconn *connection, Service::IService *holder, std::string const &statementName,
+                            Parameters const &parameters);
 
                 private:
                     PGconn *m_connection;
                     Service::IServicePtr m_holder;
-                    std::string m_statementName;
                     bool m_hasNext = true;
                     int m_currentRow = -1;
                     std::size_t m_fieldsCount = 0;
@@ -52,6 +55,7 @@ namespace Mif
                     virtual std::size_t GetFieldsCount() const override final;
                     virtual bool IsNull(std::size_t index) const override final;
                     virtual std::string GetFieldName(std::size_t index) const override final;
+                    virtual std::size_t GetFieldIndex(std::string const &name) const override final;
                     virtual std::string GetAsString(std::size_t index) const override final;
                     virtual std::int32_t GetAsInt32(std::size_t index) const override final;
                     virtual std::int64_t GetAsInt64(std::size_t index) const override final;

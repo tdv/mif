@@ -88,9 +88,9 @@ namespace Mif
                     }
                 }
 
-                IRecordsetPtr Statement::Execute()
+                IRecordsetPtr Statement::Execute(Parameters const &parameters)
                 {
-                    return Service::Make<Recordset, IRecordset>(m_connection, this, m_name);
+                    return Service::Make<Recordset, IRecordset>(m_connection, this, m_name, parameters);
                 }
 
             }   // namespace Detail
