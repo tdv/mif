@@ -37,6 +37,10 @@ set (LIBPQ_LIBRARIES
     pq
 )
 
+set (SQLITE_LIBRARIES
+    sqlite3
+)
+
 set (MIF_ZLIB_CMAKE_ARGS
 )
 
@@ -196,6 +200,35 @@ function (mif_add_libpq_project from_git)
     endif()
 endfunction()
 
+function (mif_add_sqlite_project from_git)
+    set (SQLITE_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/sqlite)
+    set (SQLITE_INCLUDE_DIR ${SQLITE_INSTALL_DIR}/include)
+    set (SQLITE_LIBRARIES_DIR ${SQLITE_INSTALL_DIR}/lib)
+    include_directories (SYSTEM ${SQLITE_INCLUDE_DIR})
+    link_directories(${SQLITE_LIBRARIES_DIR})
+    if (from_git)
+        ExternalProject_Add(sqlite-project
+            GIT_REPOSITORY ${MIF_SQLITE_GITHUB_URL}
+            GIT_TAG ${MIF_SQLITE_GITHUB_TAG}
+            BUILD_IN_SOURCE 1
+            UPDATE_COMMAND ""
+            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension
+            BUILD_COMMAND make
+            INSTALL_COMMAND make install
+        )
+    else()
+        ExternalProject_Add(sqlite-project
+            SOURCE_DIR ${MIF_SQLITE_LOCAL_PATH}
+            BUILD_IN_SOURCE 1
+            UPDATE_COMMAND ""
+            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension
+
+            BUILD_COMMAND make
+            INSTALL_COMMAND make install
+        )
+    endif()
+endfunction()
+
 function (mif_add_third_party_paths lib)
     string (TOUPPER ${lib} LIB_NAME_UP)
     if (NOT DEFINED ${LIB_NAME_UP}_INCLUDE_DIR)
@@ -222,6 +255,7 @@ if (MIF_NEED_THIRD_PARTY_BUILD)
             endforeach (lib)
             mif_add_boost_project(TRUE)
             mif_add_libpq_project(TRUE)
+            mif_add_sqlite_project(TRUE)
         else()
             message(FATAL_ERROR "[MIF] No support of getting third_party from not a github source")
         endif()
@@ -232,6 +266,7 @@ if (MIF_NEED_THIRD_PARTY_BUILD)
         endforeach (lib)
         mif_add_boost_project(FALSE)
         mif_add_libpq_project(FALSE)
+        mif_add_sqlite_project(FALSE)
     endif()
 else()
     mif_add_third_party_paths(zlib)
@@ -239,6 +274,7 @@ else()
     mif_add_third_party_paths(jsoncpp)
     mif_add_third_party_paths(event)
     mif_add_third_party_paths(libpq)
+    mif_add_third_party_paths(sqlite)
 endif()
 
 set (BOOST_LIBS_LIST "")
@@ -255,3 +291,4 @@ endforeach()
 
 list (APPEND MIF_THIRD_PARTY_PROJECTS boost-project)
 list (APPEND MIF_THIRD_PARTY_PROJECTS libpq-project)
+list (APPEND MIF_THIRD_PARTY_PROJECTS sqlite-project)

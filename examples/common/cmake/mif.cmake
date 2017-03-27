@@ -19,6 +19,9 @@ link_directories (${THITD_PARTY_PATH}/event/lib)
 include_directories (SYSTEM ${THITD_PARTY_PATH}/libpq/include)
 link_directories (${THITD_PARTY_PATH}/libpq/lib)
 
+include_directories (SYSTEM ${THITD_PARTY_PATH}/sqlite/include)
+link_directories (${THITD_PARTY_PATH}/sqlite/lib)
+
 include_directories (SYSTEM ${THITD_PARTY_PATH}/mif/include)
 link_directories (${THITD_PARTY_PATH}/mif/lib)
 

@@ -135,6 +135,8 @@ namespace Mif
 
                 std::string Recordset::GetFieldName(std::size_t index) const
                 {
+                    CheckIndex(index);
+
                     auto const *name = PQfname(m_result.get(), static_cast<int>(index));
                     if (!name)
                     {

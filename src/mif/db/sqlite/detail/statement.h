@@ -5,15 +5,15 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_DB_POSTGRESQL_DETAIL_STATEMENT_H__
-#define __MIF_DB_POSTGRESQL_DETAIL_STATEMENT_H__
+#ifndef __MIF_DB_SQLITE_DETAIL_STATEMENT_H__
+#define __MIF_DB_SQLITE_DETAIL_STATEMENT_H__
 
 // STD
 #include <memory>
 #include <string>
 
-// LIBPR
-#include <libpq-fe.h>
+// SQLITE
+#include <sqlite3.h>
 
 // MIF
 #include "mif/db/istatement.h"
@@ -23,7 +23,7 @@ namespace Mif
 {
     namespace Db
     {
-        namespace PostgreSql
+        namespace SQLite
         {
             namespace Detail
             {
@@ -32,24 +32,21 @@ namespace Mif
                     : public Service::Inherit<IStatement>
                 {
                 public:
-                    using ResultPtr = std::unique_ptr<PGresult, decltype(&PQclear)>;
-
-                    Statement(PGconn *connection, Service::IService *holder, std::string const &query);
-
-                    virtual ~Statement();
+                    Statement(sqlite3 *connection, Service::IService *holder, std::string const &query);
 
                 private:
-                    PGconn *m_connection;
+                    sqlite3 *m_connection;
                     Service::IServicePtr m_holder;
-                    std::string m_name;
+
+                    std::string m_query;
 
                     // IStatement
                     virtual IRecordsetPtr Execute(Parameters const &parameters) override final;
                 };
 
             }   // namespace Detail
-        }   // namespace PostgreSql
+        }   // namespace SQLite
     }   // namespace Db
 }   // namespace Mif
 
-#endif  // !__MIF_DB_POSTGRESQL_DETAIL_STATEMENT_H__
+#endif  // !__MIF_DB_SQLITE_DETAIL_STATEMENT_H__

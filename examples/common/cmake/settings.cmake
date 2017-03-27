@@ -27,6 +27,7 @@ set(LIBRARIES
     event
     pthread
     pq.a
+    sqlite3
     z
     rt
 )

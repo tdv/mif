@@ -34,7 +34,6 @@ namespace Mif
                     : m_connection{connection}
                     , m_holder{holder}
                     , m_name{"mif_ps_" + Common::UuidGenerator{}.Generate()}
-                    , m_query{query}
                 {
                     if (!m_connection)
                         throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Statement] Empty connection pointer."};
@@ -42,18 +41,18 @@ namespace Mif
                     if (!m_holder)
                         throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Statement] Empty connection holder pointer."};
 
-                    if (m_query.empty())
+                    if (query.empty())
                         throw std::invalid_argument{"[Mif::Db::PostgreSql::Detail::Statement] Empty query."};
 
                     boost::algorithm::erase_all(m_name, "-");
 
-                    ResultPtr result{PQprepare(m_connection, m_name.c_str(), m_query.c_str(), 0, nullptr),
+                    ResultPtr result{PQprepare(m_connection, m_name.c_str(), query.c_str(), 0, nullptr),
                             [] (PGresult *res) { if (res) PQclear(res); } };
 
                     if (!result)
                     {
                         throw std::runtime_error{"[Mif::Db::PostgreSql::Detail::Statement] "
-                                "Failed to create prepared statement for query \"" + m_query + "\""};
+                                "Failed to create prepared statement for query \"" + query + "\""};
                     }
 
                     if (PQresultStatus(result.get()) != PGRES_COMMAND_OK)
@@ -61,7 +60,7 @@ namespace Mif
                         auto const *message = PQresultErrorMessage(result.get());
 
                         throw std::runtime_error{"[Mif::Db::PostgreSql::Detail::Statement] "
-                                "Failed to create prepared statement for query \"" + m_query + "\". "
+                                "Failed to create prepared statement for query \"" + query + "\". "
                                 "Erro: " + std::string{message ? message : "unknown"}};
                     }
                 }
@@ -74,11 +73,11 @@ namespace Mif
                         ResultPtr result{PQexec(m_connection, command.c_str()),
                                 [] (PGresult *res) { if (res) PQclear(res); } };
                         if (!result)
-                            throw std::runtime_error{"Failed to deallocate statement \"" + m_name + "\" for query \"" + m_query + "\""};
+                            throw std::runtime_error{"Failed to deallocate statement \"" + m_name + "\"."};
                         if (PQresultStatus(result.get()) != PGRES_COMMAND_OK)
                         {
                             auto const *message = PQresultErrorMessage(result.get());
-                            throw std::runtime_error{"Failed to deallocate statement \"" + m_name + "\" for query \"" + m_query + "\". "
+                            throw std::runtime_error{"Failed to deallocate statement \"" + m_name + "\"."
                                     "Error: " + std::string{message ? message : "unknown"}};
                         }
                     }
