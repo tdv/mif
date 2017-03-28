@@ -12,7 +12,7 @@
 
 // MIF
 #include <mif/common/log.h>
-#include <mif/db/iconnection.h>
+#include <mif/db/transaction.h>
 #include <mif/db/id/service.h>
 #include <mif/service/create.h>
 
@@ -30,7 +30,8 @@ int main(/*int argc, char const **argv*/)
         auto connection = Mif::Service::Create<Mif::Db::Id::Service::PostgreSQL, Mif::Db::IConnection>(
                 host, port, user, password, db, connectionTimeout);
 
-        connection->ExecuteDirect("BEGIN;");
+        Mif::Db::Transaction transaction{connection};
+
         connection->ExecuteDirect(
                 "create table test "
                 "("
@@ -72,7 +73,8 @@ int main(/*int argc, char const **argv*/)
         connection->ExecuteDirect(
                 "drop table test;"
             );
-        connection->ExecuteDirect("COMMIT;");
+
+        transaction.Commit();
     }
     catch (std::exception const &e)
     {
