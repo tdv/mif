@@ -51,9 +51,8 @@ namespace Mif
                             throw std::invalid_argument{"[Mif::Db::SQLIte::Connection] Empty file name."};
 
                         sqlite3 *connection = nullptr;
-                        auto const res = sqlite3_open_v2(fileName.c_str(), &connection,
-                                SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE |
-                                (fileName == ":memory:" ? SQLITE_OPEN_MEMORY : 0), nullptr);
+                        auto const res = sqlite3_open_v2(fileName.c_str(), &connection, SQLITE_OPEN_FULLMUTEX |
+                                SQLITE_OPEN_SHAREDCACHE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
                         m_connection.reset(connection);
 
                         if (res != SQLITE_OK)

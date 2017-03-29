@@ -197,10 +197,10 @@ private:
                 "from generate_series(1, 10) as t(i);"
             );
 
+        transaction.Commit();
+
         // Show data
         ShowData(connection);
-
-        transaction.Commit();
     }
 
     void DemoSQLite()
@@ -256,10 +256,10 @@ private:
                 );
         }
 
+        transaction.Commit();
+
         // Show data
         ShowData(connection);
-
-        transaction.Commit();
     }
 };
 
