@@ -4,8 +4,11 @@ option (MIF_GITHUB_SOURCE "[MIF] User GitHub as source for download third_party"
 set (PROJECT_SERVER_NAME "${PROJECT_LC}_server")
 set (PROJECT_CLIENT_NAME "${PROJECT_LC}_client")
 
+add_definitions(-DPYTHON_MODULE_NAME=${PROJECT_LC})
+
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/MyCMakeScripts)
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
 set (MIF_LIB_INSTALL_PATH, ${PROJECT_SOURCE_DIR}/MyCMakeScripts/lib/mif)
 
@@ -14,8 +17,19 @@ set (CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 #set (CMAKE_EXE_LINKER_FLAGS "-static-libstdc++")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+find_package(PythonLibs)
+if (NOT DEFINED PYTHON_INCLUDE_DIR)
+    message(FATAL_ERROR "[MIF.Examples] Python include dir not found.")
+endif()
+if (NOT DEFINED PYTHON_INCLUDE_DIR)
+    message(FATAL_ERROR "[MIF.Examples] Python libs dir not found.")
+endif()
+include_directories(${PYTHON_INCLUDE_DIR})
+link_directories (${PYTHON_LIBRARY})
+
 set(LIBRARIES
     mif
+    boost_python
     boost_iostreams
     boost_serialization
     boost_program_options
