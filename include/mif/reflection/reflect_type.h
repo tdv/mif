@@ -14,6 +14,7 @@
 // MIF
 #include "mif/common/static_string.h"
 #include "mif/common/detail/hierarchy.h"
+#include "mif/reflection/detail/registry.h"
 
 namespace Mif
 {
@@ -25,18 +26,6 @@ namespace Mif
             template <typename>
             struct Class;
 
-            namespace Registry
-            {
-
-                struct None;
-
-                template <typename Key>
-                struct Registry
-                {
-                    using Type = None;
-                };
-
-            }   // namespace Registry
         }   // namespace Detail
     }   // namespace Reflection
 }   // namespace Mif
@@ -71,32 +60,5 @@ namespace Mif
 #define MIF_REFLECT_END() \
         enum { FieldsCount = sizeof(GetNextCounter(static_cast<::Mif::Common::Detail::FakeHierarchy *>(nullptr))) }; \
     };
-
-#ifndef MIF_BOOST_TYPE_SERIALIZER
-    #define MIF_BOOST_TYPE_SERIALIZER(type_)
-#endif  // !MIF_BOOST_TYPE_SERIALIZER
-
-#define MIF_REGISTER_REFLECTED_TYPE(type_) \
-    namespace Mif \
-    { \
-        namespace Reflection \
-        { \
-            namespace Detail \
-            { \
-                namespace Registry \
-                { \
-                    template <> \
-                    struct Registry<type_> \
-                    { \
-                        using Type = type_ ## _MetaInfo; \
-                        using Key = type_; \
-                        MIF_DECLARE_SRTING_PROVIDER(TypeFullNameProvider, #type_ ) \
-                    }; \
-                } \
-            } \
-        } \
-    } \
-    MIF_BOOST_TYPE_SERIALIZER(type_)
-
 
 #endif  // !__MIF_REFLECTION_REFLECT_TYPE_H__

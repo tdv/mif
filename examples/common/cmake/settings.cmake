@@ -30,6 +30,7 @@ link_directories (${PYTHON_LIBRARY})
 set(LIBRARIES
     mif
     boost_python
+    boost_regex
     boost_iostreams
     boost_serialization
     boost_program_options

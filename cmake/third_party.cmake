@@ -22,6 +22,7 @@ include_directories (${PYTHON_INCLUDE_DIRS})
 
 set (BOOST_LIBRARIES
     python
+    regex
     iostreams
     serialization
     program_options
