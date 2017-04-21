@@ -25,11 +25,6 @@ set(SERVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/server/src/my_company.cpp
 )
 
-set(PYTHON_SOURCES
-    ${PYTHON_SOURCES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/server/src/python/module.cpp
-)
-
 set(CLIENT_HEADERS
     ${SERVER_HEADERS}
     ${COMMON_HEADERS}
@@ -41,10 +36,6 @@ set(CLIENT_SOURCES
 
 add_executable(${PROJECT_SERVER_NAME} ${SERVER_HEADERS} ${SERVER_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/server/src/main.cpp)
 target_link_libraries(${PROJECT_SERVER_NAME} ${LIBRARIES})
-
-add_library (${PROJECT_LC} SHARED ${PYTHON_SOURCES})
-set_target_properties(${PROJECT_LC} PROPERTIES PREFIX "")
-target_link_libraries(${PROJECT_LC} ${LIBRARIES})
 
 add_executable(${PROJECT_CLIENT_NAME} ${CLIENT_HEADERS} ${CLIENT_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/client/src/main.cpp)
 target_link_libraries(${PROJECT_CLIENT_NAME} ${LIBRARIES})

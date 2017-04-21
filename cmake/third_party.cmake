@@ -17,12 +17,7 @@ set (ZLIB_LIBRARIES
     z.a
 )
 
-find_package(PythonLibs)
-include_directories (${PYTHON_INCLUDE_DIRS})
-
 set (BOOST_LIBRARIES
-    python
-    regex
     iostreams
     serialization
     program_options
