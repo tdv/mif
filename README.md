@@ -1,5 +1,5 @@
-# MIF (MetaInfo Framework)
-Каркас для разработки веб-сервисов.
+# MIF - C++ MetaInfo Framework
+Каркас для разработки веб-сервисов на C++.
 
 # Текущее состояние
 Version 1.0.0 - in progress ...
