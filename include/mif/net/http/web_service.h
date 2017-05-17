@@ -144,7 +144,7 @@ namespace Mif
             {
                 static constexpr char const* GetContentType()
                 {
-                    return "text/html; charset=ISO-8859-1";
+                    return "text/html; charset=UTF-8";
                 }
 
                 template <typename T>
@@ -166,7 +166,7 @@ namespace Mif
             {
                 static constexpr char const* GetContentType()
                 {
-                    return "application/json";
+                    return "application/json; charset=UTF-8";
                 }
 
                 template <typename T>
