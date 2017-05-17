@@ -320,6 +320,13 @@ namespace Mif
 
             if (m_options.count(Option::LogDir::GetString()) || m_options.count(Option::LogPattern::GetString()) || pathFromConfig)
             {
+                if (!m_options.count(Option::LogDir::GetString()))
+                    m_logDirName = boost::filesystem::canonical(boost::filesystem::system_complete(m_argv[0])).parent_path().string();
+                if (!m_options.count(Option::LogPattern::GetString()))
+                    m_logPattern = boost::filesystem::canonical(boost::filesystem::system_complete(m_argv[0])).filename().string() + "_%5N.log";
+                if (!m_options.count(Option::LogLevel::GetString()))
+                    m_logLevel = Common::Log::Level::Trace;
+
                 if (!boost::filesystem::exists(m_logDirName))
                 {
                     if (!boost::filesystem::create_directories(m_logDirName))
@@ -328,6 +335,7 @@ namespace Mif
                                 "Failed to create log directory \"" + m_logDirName + "\""};
                     }
                 }
+
                 Common::InitFileLog(static_cast<Common::Log::Level>(m_logLevel), m_logDirName, m_logPattern);
             }
             else if (m_options.count(Option::LogLevel::GetString()) || levelFromConfig)
