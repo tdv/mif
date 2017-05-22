@@ -31,7 +31,7 @@ namespace Mif
             template <typename T>
             TServicePtr<T> Get(ServiceId id) const
             {
-                return Cast<T>(Get(id));
+                return ::Mif::Service::Cast<T>(Get(id));
             }
 
             template <ServiceId Id, typename ... TArgs>
