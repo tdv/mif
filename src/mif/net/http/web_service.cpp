@@ -95,7 +95,20 @@ namespace Mif
                 pack.SetHeader(Constants::Header::Connection::GetString(),
                     Constants::Value::Connection::Close::GetString());
                 pack.SetCode(code);
-                pack.SetData({std::begin(message), std::end(message)});
+                auto const formatedMessage = FormatExceptionMessage(pack, code, message);
+                pack.SetData({std::begin(formatedMessage), std::end(formatedMessage)});
+            }
+
+            std::string WebService::FormatExceptionMessage(IOutputPack &pack, Code code, std::string const &message) const
+            {
+                (void)pack;
+                (void)code;
+                return FormatExceptionMessage(message);
+            }
+
+            std::string WebService::FormatExceptionMessage(std::string const &message) const
+            {
+                return message;
             }
 
         }   // namespace Http

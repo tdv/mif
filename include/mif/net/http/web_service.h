@@ -423,6 +423,8 @@ namespace Mif
                 };
 
                 Statistics const& GetStatistics() const;
+                virtual std::string FormatExceptionMessage(IOutputPack &pack, Code code, std::string const &message) const;
+                virtual std::string FormatExceptionMessage(std::string const &message) const;
 
             private:
                 using IWebServiceHandlerPtr = std::unique_ptr<IWebServiceHandler>;
