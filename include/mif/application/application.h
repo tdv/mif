@@ -45,6 +45,8 @@ namespace Mif
             void AddCustomOptions(boost::program_options::options_description const &options);
             boost::program_options::variables_map const& GetOptions() const;
 
+            virtual void PrepareConfigData(std::string &data, std::string const &format) const;
+            std::string const& GetConfigRawData() const;
             IConfigPtr GetConfig() const;
 
             void SetName(std::string const &name);
@@ -75,6 +77,7 @@ namespace Mif
             std::string m_name;
             std::string m_description;
 
+            std::string m_configRawData;
             IConfigPtr m_config;
 
             class Daemon;

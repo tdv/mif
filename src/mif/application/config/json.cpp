@@ -6,7 +6,7 @@
 //-------------------------------------------------------------------
 
 // STD
-#include <fstream>
+#include <istream>
 #include <list>
 #include <memory>
 #include <stdexcept>
@@ -80,7 +80,7 @@ namespace Mif
                     : public Service::Inherit<IConfig>
                 {
                 public:
-                    using StreamPtr = std::shared_ptr<std::ifstream>;
+                    using StreamPtr = std::shared_ptr<std::istream>;
 
                     Config(StreamPtr stream)
                     {

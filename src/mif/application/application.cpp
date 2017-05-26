@@ -12,13 +12,16 @@
 #endif
 
 // STD
+#include <algorithm>
 #include <condition_variable>
 #include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
 #include <thread>
 
@@ -80,10 +83,12 @@ namespace Mif
                 catch (std::exception const &e)
                 {
                     MIF_LOG(Fatal) << "[Mif::Application::Daemon] Failed to start application. Error: " << e.what();
+                    std::exit(EXIT_FAILURE);
                 }
                 catch (...)
                 {
                     MIF_LOG(Fatal) << "[Mif::Application::Daemon] Failed to start application. Error: unknown error.";
+                    std::exit(EXIT_FAILURE);
                 }
 
                 signal(SIGINT, ShutdownSignal);
@@ -155,7 +160,7 @@ namespace Mif
             #endif
                     (Option::Config::GetString(), boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
                     (Option::ConfigFormat::GetString(), boost::program_options::value<std::string>(&m_configFileFormat)->default_value(
-                            "json"), "Config file format (available formats: json, xml).")
+                            "xml"), "Config file format (available formats: json, xml).")
                     (Option::LogDir::GetString(), boost::program_options::value<std::string>(&m_logDirName), "Log directory name.")
                     (Option::LogPattern::GetString(), boost::program_options::value<std::string>(&m_logPattern), "Log file pattern.")
                     (Option::LogLevel::GetString(), boost::program_options::value<std::uint32_t>(&m_logLevel), "Log level.");
@@ -390,6 +395,17 @@ namespace Mif
             }
         }
 
+        void Application::PrepareConfigData(std::string &data, std::string const &format) const
+        {
+            (void)data;
+            (void)format;
+        }
+
+        std::string const& Application::GetConfigRawData() const
+        {
+            return m_configRawData;
+        }
+
         IConfigPtr Application::LoadConfig() const
         {
             if (!boost::filesystem::exists(m_configFileName))
@@ -404,17 +420,29 @@ namespace Mif
                         "The path \"" + m_configFileName + "\" is not a regular file."};
             }
 
-            auto file = std::make_shared<std::ifstream>(m_configFileName, std::ios_base::in);
-            if (!file->is_open())
             {
-                throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] "
-                        "Failed to open config file \"" + m_configFileName + "\""};
+                std::ifstream file{m_configFileName, std::ios_base::in};
+                if (!file.is_open())
+                {
+                    throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] "
+                            "Failed to open config file \"" + m_configFileName + "\""};
+                }
+
+                std::stringstream stream;
+                std::copy(std::istreambuf_iterator<char>{file},
+                          std::istreambuf_iterator<char>{},
+                          std::ostreambuf_iterator<char>{stream});
+                auto configRawData = stream.str();
+                PrepareConfigData(configRawData, m_configFileFormat);
+                const_cast<Application &>(*this).m_configRawData = configRawData;
             }
 
+            std::shared_ptr<std::istream> stream{std::make_shared<std::stringstream>(m_configRawData)};
+
             if (m_configFileFormat == "json")
-                return Service::Create<Id::Service::Config::Json, IConfig>(file);
+                return Service::Create<Id::Service::Config::Json, IConfig>(stream);
             else if (m_configFileFormat == "xml")
-                return Service::Create<Id::Service::Config::Xml, IConfig>(file);
+                return Service::Create<Id::Service::Config::Xml, IConfig>(stream);
 
             throw std::invalid_argument{"[Mif::Application::Application::LoadConfig] Unsupported format \"" + m_configFileFormat + "\""};
         }
