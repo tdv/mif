@@ -12,6 +12,7 @@ set(MIF_SOURCES
 
     # Service
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/locator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/pool.cpp
 
     # Net
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/client.cpp
@@ -38,6 +39,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/xml.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/transaction.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/statement.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/recordset.cpp

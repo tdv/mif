@@ -21,7 +21,8 @@ namespace Mif
             enum
             {
 
-                Locator = Common::Crc32("Mif.Service.Locator")
+                Locator = Common::Crc32("Mif.Service.Locator"),
+                Pool = Common::Crc32("Mif.Service.Pool")
 
             };
 

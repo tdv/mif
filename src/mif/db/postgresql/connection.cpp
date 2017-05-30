@@ -18,6 +18,7 @@
 #include "mif/db/iconnection.h"
 #include "mif/db/id/service.h"
 #include "mif/service/creator.h"
+#include "mif/service/icheckable.h"
 
 // THIS
 #include "detail/statement.h"
@@ -32,7 +33,11 @@ namespace Mif
             {
 
                 class Connection
-                    : public Service::Inherit<IConnection>
+                    : public Service::Inherit
+                        <
+                            IConnection,
+                            Service::ICheckable
+                        >
                 {
                 public:
                     Connection(std::string const &connectionString)
@@ -88,7 +93,24 @@ namespace Mif
 
                     virtual IStatementPtr CreateStatement(std::string const &query) override final
                     {
-                        return Service::Make<Detail::Statement, IStatement>(m_connection.get(), this, query);
+                        return Service::Make<Detail::Statement, IStatement>(m_connection.get(),
+                                Query<Service::IService>().get(), query);
+                    }
+
+                    // Service::ICheckable
+                    virtual bool IsGood() const override final
+                    {
+                        try
+                        {
+                            auto *self = const_cast<Connection *>(this);
+                            auto statement = self->CreateStatement("select 1;");
+                            statement->Execute();
+                        }
+                        catch (std::exception const &)
+                        {
+                            return false;
+                        }
+                        return true;
                     }
                 };
 
