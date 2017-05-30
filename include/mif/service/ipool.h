@@ -67,9 +67,9 @@ namespace Mif
                 }
 
                 template <typename TOther>
-                Proxy<TOther> Cast()
+                TServicePtr<Proxy<TOther>> Cast()
                 {
-                    return Make<Proxy<TOther>>(m_owner, Service::Cast<TOther>(m_service));
+                    return Make<Proxy<TOther>, Proxy<TOther>>(m_owner, Service::Cast<TOther>(m_service));
                 }
             };
 
@@ -78,7 +78,7 @@ namespace Mif
             virtual ProxyPtr GetService() const = 0;
 
             template <typename T>
-            Proxy<T> GetService() const
+            TServicePtr<Proxy<T>> GetService() const
             {
                 return GetService()->Cast<T>();
             }

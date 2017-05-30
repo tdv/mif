@@ -62,39 +62,40 @@ namespace Mif
                     {
                         LockGuard lock{m_lock};
 
-                        if (m_services.size() < m_limit)
+                        for (auto i = std::begin(m_services) ; i != std::end(m_services) ; )
                         {
-                            for (auto i = std::begin(m_services) ; i != std::end(m_services) ; )
+                            if (auto checkable = Service::Query<ICheckable>(i->first))
                             {
-                                if (!i->second)
+                                if (!checkable->IsGood())
                                 {
-                                    if (auto checkable = i->first->Query<ICheckable>())
-                                    {
-                                        if (!checkable->IsGood())
-                                        {
-                                            m_services.erase(i++);
-                                            continue;
-                                        }
-                                    }
-
-                                    auto pool = Make<Holder>(const_cast<Pool *>(this), i->first);
-                                    proxy = Make<Proxy<IService>, Proxy<IService>>(pool, i->first);
-
-                                    break;
+                                    m_services.erase(i++);
+                                    continue;
                                 }
+                            }
 
-                                ++i;
+                            if (!i->second)
+                            {
+                                auto holder = Make<Holder>(const_cast<Pool *>(this), i->first);
+                                proxy = Make<Proxy<IService>, Proxy<IService>>(holder, i->first);
+
+                                break;
+                            }
+
+                            ++i;
+                        }
+
+                        if (!proxy)
+                        {
+                            if (m_services.size() >= m_limit)
+                            {
+                                throw std::runtime_error{"[Mif::Service::Detail::Pool::GetService] Failed to get service. "
+                                    "Maximum limit reached (" + std::to_string(m_limit) + ")."};
                             }
 
                             auto newInst = m_factory->Create(m_serviceId);
                             m_services.emplace(newInst, false);
-                            auto pool = Make<Holder>(const_cast<Pool *>(this), newInst);
-                            proxy = Make<Proxy<IService>, Proxy<IService>>(pool, newInst);
-                        }
-                        else
-                        {
-                            throw std::runtime_error{"[Mif::Service::Detail::Pool::GetService] Failed to get service. "
-                                    "Maximum limit reached (" + std::to_string(m_limit) + ")."};
+                            auto holder = Make<Holder>(const_cast<Pool *>(this), newInst);
+                            proxy = Make<Proxy<IService>, Proxy<IService>>(holder, newInst);
                         }
                     }
 
@@ -127,7 +128,7 @@ namespace Mif
                         }
                         catch (std::exception const &e)
                         {
-                            MIF_LOG(Error) << "[Mif::Service::Detail::Pool::~Holder] Error: " << e.what();
+                            MIF_LOG(Warning) << "[Mif::Service::Detail::Pool::~Holder] Error: " << e.what();
                         }
                     }
 
