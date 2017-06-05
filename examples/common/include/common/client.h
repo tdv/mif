@@ -57,7 +57,7 @@ namespace Service
                 using Deserializer = Mif::Remote::Serialization::Json::Deserializer;
                 using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<Serializer, Deserializer>;
 
-            }   // namespace Boost
+            }   // namespace Json
 
         }   // namespace Detail
 
