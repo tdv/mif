@@ -17,13 +17,6 @@ namespace Mif
     namespace Service
     {
 
-        namespace Detail
-        {
-
-            class Pool;
-
-        }   // namespace Detail
-
         struct IPool
             : public Inherit<IService>
         {

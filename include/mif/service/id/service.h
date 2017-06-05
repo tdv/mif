@@ -22,7 +22,8 @@ namespace Mif
             {
 
                 Locator = Common::Crc32("Mif.Service.Locator"),
-                Pool = Common::Crc32("Mif.Service.Pool")
+                Pool = Common::Crc32("Mif.Service.Pool"),
+                PerThreadPool = Common::Crc32("Mif.Service.PerThreadPool")
 
             };
 
