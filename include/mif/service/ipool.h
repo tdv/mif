@@ -20,60 +20,12 @@ namespace Mif
         struct IPool
             : public Inherit<IService>
         {
-            template <typename T>
-            class Proxy
-                : public Inherit<IService>
-            {
-            public:
-                TServicePtr<T> Get()
-                {
-                    return m_service;
-                }
-
-                TServicePtr<T> Get() const
-                {
-                    return m_service;
-                }
-
-                TServicePtr<T> operator -> ()
-                {
-                    return Get();
-                }
-
-                TServicePtr<T> operator -> () const
-                {
-                    return Get();
-                }
-
-            private:
-                friend struct IPool;
-                template <typename>
-                friend class Detail::Service_Impl__;
-
-                IServicePtr m_owner;
-                TServicePtr<T> m_service;
-
-                Proxy(IServicePtr owner, TServicePtr<T> service)
-                    : m_owner{owner}
-                    , m_service{service}
-                {
-                }
-
-                template <typename TOther>
-                TServicePtr<Proxy<TOther>> Cast()
-                {
-                    return Make<Proxy<TOther>, Proxy<TOther>>(m_owner, Service::Cast<TOther>(m_service));
-                }
-            };
-
-            using ProxyPtr = TServicePtr<Proxy<IService>>;
-
-            virtual ProxyPtr GetService() const = 0;
+            virtual IServicePtr GetService() const = 0;
 
             template <typename T>
-            TServicePtr<Proxy<T>> GetService() const
+            TServicePtr<T> GetService() const
             {
-                return GetService()->Cast<T>();
+                return Service::Cast<T>(GetService());
             }
         };
 

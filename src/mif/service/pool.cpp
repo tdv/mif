@@ -15,6 +15,7 @@
 #include "mif/common/log.h"
 #include "mif/service/id/service.h"
 #include "mif/service/creator.h"
+#include "mif/service/external.h"
 #include "mif/service/make.h"
 #include "mif/service/icheckable.h"
 #include "mif/service/ifactory.h"
@@ -55,61 +56,52 @@ namespace Mif
                 mutable Services m_services;
 
                 // IPool
-                virtual ProxyPtr GetService() const override final
+                virtual IServicePtr GetService() const override final
                 {
-                    ProxyPtr proxy;
+                    LockGuard lock{m_lock};
 
+                    for (auto i = std::begin(m_services) ; i != std::end(m_services) ; )
                     {
-                        LockGuard lock{m_lock};
-
-                        for (auto i = std::begin(m_services) ; i != std::end(m_services) ; )
+                        if (auto checkable = Service::Query<ICheckable>(i->first))
                         {
-                            if (auto checkable = Service::Query<ICheckable>(i->first))
+                            if (!checkable->IsGood())
                             {
-                                if (!checkable->IsGood())
-                                {
-                                    m_services.erase(i++);
-                                    continue;
-                                }
+                                m_services.erase(i++);
+                                continue;
                             }
-
-                            if (!i->second)
-                            {
-                                auto holder = Make<Holder>(const_cast<Pool *>(this), i->first);
-                                proxy = Make<Proxy<IService>, Proxy<IService>>(holder, i->first);
-
-                                break;
-                            }
-
-                            ++i;
                         }
 
-                        if (!proxy)
+                        if (!i->second)
                         {
-                            if (m_services.size() >= m_limit)
-                            {
-                                throw std::runtime_error{"[Mif::Service::Detail::Pool::GetService] Failed to get service. "
-                                    "Maximum limit reached (" + std::to_string(m_limit) + ")."};
-                            }
-
-                            auto newInst = m_factory->Create(m_serviceId);
-                            m_services.emplace(newInst, false);
-                            auto holder = Make<Holder>(const_cast<Pool *>(this), newInst);
-                            proxy = Make<Proxy<IService>, Proxy<IService>>(holder, newInst);
+                            auto holder = Make<Holder>(const_cast<Pool *>(this), i->first);
+                            return holder;
                         }
+
+                        ++i;
                     }
 
-                    return proxy;
+                    if (m_services.size() >= m_limit)
+                    {
+                        throw std::runtime_error{"[Mif::Service::Detail::Pool::GetService] Failed to get service. "
+                            "Maximum limit reached (" + std::to_string(m_limit) + ")."};
+                    }
+
+                    auto newInst = m_factory->Create(m_serviceId);
+                    m_services.emplace(newInst, false);
+                    auto holder = Make<Holder>(const_cast<Pool *>(this), newInst);
+                    return holder;
                 }
 
                 class Holder
-                    : public Inherit<IService>
+                    : public Inherit<External>
                 {
                 public:
                     Holder(Pool *pool, IServicePtr service)
                         : m_pool{pool}
                         , m_service{service}
                     {
+                        Set(m_service);
+
                         auto iter = m_pool->m_services.find(m_service);
                         if (iter == std::end(m_pool->m_services))
                             throw std::logic_error{"Service for lock not found."};
@@ -133,6 +125,9 @@ namespace Mif
                     }
 
                 private:
+                    using LockType = std::mutex;
+                    using LockGuard = std::lock_guard<LockType>;
+
                     TIntrusivePtr<Pool> m_pool;
                     IServicePtr m_service;
                 };

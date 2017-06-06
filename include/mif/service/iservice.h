@@ -51,6 +51,7 @@
     private: \
         template <typename> \
         friend class Detail::Service_Impl__; \
+        friend class External; \
         template <typename T_Mif_Based_Interface__> \
         bool QueryInterfaceInternal(void **service, T_Mif_Based_Interface__ *instance, \
                 std::type_info const &typeInfo, std::string const &serviceId) \
@@ -68,6 +69,8 @@ namespace Mif
     {
 
         struct IService;
+
+        class External;
 
         namespace Detail
         {

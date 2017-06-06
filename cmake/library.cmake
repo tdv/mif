@@ -12,6 +12,7 @@ set(MIF_SOURCES
 
     # Service
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/locator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/external.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/per_thread_pool.cpp
 

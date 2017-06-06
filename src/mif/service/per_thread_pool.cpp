@@ -16,7 +16,6 @@
 #include "mif/common/log.h"
 #include "mif/service/id/service.h"
 #include "mif/service/creator.h"
-#include "mif/service/make.h"
 #include "mif/service/icheckable.h"
 #include "mif/service/ifactory.h"
 #include "mif/service/ipool.h"
@@ -52,7 +51,7 @@ namespace Mif
                 mutable Services m_services;
 
                 // IPool
-                virtual ProxyPtr GetService() const override final
+                virtual IServicePtr GetService() const override final
                 {
                     IServicePtr service;
 
@@ -81,7 +80,7 @@ namespace Mif
                         }
                     }
 
-                    return Make<Proxy<IService>, Proxy<IService>>(const_cast<PerThreadPool *>(this), service);
+                    return service;
                 }
             };
 
