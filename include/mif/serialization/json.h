@@ -143,31 +143,11 @@ namespace Mif
                     return ValueToJson(static_cast<typename std::underlying_type<T>::type>(object));
                 }
 
-                template <typename T, typename TItems, std::size_t Index>
-                inline typename std::enable_if<Index == 0, ::Json::Value>::type
-                EnumItemToJson(T const &object)
-                {
-                    Common::Unused(object);
-                    throw std::invalid_argument{"[Mif::Serialization::Json::Detail::EnumItemToJson] Failed to get name for enum value \"" +
-                            std::to_string(static_cast<typename std::underlying_type<T>::type>(object)) + "\""};
-                }
-
-                template <typename T, typename TItems, std::size_t Index>
-                inline typename std::enable_if<Index != 0, ::Json::Value>::type
-                EnumItemToJson(T const &object)
-                {
-                    using Item = typename TItems::template Field<Index - 1>;
-                    if (Item::Access() == object)
-                        return Item::Name::GetString();
-                    return EnumItemToJson<T, TItems, Index - 1>(object);
-                }
-
                 template <typename T>
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, ::Json::Value>::type
                 ValueToJson(T const &object)
                 {
-                    using Items = typename Reflection::Reflect<T>::Fields;
-                    return EnumItemToJson<T, Items, Items::Count>(object);
+                    return Reflection::ToString(object);
                 }
 
                 template <typename T>
@@ -415,24 +395,6 @@ namespace Mif
                     return object;
                 }
 
-                template <typename T, typename TItems, std::size_t Index>
-                inline typename std::enable_if<Index == 0, T>::type
-                JsonToEnumItem(std::string const &item)
-                {
-                    Common::Unused(item);
-                    throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToEnumItem] Failed to get value from items \"" + item + "\"."};
-                }
-
-                template <typename T, typename TItems, std::size_t Index>
-                inline typename std::enable_if<Index != 0, T>::type
-                JsonToEnumItem(std::string const &item)
-                {
-                    using Item = typename TItems::template Field<Index - 1>;
-                    if (item == Item::Name::GetString())
-                        return Item::Access();
-                    return JsonToEnumItem<T, TItems, Index - 1>(item);
-                }
-
                 template <typename T>
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, T>::type&
                 JsonToValue(::Json::Value const &root, T &object)
@@ -440,7 +402,7 @@ namespace Mif
                     if (root.isNull())
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
                     using Items = typename Reflection::Reflect<T>::Fields;
-                    object = JsonToEnumItem<T, Items, Items::Count>(JsonValueConverter<std::string>::Convert(root));
+                    object = Reflection::FromString<T>(JsonValueConverter<std::string>::Convert(root));
                     return object;
                 }
 

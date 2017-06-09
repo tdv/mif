@@ -10,10 +10,14 @@
 
 // STD
 #include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
 
 // MIF
 #include "mif/common/static_string.h"
 #include "mif/common/detail/hierarchy.h"
+#include "mif/common/unused.h"
 #include "mif/reflection/reflect_type.h"
 
 namespace Mif
@@ -66,6 +70,43 @@ namespace Mif
                 using Fields = FieldsList<T>;
             };
 
+            template <typename T, typename TItems, std::size_t Index>
+            inline typename std::enable_if<Index == 0, std::string>::type
+            EnumValueToString(T const &value)
+            {
+                Common::Unused(value);
+                throw std::invalid_argument{"[Mif::Reflection::Detail::EnumValueToString] Failed to get name for enum value \"" +
+                        std::to_string(static_cast<typename std::underlying_type<T>::type>(value)) + "\""};
+            }
+
+            template <typename T, typename TItems, std::size_t Index>
+            inline typename std::enable_if<Index != 0, std::string>::type
+            EnumValueToString(T const &value)
+            {
+                using Item = typename TItems::template Field<Index - 1>;
+                if (Item::Access() == value)
+                    return Item::Name::GetString();
+                return EnumValueToString<T, TItems, Index - 1>(value);
+            }
+
+            template <typename T, typename TItems, std::size_t Index>
+            inline typename std::enable_if<Index == 0, T>::type
+            StringToEnumValue(std::string const &str)
+            {
+                Common::Unused(str);
+                throw std::invalid_argument{"[Mif::Reflection::Detail::StringToEnumValue] Failed to get value from string \"" + str + "\"."};
+            }
+
+            template <typename T, typename TItems, std::size_t Index>
+            inline typename std::enable_if<Index != 0, T>::type
+            StringToEnumValue(std::string const &str)
+            {
+                using Item = typename TItems::template Field<Index - 1>;
+                if (str == Item::Name::GetString())
+                    return Item::Access();
+                return StringToEnumValue<T, TItems, Index - 1>(str);
+            }
+
         }   // namespace Detail
 
         template <typename T>
@@ -75,6 +116,30 @@ namespace Mif
         inline constexpr bool IsReflectable()
         {
             return !std::is_same<typename Detail::Registry::Registry<T>::Type, Detail::Registry::None>::value;
+        }
+
+        template <typename T>
+        inline typename std::enable_if
+            <
+                std::is_enum<T>::value && IsReflectable<T>(),
+                std::string
+            >::type
+        ToString(T const &value)
+        {
+            using Items = typename Reflect<T>::Fields;
+            return Detail::EnumValueToString<T, Items, Items::Count>(value);
+        }
+
+        template <typename T>
+        inline typename std::enable_if
+            <
+                std::is_enum<T>::value && IsReflectable<T>(),
+                T
+            >::type
+        FromString(std::string const &value)
+        {
+            using Items = typename Reflect<T>::Fields;
+            return Detail::StringToEnumValue<T, Items, Items::Count>(value);
         }
 
     }   // namespace Reflection
