@@ -401,7 +401,6 @@ namespace Mif
                 {
                     if (root.isNull())
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
-                    using Items = typename Reflection::Reflect<T>::Fields;
                     object = Reflection::FromString<T>(JsonValueConverter<std::string>::Convert(root));
                     return object;
                 }
