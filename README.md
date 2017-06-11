@@ -50,10 +50,9 @@ cd mif/exammples/{sample_project}/bin
 Please use --help for get more information about run a sample
 
 # Examples
-TODO: ...
 
 ## Hello World
-**Description**
+**Description**  
 The "Hello World" sample demonstrate basic client-server application with rpc based on interface marshaling and communicate by TCP with using boost.archives for data serialization
 
 
