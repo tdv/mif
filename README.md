@@ -489,7 +489,7 @@ TODO
 **Description**  
 TODO  
 
-## Http
+## DB client
 [Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
 **Description**  
 TODO  
