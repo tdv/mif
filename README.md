@@ -17,6 +17,14 @@ The minimum compiler version required is gcc 5.3
 # OS
 Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 
+# Dependencies
+- Boost
+- zlib
+- jsoncpp
+- libevent
+- libpq
+- sqlite
+
 # Build and install
 git clone https://github.com/tdv/mif.git  
 cd mif  
