@@ -1,3 +1,62 @@
+# MIF - C++11 MetaInfo Framework
+MIF is a framework on modern C++11 for building web-application backend based on micro-services with using additional meta-information about types
+
+# Version
+1.0.0
+
+# Features:
+- The wrappers classes over the libevent library for easy creation of simple web services
+- Rpc based on the interfaces marshalling with support for callback
+- Reflection for c++ data structures with inheritance supporting
+- Serialization in json and the ability to use boost archives
+- Support working with databases
+
+# Compiler
+The minimum compiler version required is gcc 5.3
+
+# OS
+Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
+
+# Build and install
+git clone https://github.com/tdv/mif.git  
+cd mif  
+./download_third_party.sh  
+mkdir build  
+cd build  
+cmake ..  
+make  
+make install  
+
+You can try using CMAKE_INSTALL_PREFIX to select the installation directory
+
+## Build examples
+After mif builds, you can build samples
+cd mif/examples/{sample_project}
+mkdir build  
+cd build  
+cmake ..  
+make  
+
+## Run examples
+
+Server:
+cd mif/exammples/{sample_project}/bin  
+./{sample_project}_server  
+
+Client:
+cd mif/exammples/{sample_project}/bin  
+./{sample_project}_client  
+
+Please use --help for get more information about run a sample
+
+# Examples
+TODO: ...
+
+## Hello World
+
+
+# --------------------------------------------------------------------------------------------------
+
 # MIF - C++ MetaInfo Framework
 Каркас для разработки веб-сервисов на C++.
 
