@@ -61,6 +61,7 @@ The "Hello World" sample demonstrate basic client-server application with rpc ba
 - create a data flow processing chain from a set of handler elements
 - implement interface on server side and create server application
 - create communication channel and proxy objects on client side and create client application  
+
 [Common interface](https://github.com/tdv/mif/blob/master/examples/hello_world/common/include/common/interface/ihello_world.h)  
 ```cpp
 // STD
@@ -82,6 +83,7 @@ namespace Service
 
 }   // namespace Service
 ```
+
 [Common interface meta-information](https://github.com/tdv/mif/blob/master/examples/hello_world/common/include/common/ps/ihello_world.h)  
 ```cpp
 // STD
@@ -111,6 +113,7 @@ namespace Service
 
 MIF_REMOTE_REGISTER_PS(Service::Meta::IHelloWorld)
 ```
+
 [Common data processing chain](https://github.com/tdv/mif/blob/master/examples/common/include/common/client.h)  
 ```cpp
 // STD
@@ -221,8 +224,10 @@ namespace Service
     }   // namespace Ipc
 }   // namespace Service
 ```
+
 It may seem that this is the most difficult part of the system. But do not be afraid. This is not true.  
 This chain is common to all examples. You can use it as-is in your projects. If you need to change the data exchange  protocol, change this chain.  
+
 [Server interface implementation](https://github.com/tdv/mif/blob/master/examples/hello_world/server/src/hello_world.cpp)  
 ```cpp// STD
 #include <list>
@@ -310,18 +315,6 @@ MIF_SERVICE_CREATOR
 )
 ```
 
-## cmplex_type
-TODO  
-
-## inheritance
-TODO  
-
-## http
-TODO  
-
-## visitor
-TODO  
-
 [Server application](https://github.com/tdv/mif/blob/master/examples/hello_world/server/src/main.cpp)  
 ```cpp
 // MIF
@@ -393,6 +386,7 @@ int main(int argc, char const **argv)
     return Mif::Application::Run<Applicatin>(argc, argv);
 }
 ```
+
 [Client application](https://github.com/tdv/mif/blob/master/examples/hello_world/client/src/main.cpp)  
 ```cpp
 // MIF
@@ -466,6 +460,19 @@ int main(int argc, char const **argv)
     return Mif::Application::Run<Applicatin>(argc, argv);
 }
 ```
+
+## cmplex_type
+TODO  
+
+## inheritance
+TODO  
+
+## http
+TODO  
+
+## visitor
+TODO  
+
 
 # -------------------------------
 
