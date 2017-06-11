@@ -9,7 +9,7 @@ MIF is a framework on modern C++11 for building web-application backend based on
 - Rpc based on the interfaces marshalling with support for callback
 - Reflection for c++ data structures with inheritance supporting
 - Serialization in json and the ability to use boost archives
-- Support working with databases
+- Support working with databases (Implemented for PostgreSQL and SQLite)
 
 # Compiler
 The minimum compiler version required is gcc 5.3
@@ -53,9 +53,11 @@ Please use --help for get more information about run a sample
 TODO: ...
 
 ## Hello World
+**Description**
+The "Hello World" sample demonstrate basic client-server application with rpc based on interface marshaling and communicate by TCP with using boost.archives for data serialization
 
 
-# --------------------------------------------------------------------------------------------------
+# -------------------------------
 
 # MIF - C++ MetaInfo Framework
 Каркас для разработки веб-сервисов на C++.
