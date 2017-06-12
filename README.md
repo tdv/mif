@@ -26,6 +26,7 @@ Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 - sqlite
 
 # Build and install
+```sh
 git clone https://github.com/tdv/mif.git  
 cd mif  
 ./download_third_party.sh  
@@ -34,6 +35,7 @@ cd build
 cmake ..  
 make  
 make install  
+```
 
 You can try using CMAKE_INSTALL_PREFIX to select the installation directory
 
