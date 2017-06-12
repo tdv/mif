@@ -26,7 +26,7 @@ Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 - sqlite
 
 # Build and install
-```sh
+```bash
 git clone https://github.com/tdv/mif.git  
 cd mif  
 ./download_third_party.sh  
@@ -41,22 +41,25 @@ You can try using CMAKE_INSTALL_PREFIX to select the installation directory
 
 ## Build examples
 After mif builds, you can build samples
+```bash
 cd mif/examples/{sample_project}
 mkdir build  
 cd build  
 cmake ..  
 make  
-
+```
 ## Run examples
 
 Server:
+```bash
 cd mif/exammples/{sample_project}/bin  
 ./{sample_project}_server  
-
+```
 Client:
+```bash
 cd mif/exammples/{sample_project}/bin  
 ./{sample_project}_client  
-
+```
 Please use --help for get more information about run a sample
 
 # Examples
