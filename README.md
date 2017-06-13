@@ -479,6 +479,7 @@ int main(int argc, char const **argv)
 [Source code](https://github.com/tdv/mif/tree/master/examples/complex_type)  
 **Description**  
 This example is same as "Hello Work". The difference is in calling remote methods with user-defined data structures as parameters and the return value. The project structure is the same as in the previous project example, but only adds the definition of user-defined data structures and meta-information.  
+
 [User data structs](https://github.com/tdv/mif/blob/master/examples/complex_type/common/include/common/data/data.h)  
 ```cpp
 // STD
