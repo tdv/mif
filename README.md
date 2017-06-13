@@ -67,7 +67,8 @@ Please use --help for get more information about run a sample
 ## Hello World
 [Source code](https://github.com/tdv/mif/tree/master/examples/hello_world)  
 **Description**  
-The "Hello World" sample demonstrate basic client-server application with rpc based on interface marshaling and communicate by TCP with using boost.archives for data serialization
+The "Hello World" sample demonstrate basic client-server application with rpc based on interface marshaling and communicate by TCP with using boost.archives for data serialization  
+
 **Basic steps for build client-server application with rpc**  
 - define interface
 - add a meta-information about interface and methods
@@ -477,7 +478,74 @@ int main(int argc, char const **argv)
 ## Cmplex Type
 [Source code](https://github.com/tdv/mif/tree/master/examples/complex_type)  
 **Description**  
-TODO  
+This example is same as "Hello Work". The difference is in calling remote methods with user-defined data structures as parameters and the return value. The project structure is the same as in the previous project example, but only adds the definition of user-defined data structures and meta-information.  
+[User data structs](https://github.com/tdv/mif/blob/master/examples/complex_type/common/include/common/data/data.h)  
+```cpp
+// STD
+#include <cstdint>
+#include <map>
+#include <string>
+
+namespace Service
+{
+    namespace Data
+    {
+
+        using ID = std::string;
+
+        struct Human
+        {
+            std::string name;
+            std::string lastName;
+            std::uint32_t age = 0;
+        };
+
+        struct Employee
+            : public Human
+        {
+            std::string position;
+        };
+
+        using Employees = std::map<ID, Employee>;
+
+    }   // namespace Data
+}   // namespace Service
+```
+
+[Meta-information](https://github.com/tdv/mif/blob/master/examples/complex_type/common/include/common/meta/data.h)  
+```cpp
+// MIF
+#include <mif/reflection/reflect_type.h>
+
+// THIS
+#include "common/data/data.h"
+
+namespace Service
+{
+    namespace Data
+    {
+        namespace Meta
+        {
+
+            using namespace ::Service::Data;
+
+            MIF_REFLECT_BEGIN(Human)
+                MIF_REFLECT_FIELD(name)
+                MIF_REFLECT_FIELD(lastName)
+                MIF_REFLECT_FIELD(age)
+            MIF_REFLECT_END()
+
+            MIF_REFLECT_BEGIN(Employee, Human)
+                MIF_REFLECT_FIELD(position)
+            MIF_REFLECT_END()
+
+        }   // namespace Meta
+    }   // namespace Data
+}   // namespace Service
+
+MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Human)
+MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Employee)
+```
 
 ## Inheritance
 [Source code](https://github.com/tdv/mif/tree/master/examples/inheritance)  
