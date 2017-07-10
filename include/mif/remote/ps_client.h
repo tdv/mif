@@ -110,7 +110,7 @@ namespace Mif
                     if (interfaceId.empty())
                         throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"interfaceId\" must not be empty."};
 
-                    auto instance = m_factory->Create(serviceId);
+                    auto instance = m_factory->Create(Common::Crc32str(serviceId));
                     return AppendStub(std::move(instance), interfaceId);
                 }
 

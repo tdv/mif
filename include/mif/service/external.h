@@ -9,6 +9,7 @@
 #define __MIF_SERVICE_EXTERNAL_H__
 
 // STD
+#include <list>
 #include <mutex>
 
 // MIF
@@ -25,7 +26,7 @@ namespace Mif
             , private Detail::IProxyBase_Mif_Remote_
         {
         public:
-            void Set(IServicePtr service);
+            void Add(IServicePtr service);
 
         private:
             template <typename>
@@ -34,9 +35,11 @@ namespace Mif
             using LockType = std::mutex;
             using LockGuard = std::lock_guard<LockType>;
 
+            using Services = std::list<IServicePtr>;
+
             LockType m_lock;
 
-            IServicePtr m_service;
+            Services m_services;
 
             // IProxyBase_Mif_Remote_
             virtual bool _Mif_Remote_QueryRemoteInterface(void **service,

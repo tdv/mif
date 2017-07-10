@@ -58,24 +58,34 @@ namespace Mif
                     {
                         auto id = std::this_thread::get_id();
 
-                        LockGuard lock{m_lock};
-
-                        auto iter = m_services.find(id);
-                        if (iter != std::end(m_services))
                         {
-                            service = iter->second;
+                            LockGuard lock{m_lock};
+
+                            auto iter = m_services.find(id);
+                            if (iter != std::end(m_services))
+                                service = iter->second;
+                        }
+
+                        if (service)
+                        {
                             if (auto checkable = Service::Query<ICheckable>(service))
                             {
                                 if (!checkable->IsGood())
                                 {
-                                    m_services.erase(iter);
+                                    {
+                                        LockGuard lock{m_lock};
+                                        m_services.erase(id);
+                                    }
                                     service.reset();
                                 }
                             }
                         }
+
                         if (!service)
                         {
                             service = m_factory->Create(m_serviceId);
+
+                            LockGuard lock{m_lock};
                             m_services.emplace(id, service);
                         }
                     }

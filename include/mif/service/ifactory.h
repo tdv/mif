@@ -20,10 +20,9 @@ namespace Mif
     {
 
         struct IFactory
-            : public IService
+            : public Inherit<IService>
         {
             virtual IServicePtr Create(ServiceId id) = 0;
-            virtual IServicePtr Create(std::string const &id) = 0;
         };
 
         using IFactoryPtr = TServicePtr<IFactory>;

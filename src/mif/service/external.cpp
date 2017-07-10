@@ -13,10 +13,10 @@ namespace Mif
     namespace Service
     {
 
-    void External::Set(IServicePtr service)
+    void External::Add(IServicePtr service)
     {
         LockGuard lock{m_lock};
-        m_service.swap(service);
+        m_services.emplace_back(service);
     }
 
     bool External::_Mif_Remote_QueryRemoteInterface(void **service,
@@ -25,10 +25,17 @@ namespace Mif
         {
             LockGuard lock{m_lock};
 
-            if (!m_service)
+            if (m_services.empty())
                 return false;
 
-            return m_service->Query(typeInfo, service, serviceId, holder);
+            for (auto &i : m_services)
+            {
+                bool res = i->Query(typeInfo, service, serviceId, holder);
+                if (res)
+                    return true;
+            }
+
+            return false;
         }
 
     }   // namespace Service

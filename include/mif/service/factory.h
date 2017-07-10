@@ -63,22 +63,6 @@ namespace Mif
                 return creator();
             }
 
-            virtual IServicePtr Create(std::string const &id) override final
-            {
-                Creator creator;
-                {
-                    LockGuard lock(m_lock);
-                    auto iter = m_creators.find(Common::Crc32str(id));
-                    if (iter == std::end(m_creators))
-                    {
-                        throw std::runtime_error{"[Mif::Service::Factory::Create] Failed to create service "
-                            "with id \"" + id + "\". Creator not found."};
-                    }
-                    creator = iter->second;
-                }
-                return creator();
-            }
-
         private:
             using LockType = std::mutex;
             using LockGuard = std::lock_guard<LockType>;

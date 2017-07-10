@@ -236,6 +236,50 @@ namespace Mif
                     }
                 };
 
+                class Params
+                {
+                public:
+                    using Type = std::map<std::string, std::string>;
+
+                    Type const& Get() const
+                    {
+                        return m_params;
+                    }
+
+                private:
+                    template <typename, typename, typename ... >
+                    friend class WebServiceHandler;
+
+                    Type const &m_params;
+
+                    Params(Type const &params)
+                        : m_params{params}
+                    {
+                    }
+                };
+
+                class Headers
+                {
+                public:
+                    using Type = std::map<std::string, std::string>;
+
+                    Type const& Get() const
+                    {
+                        return m_headers;
+                    }
+
+                private:
+                    template <typename, typename, typename ... >
+                    friend class WebServiceHandler;
+
+                    Type const &m_headers;
+
+                    Headers(Type const &headers)
+                        : m_headers{headers}
+                    {
+                    }
+                };
+
                 template <typename T, typename TConverter = ContentParamConverter>
                 class Content final
                 {
@@ -344,7 +388,8 @@ namespace Mif
                             >::type;
 
                     template <typename T>
-                    typename ExtractType<T>::PrmType GetPrm(IInputPack::Params const &params, Common::Buffer const &) const
+                    typename ExtractType<T>::PrmType GetPrm(IInputPack::Params const &params,
+                            IInputPack::Headers const &, Common::Buffer const &) const
                     {
                         for (auto const &i : params)
                         {
@@ -357,7 +402,22 @@ namespace Mif
                     }
 
                     template <typename T>
-                    typename ExtractType<T>::ContentType GetPrm(IInputPack::Params const &, Common::Buffer const &content) const
+                    typename ExtractType<T>::Params GetPrm(IInputPack::Params const &params,
+                            IInputPack::Headers const &, Common::Buffer const &) const
+                    {
+                        return {params};
+                    }
+
+                    template <typename T>
+                    typename ExtractType<T>::Headers GetPrm(IInputPack::Params const &,
+                            IInputPack::Headers const &headers, Common::Buffer const &) const
+                    {
+                        return {headers};
+                    }
+
+                    template <typename T>
+                    typename ExtractType<T>::ContentType GetPrm(IInputPack::Params const &,
+                            IInputPack::Headers const &, Common::Buffer const &content) const
                     {
                         return {content};
                     }
@@ -373,8 +433,9 @@ namespace Mif
                     ProcessRequest(IInputPack const &request, IOutputPack &)
                     {
                         auto const params = request.GetParams();
+                        auto const headers = request.GetHeaders();
                         auto const content = request.GetData();
-                        (m_object->*m_method)(GetPrm<Args>(params, content) ... );
+                        (m_object->*m_method)(GetPrm<Args>(params, headers, content) ... );
                     }
 
                     template <typename T>
@@ -382,8 +443,9 @@ namespace Mif
                     ProcessRequest(IInputPack const &request, IOutputPack &response)
                     {
                         auto const params = request.GetParams();
+                        auto const headers = request.GetHeaders();
                         auto const content = request.GetData();
-                        Result<> res{(m_object->*m_method)(GetPrm<Args>(params, content) ... )};
+                        Result<> res{(m_object->*m_method)(GetPrm<Args>(params, headers, content) ... )};
                         auto const &contentType = res.GetContetntType();
                         if (!contentType.empty())
                             response.SetHeader(Constants::Header::ContentType::GetString(), contentType);

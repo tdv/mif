@@ -34,7 +34,7 @@ set (EVENT_LIBRARIES
 )
 
 set (LIBPQ_LIBRARIES
-    pq
+    pq.a
 )
 
 set (SQLITE_LIBRARIES
@@ -212,7 +212,7 @@ function (mif_add_sqlite_project from_git)
             GIT_TAG ${MIF_SQLITE_GITHUB_TAG}
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension
+            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
             BUILD_COMMAND make
             INSTALL_COMMAND make install
         )
@@ -221,7 +221,7 @@ function (mif_add_sqlite_project from_git)
             SOURCE_DIR ${MIF_SQLITE_LOCAL_PATH}
             BUILD_IN_SOURCE 1
             UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension
+            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
 
             BUILD_COMMAND make
             INSTALL_COMMAND make install

@@ -100,7 +100,7 @@ namespace Mif
                         : m_pool{pool}
                         , m_service{service}
                     {
-                        Set(m_service);
+                        Add(m_service);
 
                         auto iter = m_pool->m_services.find(m_service);
                         if (iter == std::end(m_pool->m_services))
