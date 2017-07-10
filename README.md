@@ -551,19 +551,19 @@ MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Employee)
 ## Inheritance
 [Source code](https://github.com/tdv/mif/tree/master/examples/inheritance)  
 **Description**  
-TODO  
+The example is the same as all previous ones. The difference in the inheritance of interfaces. In an implementation you can query an interface which is out of hierarchy.
 
 ## Visitor
 [Source code](https://github.com/tdv/mif/tree/master/examples/visitor)  
 **Description**  
-TODO  
+The "Visitor" sample demonstrates the mechanism for remote callback of interface methods. This can be used as an example for publish / subscribe based applications.
 
 ## Http
 [Source code](https://github.com/tdv/mif/tree/master/examples/http)  
 **Description**  
-TODO  
+The sample demonstrates work of http server with dual interface for processing raw http requests and MIF RPC by HTTP.
 
 ## DB client
 [Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
 **Description**  
-TODO  
+Classical work with databases.
