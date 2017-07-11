@@ -1,15 +1,15 @@
 # MIF - C++11 MetaInfo Framework
-MIF is a framework on modern C++11 for building web-application backend based on micro-services with using additional meta-information about types
+MIF is a с++11 web-application framework designed for the backend micro-service development. The framework makes use of additional type meta-information.
 
 # Version
 1.0.0
 
 # Features:
-- The wrappers classes over the libevent library for easy creation of simple web services
-- Rpc based on the interfaces marshalling with support for callback
-- Reflection for c++ data structures with inheritance supporting
-- Serialization in json and the ability to use boost archives
-- Support working with databases (Implemented for PostgreSQL and SQLite)
+- libevent wrapper classes for the easy creation of simple web services
+- Interface-based RPC marshalling with the callback support
+- Reflection for c++ data structures with the inheritance support
+- Json-serialization and the ability to use boost archives
+- Database support (Implemented for PostgreSQL and SQLite)
 
 # Compiler
 The minimum compiler version required is gcc 5.3
@@ -40,7 +40,7 @@ make install
 You can try using CMAKE_INSTALL_PREFIX to select the installation directory
 
 ## Build examples
-After mif builds, you can build samples
+After mif is built, you can build examples
 ```bash
 cd mif/examples/{sample_project}
 mkdir build  
@@ -60,21 +60,21 @@ Client:
 cd mif/exammples/{sample_project}/bin  
 ./{sample_project}_client  
 ```
-Please use --help for get more information about run a sample
+Please use --help to get more information about runing an example
 
 # Examples
 
 ## Hello World
 [Source code](https://github.com/tdv/mif/tree/master/examples/hello_world)  
 **Description**  
-The "Hello World" sample demonstrate basic client-server application with rpc based on interface marshaling and communicate by TCP with using boost.archives for data serialization  
+The "Hello World" example demonstrates a basic client-server application with the interface-based RPC marshaling and TCP communication with using boost.archives for data serialization
 
-**Basic steps for build client-server application with rpc**  
+**Basic steps for building a client-server application with RPC**  
 - define interface
-- add a meta-information about interface and methods
+- add meta-information about interface and methods
 - create a data flow processing chain from a set of handler elements
-- implement interface on server side and create server application
-- create communication channel and proxy objects on client side and create client application  
+- implement interface on the server side and create a server application
+- create communication channel and proxy objects on the client side and create a client application  
 
 [Common interface](https://github.com/tdv/mif/blob/master/examples/hello_world/common/include/common/interface/ihello_world.h)  
 ```cpp
@@ -240,7 +240,7 @@ namespace Service
 ```
 
 It may seem that this is the most difficult part of the system. But do not be afraid. This is not true.  
-This chain is common to all examples. You can use it as-is in your projects. If you need to change the data exchange  protocol, change this chain.  
+This chain is common to all the examples. You can use it as-is in your projects. If you need to change the data exchange  protocol, change this chain.  
 
 [Server interface implementation](https://github.com/tdv/mif/blob/master/examples/hello_world/server/src/hello_world.cpp)  
 ```cpp// STD
@@ -478,7 +478,7 @@ int main(int argc, char const **argv)
 ## Complex Type
 [Source code](https://github.com/tdv/mif/tree/master/examples/complex_type)  
 **Description**  
-This example is same as "Hello Work". The difference is in calling remote methods with user-defined data structures as parameters and the return value. The project structure is the same as in the previous project example, but only adds the definition of user-defined data structures and meta-information.  
+This example is the same as "Hello World". The difference is in calling remote methods with user-defined data structures as parameters and returning a value. The project structure is the same as in the previous project example, we only add the definition of user-defined data structures and meta-information.  
 
 [User data structs](https://github.com/tdv/mif/blob/master/examples/complex_type/common/include/common/data/data.h)  
 ```cpp
@@ -551,19 +551,19 @@ MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Employee)
 ## Inheritance
 [Source code](https://github.com/tdv/mif/tree/master/examples/inheritance)  
 **Description**  
-The example is the same as all previous ones. The difference in the inheritance of interfaces. In an implementation you can query an interface which is out of hierarchy.
+Compared to the previous examples this one adds the inteface inheritance. In the implementation you can query an interface which is out of hierarchy.
 
 ## Visitor
 [Source code](https://github.com/tdv/mif/tree/master/examples/visitor)  
 **Description**  
-The "Visitor" sample demonstrates the mechanism for remote callback of interface methods. This can be used as an example for publish / subscribe based applications.
+The "Visitor" example demonstrates the mechanism of remote callbacks for interface methods. This can be used as a starting point for publish / subscribe based applications.
 
-## Http
+## HTTP
 [Source code](https://github.com/tdv/mif/tree/master/examples/http)  
 **Description**  
-The sample demonstrates work of http server with dual interface for processing raw http requests and MIF RPC by HTTP.
+The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP.
 
 ## DB client
 [Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
 **Description**  
-Classical work with databases.
+A classical work with databases.
