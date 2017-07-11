@@ -17,11 +17,11 @@
 // THIS
 #include "common/id/service.h"
 
-class Applicatin
+class Application
     : public Mif::Application::Application
 {
 public:
-    Applicatin(int argc, char const **argv)
+    Application(int argc, char const **argv)
         : Mif::Application::Application{argc, argv}
     {
         boost::program_options::options_description options{"Server options"};
@@ -71,5 +71,5 @@ private:
 
 int main(int argc, char const **argv)
 {
-    return Mif::Application::Run<Applicatin>(argc, argv);
+    return Mif::Application::Run<Application>(argc, argv);
 }
