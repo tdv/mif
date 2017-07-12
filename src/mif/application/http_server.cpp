@@ -5,15 +5,11 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-// STD
-#include <chrono>
-
 // MIF
-#include "mif/application/tcp_service.h"
+#include "mif/application/http_server.h"
 #include "mif/common/log.h"
 #include "mif/common/static_string.h"
 #include "mif/common/unused.h"
-#include "mif/service/make.h"
 #include "mif/service/root_locator.h"
 
 namespace Mif
@@ -30,40 +26,37 @@ namespace Mif
                 MIF_DECLARE_SRTING_PROVIDER(ServerHost, "host")
                 MIF_DECLARE_SRTING_PROVIDER(ServerPort, "port")
                 MIF_DECLARE_SRTING_PROVIDER(ServerWprkers, "workers")
-                MIF_DECLARE_SRTING_PROVIDER(ServerTimeout, "timeout")
 
             }   // namespace Config
         }   // namespace Detail
 
-        TcpService::TcpService(int argc, char const **argv, ClientFactory const &clientFactory)
+        HttpServer::HttpServer(int argc, char const **argv, Net::Http::Methods const &methods)
             : Application{argc, argv}
-            , m_clientFactory{clientFactory}
+            , m_methods{methods}
         {
             boost::program_options::options_description options{"Server options"};
             options.add_options()
                     (Detail::Config::ServerHost::GetString(), boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
                     (Detail::Config::ServerPort::GetString(), boost::program_options::value<std::string>()->default_value("55555"), "Server port")
-                    (Detail::Config::ServerWprkers::GetString(), boost::program_options::value<std::uint16_t>()->default_value(8), "Workers thread count")
-                    (Detail::Config::ServerTimeout::GetString(), boost::program_options::value<std::uint64_t>()->default_value(10 * 1000 * 1000), "Time of request processing (microseconds)");
+                    (Detail::Config::ServerWprkers::GetString(), boost::program_options::value<std::uint16_t>()->default_value(8), "Workers thread count");
 
             AddCustomOptions(options);
         }
 
-        void TcpService::Init(Service::FactoryPtr factory)
+        void HttpServer::Init(Net::Http::ServerHandlers &handlers)
         {
-            Common::Unused(factory);
+            Common::Unused(handlers);
         }
 
-        void TcpService::Done()
+        void HttpServer::Done()
         {
         }
 
-        void TcpService::OnStart()
+        void HttpServer::OnStart()
         {
             std::string host;
             std::string port;
             std::uint16_t workers = 0;
-            std::chrono::microseconds timeout{0};
 
             if (auto config = GetConfig())
             {
@@ -73,13 +66,10 @@ namespace Mif
                     host = serverConfig->GetValue(Detail::Config::ServerHost::GetString());
                     port = serverConfig->GetValue(Detail::Config::ServerPort::GetString());
                     workers = serverConfig->GetValue<std::uint16_t>(Detail::Config::ServerWprkers::GetString());
-                    timeout = std::chrono::microseconds{
-                            serverConfig->GetValue<std::uint64_t>(Detail::Config::ServerTimeout::GetString())
-                        };
                 }
                 else
                 {
-                    MIF_LOG(Warning) << "[Mif::Application::TcpService::OnStart] "
+                    MIF_LOG(Warning) << "[Mif::Application::HttpServer::OnStart] "
                             << "Branch \"" << Detail::Config::ServerBranch::GetString() << "\" not found. "
                             << "All server parameters will be taken from the command line arguments or default parameters will be used.";
                 }
@@ -93,23 +83,18 @@ namespace Mif
                 port = options[Detail::Config::ServerPort::GetString()].as<std::string>();
             if (!workers)
                 workers = options[Detail::Config::ServerWprkers::GetString()].as<std::uint16_t>();
-            if (!timeout.count())
-                timeout = std::chrono::microseconds{options[Detail::Config::ServerTimeout::GetString()].as<std::uint64_t>()};
 
             MIF_LOG(Info) << "Starting server on " << host << ":" << port;
 
-            auto factory = Service::Make<Service::Factory, Service::Factory>();
+            Net::Http::ServerHandlers handlers;
+            Init(handlers);
 
-            Init(factory);
-
-            auto clientFactory = m_clientFactory(workers, timeout, factory);
-
-            m_server.reset(new Net::Tcp::Server{host, port, clientFactory});
+            m_server.reset(new Net::Http::Server{host, port, workers, m_methods, handlers});
 
             MIF_LOG(Info) << "Server is successfully started.";
         }
 
-        void TcpService::OnStop()
+        void HttpServer::OnStop()
         {
             MIF_LOG(Info) << "Stopping server ...";
 
@@ -121,7 +106,7 @@ namespace Mif
             }
             catch (std::exception const &e)
             {
-                MIF_LOG(Warning) << "[Mif::Application::TcpService::OnStop] "
+                MIF_LOG(Warning) << "[Mif::Application::HttpServer::OnStop] "
                         << "Failed to call \"Done\". Error: " << e.what();
             }
 

@@ -42,7 +42,7 @@ namespace Mif
 
         private:
             ClientFactory m_clientFactory;
-            std::unique_ptr<Mif::Net::Tcp::Server> m_server;
+            std::unique_ptr<Net::Tcp::Server> m_server;
 
             // Application
             virtual void OnStart() override final;
