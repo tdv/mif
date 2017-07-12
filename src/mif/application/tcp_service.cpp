@@ -115,6 +115,16 @@ namespace Mif
 
             m_server.reset();
 
+            try
+            {
+                Done();
+            }
+            catch (std::exception const &e)
+            {
+                MIF_LOG(Warning) << "[Mif::Application::TcpService::OnStop] "
+                        << "Failed to call \"Done\". Error: " << e.what();
+            }
+
             Service::RootLocator::Get()->Clear();
 
             MIF_LOG(Info) << "Server is successfully stopped.";
