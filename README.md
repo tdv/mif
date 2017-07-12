@@ -3,7 +3,8 @@ MIF is a с++11 web-application framework designed for the backend micro-service
 
 # Version
 1.1.0  
-**NOTE:** The master branch is actively developed, use latest release for production use
+
+**NOTE:** The master branch is actively developed, use latest release for production use.
 
 # Features:
 - libevent wrapper classes for the easy creation of simple web services
