@@ -19,21 +19,24 @@ namespace Mif
 {
     namespace Net
     {
-
-        class HTTPClients final
+        namespace Http
         {
-        public:
-            HTTPClients(std::shared_ptr<IClientFactory> factory);
-            ~HTTPClients();
 
-            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port,
-                    std::string const &resource = "");
+            class Clients final
+            {
+            public:
+                Clients(std::shared_ptr<IClientFactory> factory);
+                ~Clients();
 
-        private:
-            class Impl;
-            std::unique_ptr<Impl> m_impl;
-        };
+                IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port,
+                        std::string const &resource = "");
 
+            private:
+                class Impl;
+                std::unique_ptr<Impl> m_impl;
+            };
+
+        }   // namespace Http
     }   // namespace Net
 }   // namespace Mif
 

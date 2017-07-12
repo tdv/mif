@@ -20,20 +20,23 @@ namespace Mif
 {
     namespace Net
     {
-
-        class TCPClients final
+        namespace Tcp
         {
-        public:
-            TCPClients(IClientFactoryPtr factory);
-            ~TCPClients();
 
-            IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port);
+            class Clients final
+            {
+            public:
+                Clients(IClientFactoryPtr factory);
+                ~Clients();
 
-        private:
-            class Impl;
-            std::unique_ptr<Impl> m_impl;
-        };
+                IClientFactory::ClientPtr RunClient(std::string const &host, std::string const &port);
 
+            private:
+                class Impl;
+                std::unique_ptr<Impl> m_impl;
+            };
+
+        }   // namespace Tcp
     }   // namespace Net
 }   // namespace Mif
 

@@ -8,7 +8,7 @@
 // MIF
 #include <mif/application/application.h>
 #include <mif/common/log.h>
-#include <mif/net/tcp_server.h>
+#include <mif/net/tcp/server.h>
 
 // COMMON
 #include "common/client.h"
@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Mif::Net::TCPServer> m_server;
+    std::unique_ptr<Mif::Net::Tcp::Server> m_server;
 
     // Mif.Application.Application
     virtual void OnStart() override final
@@ -54,7 +54,7 @@ private:
 
         auto clientFactory = Service::Ipc::MakeClientFactory(workers, timeout, factory);
 
-        m_server.reset(new Mif::Net::TCPServer{host, port, clientFactory});
+        m_server.reset(new Mif::Net::Tcp::Server{host, port, clientFactory});
 
         MIF_LOG(Info) << "Server is successfully started.";
     }

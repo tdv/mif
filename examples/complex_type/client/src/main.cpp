@@ -8,7 +8,7 @@
 // MIF
 #include <mif/application/application.h>
 #include <mif/common/log.h>
-#include <mif/net/tcp_clients.h>
+#include <mif/net/tcp/clients.h>
 
 // COMMON
 #include "common/client.h"
@@ -56,7 +56,7 @@ private:
 
         auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout);
 
-        Mif::Net::TCPClients clients(clientFactory);
+        Mif::Net::Tcp::Clients clients(clientFactory);
 
         auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port));
 

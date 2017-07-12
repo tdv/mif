@@ -20,19 +20,22 @@ namespace Mif
 {
     namespace Net
     {
-
-        class TCPServer final
+        namespace Tcp
         {
-        public:
-            TCPServer(std::string const &host, std::string const &port, IClientFactoryPtr factory);
 
-            ~TCPServer();
+            class Server final
+            {
+            public:
+                Server(std::string const &host, std::string const &port, IClientFactoryPtr factory);
 
-        private:
-            class Impl;
-            std::unique_ptr<Impl> m_impl;
-        };
+                ~Server();
 
+            private:
+                class Impl;
+                std::unique_ptr<Impl> m_impl;
+            };
+
+        }   // namespace Tcp
     }   // namespace Net
 }   // namespace Mif
 
