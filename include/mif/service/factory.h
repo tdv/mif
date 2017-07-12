@@ -75,6 +75,8 @@ namespace Mif
             Creators m_creators;
         };
 
+        using FactoryPtr = TServicePtr<Factory>;
+
     }  // namespace Service
 }   // namespace Mif
 

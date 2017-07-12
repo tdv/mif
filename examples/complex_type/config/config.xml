@@ -8,5 +8,11 @@
 			<pattern>log_%5N.log</pattern>
 		</log>
 	</common>
+	<server>
+		<host>0.0.0.0</host>
+		<port>55555</port>
+		<workers>8</workers>
+		<timeout>10000000</timeout>
+	</server>
 	<data/>
 </document>
