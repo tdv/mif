@@ -46,7 +46,7 @@ private:
 
         Mif::Net::Http::Clients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port, "/admin"));
+        auto proxy = std::static_pointer_cast<Service::Ipc::WebClientsChain>(clients.RunClient(host, port, "/admin"));
 
         MIF_LOG(Info) << "Client is successfully started.";
 

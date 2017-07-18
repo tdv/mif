@@ -12,6 +12,8 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 // MIF
 #include "mif/common/thread_pool.h"
@@ -46,6 +48,27 @@ namespace Mif
                         Common::MakeCreator<Net::Clients::ParallelHandler>(workers),
                         Common::MakeCreator<Client>(timeout, factory)
                     );
+            }
+
+            template <typename TInterface, typename TSerialization = Serialization::Boost::Binary>
+            inline Service::TServicePtr<TInterface>
+            CreateService(Net::IClientFactory::ClientPtr client, std::string const &serviceId)
+            {
+                if (!client)
+                    throw std::invalid_argument{""};
+
+                if (serviceId.empty())
+                    throw std::invalid_argument{""};
+
+                using Client = PSClient<TSerialization>;
+                using ProtocolChain = Protocol::ArchivedFrame<Client>;
+                using ClientsChain = ProtocolChain;
+
+                auto proxy = std::static_pointer_cast<ClientsChain>(client);
+                auto ps = proxy->template GetClientItem<Client>();
+                auto service = ps->template CreateService<TInterface>(serviceId);
+
+                return service;
             }
 
         }   // namespace Predefined

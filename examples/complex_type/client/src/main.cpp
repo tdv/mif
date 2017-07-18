@@ -9,9 +9,9 @@
 #include <mif/application/application.h>
 #include <mif/common/log.h>
 #include <mif/net/tcp/clients.h>
+#include <mif/remote/predefined/client_factory.h>
 
 // COMMON
-#include "common/client.h"
 #include "common/ps/imy_company.h"
 
 class Application
@@ -54,17 +54,12 @@ private:
 
         std::chrono::microseconds timeout{10 * 1000 * 1000};
 
-        auto clientFactory = Service::Ipc::MakeClientFactory(4, timeout);
+        auto clientFactory = Mif::Remote::Predefined::MakeClientFactory(4, timeout);
 
         Mif::Net::Tcp::Clients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port));
-
-        MIF_LOG(Info) << "Client is successfully started.";
-
-        auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
-
-        auto service = client->CreateService<Service::IMyCompany>("MyCompany");
+        auto service = Mif::Remote::Predefined::CreateService<Service::IMyCompany>(
+                clients.RunClient(host, port), "MyCompany");
 
         {
             Service::Data::Employee e;
