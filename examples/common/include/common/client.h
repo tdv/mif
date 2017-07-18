@@ -13,23 +13,14 @@
 #include <cstdint>
 #include <memory>
 
-// BOOST
-#include <boost/archive/xml_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-
 // MIF
 #include <mif/common/thread_pool.h>
-#include <mif/net/clients_chain.h>
 #include <mif/net/client_factory.h>
-#include <mif/net/clients/parallel_handler.h>
-#include <mif/net/clients/frame_reader.h>
-#include <mif/net/clients/frame_writer.h>
-#include <mif/net/clients/gzip_compressor.h>
-#include <mif/net/clients/gzip_decompressor.h>
 #include <mif/remote/ps_client.h>
-#include <mif/remote/serialization/serialization.h>
-#include <mif/remote/serialization/boost.h>
-#include <mif/remote/serialization/json.h>
+#include <mif/remote/predefined/protocol/archived_frame.h>
+#include <mif/remote/predefined/serialization/boost/binary.h>
+#include <mif/remote/predefined/serialization/json.h>
+#include <mif/remote/predefined/client_factory.h>
 #include <mif/service/ifactory.h>
 #include <mif/service/factory.h>
 #include <mif/service/make.h>
@@ -38,52 +29,17 @@ namespace Service
 {
     namespace Ipc
     {
-        namespace Detail
-        {
 
-            namespace Boost
-            {
-
-                using Serializer = Mif::Remote::Serialization::Boost::Serializer<boost::archive::xml_oarchive>;
-                using Deserializer = Mif::Remote::Serialization::Boost::Deserializer<boost::archive::xml_iarchive>;
-                using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<Serializer, Deserializer>;
-
-            }   // namespace Boost
-
-            namespace Json
-            {
-
-                using Serializer = Mif::Remote::Serialization::Json::Serializer;
-                using Deserializer = Mif::Remote::Serialization::Json::Deserializer;
-                using SerializerTraits = Mif::Remote::Serialization::SerializerTraits<Serializer, Deserializer>;
-
-            }   // namespace Json
-
-        }   // namespace Detail
-
-        using PSClient = Mif::Remote::PSClient<Detail::Boost::SerializerTraits>;
-        using WebPSClient = Mif::Remote::PSClient<Detail::Json::SerializerTraits>;
+        using PSClient = Mif::Remote::PSClient<Mif::Remote::Predefined::Serialization::Boost::Binary>;
+        using WebPSClient = Mif::Remote::PSClient<Mif::Remote::Predefined::Serialization::Json>;
 
         namespace Detail
         {
 
-            using ProtocolChain = Mif::Net::ClientsChain
-                <
-                    Mif::Net::Clients::FrameReader,
-                    Mif::Net::Clients::ParallelHandler,
-                    Mif::Net::Clients::GZipDecompressor,
-                    PSClient,
-                    Mif::Net::Clients::GZipCompressor,
-                    Mif::Net::Clients::FrameWriter
-                >;
-
+            using ProtocolChain = Mif::Remote::Predefined::Protocol::ArchivedFrame<PSClient>;
             using ClientFactory = Mif::Net::ClientFactory<ProtocolChain>;
 
-            using WebProtocolChain = Mif::Net::ClientsChain
-                <
-                    WebPSClient
-                >;
-
+            using WebProtocolChain = Mif::Net::ClientsChain<WebPSClient>;
             using WebClientFactory = Mif::Net::ClientFactory<WebProtocolChain>;
 
         }   // namespace Detail
@@ -95,13 +51,7 @@ namespace Service
                 std::chrono::microseconds const &timeout,
                 Mif::Service::IFactoryPtr factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::IFactory>())
         {
-            auto workers = Mif::Common::CreateThreadPool(threadCount);
-
-            return std::make_shared<Detail::ClientFactory>
-                (
-                    Mif::Common::MakeCreator<Mif::Net::Clients::ParallelHandler>(workers),
-                    Mif::Common::MakeCreator<PSClient>(timeout, factory)
-                );
+            return Mif::Remote::Predefined::MakeClientFactory(threadCount, timeout, factory);
         }
 
         inline Mif::Net::IClientFactoryPtr MakeWebClientFactory(std::chrono::microseconds const &timeout,

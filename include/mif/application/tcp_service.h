@@ -18,6 +18,7 @@
 #include "mif/application/application.h"
 #include "mif/service/factory.h"
 #include "mif/net/tcp/server.h"
+#include "mif/remote/predefined/client_factory.h"
 
 namespace Mif
 {
@@ -34,7 +35,8 @@ namespace Mif
                             Service::FactoryPtr /*factory*/)
                 >;
 
-            TcpService(int argc, char const **argv, ClientFactory const &clientFactory);
+            TcpService(int argc, char const **argv,
+                    ClientFactory const &clientFactory = Remote::Predefined::MakeClientFactory<>);
 
         protected:
             virtual void Init(Service::FactoryPtr factory);

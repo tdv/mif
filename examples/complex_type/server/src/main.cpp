@@ -9,7 +9,6 @@
 #include <mif/application/tcp_service.h>
 
 // COMMON
-#include "common/client.h"
 #include "common/id/service.h"
 #include "common/ps/imy_company.h"
 
@@ -17,10 +16,7 @@ class Application
     : public Mif::Application::TcpService
 {
 public:
-    Application(int argc, char const **argv)
-        : TcpService{argc, argv, Service::Ipc::MakeClientFactory}
-    {
-    }
+    using TcpService::TcpService;
 
 private:
     // Mif.Application.Application
