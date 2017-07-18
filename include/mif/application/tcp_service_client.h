@@ -5,19 +5,17 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_APPLICATION_TCP_SERVICE_H__
-#define __MIF_APPLICATION_TCP_SERVICE_H__
+#ifndef __MIF_APPLICATION_TCP_SERVICE_CLIENT_H__
+#define __MIF_APPLICATION_TCP_SERVICE_CLIENT_H__
 
 // STD
 #include <chrono>
 #include <cstdint>
 #include <functional>
-#include <memory>
 
 // MIF
 #include "mif/application/net_base_application.h"
-#include "mif/service/factory.h"
-#include "mif/net/tcp/server.h"
+#include "mif/service/ifactory.h"
 #include "mif/remote/predefined/client_factory.h"
 
 namespace Mif
@@ -25,7 +23,7 @@ namespace Mif
     namespace Application
     {
 
-        class TcpService
+        class TcpServiceClient
             : public NetBaseApplication
         {
         public:
@@ -35,16 +33,16 @@ namespace Mif
                             Service::FactoryPtr /*factory*/)
                 >;
 
-            TcpService(int argc, char const **argv,
+            TcpServiceClient(int argc, char const **argv,
                     ClientFactory const &clientFactory = Remote::Predefined::MakeClientFactory<>);
 
         protected:
-            virtual void Init(Service::FactoryPtr factory);
+            virtual void Init(Service::IFactoryPtr factory);
             virtual void Done();
 
         private:
             ClientFactory m_clientFactory;
-            std::unique_ptr<Net::Tcp::Server> m_server;
+            Service::IFactoryPtr m_factory;
 
             // NetBaseApplication
             virtual void OnInit() override final;
@@ -54,4 +52,4 @@ namespace Mif
     }   // namespace Application
 }   // namespace Mif
 
-#endif  // !__MIF_APPLICATION_TCP_SERVICE_H__
+#endif  // !__MIF_APPLICATION_TCP_SERVICE_CLIENT_H__

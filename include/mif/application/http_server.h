@@ -12,7 +12,7 @@
 #include <memory>
 
 // MIF
-#include "mif/application/application.h"
+#include "mif/application/net_base_application.h"
 #include "mif/net/http/server.h"
 
 namespace Mif
@@ -21,7 +21,7 @@ namespace Mif
     {
 
         class HttpServer
-            : public Application
+            : public NetBaseApplication
         {
         public:
             HttpServer(int argc, char const **argv,
@@ -39,9 +39,9 @@ namespace Mif
             Net::Http::Methods m_methods;
             std::unique_ptr<Net::Http::Server> m_server;
 
-            // Application
-            virtual void OnStart() override final;
-            virtual void OnStop() override final;
+            // NetBaseApplication
+            virtual void OnInit() override final;
+            virtual void OnDone() override final;
         };
 
     }   // namespace Application

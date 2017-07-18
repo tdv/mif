@@ -136,6 +136,7 @@ namespace Mif
                 {
                     // TODO: uncomment it
                     //m_ids.push_back(id);
+                    (void)id;
                 }
 
             private:

@@ -52,7 +52,7 @@ namespace Mif
                 }
 
                 template <typename T>
-                inline constexpr IsInterfaceRawPtr()
+                inline constexpr bool IsInterfaceRawPtr()
                 {
                     return std::is_pointer<T>::value &&
                             (
@@ -62,7 +62,7 @@ namespace Mif
                 }
 
                 template <typename T>
-                inline constexpr IsInterfaceRef()
+                inline constexpr bool IsInterfaceRef()
                 {
                     return std::is_reference<T>::value &&
                             (
@@ -72,13 +72,13 @@ namespace Mif
                 }
 
                 template <typename T>
-                inline constexpr IsInterfaceSmartPtr()
+                inline constexpr bool IsInterfaceSmartPtr()
                 {
                     return !std::is_pointer<T>::value && IsTServicePtr<ExtractType<T>>();
                 }
 
                 template <typename T>
-                inline constexpr IsNotInterface()
+                inline constexpr bool IsNotInterface()
                 {
                     return !std::is_base_of<Service::IService, ExtractType<T>>::value &&
                             !std::is_same<Service::IService, ExtractType<T>>::value &&

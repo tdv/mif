@@ -43,7 +43,9 @@ set(MIF_SOURCES
 
     # Application
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/application.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/net_base_application.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/tcp_service.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/tcp_service_client.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/http_server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/xml.cpp
