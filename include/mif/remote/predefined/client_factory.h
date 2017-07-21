@@ -18,6 +18,7 @@
 // MIF
 #include "mif/common/thread_pool.h"
 #include "mif/net/client_factory.h"
+#include "mif/remote/meta/iservice.h"
 #include "mif/remote/ps_client.h"
 #include "mif/remote/predefined/protocol/archived_frame.h"
 #include "mif/remote/predefined/serialization/boost/binary.h"
@@ -50,15 +51,16 @@ namespace Mif
                     );
             }
 
-            template <typename TInterface, typename TSerialization = Serialization::Boost::Binary>
+            template
+            <
+                    typename TInterface = Service::IService,
+                    typename TSerialization = Serialization::Boost::Binary
+            >
             inline Service::TServicePtr<TInterface>
-            CreateService(Net::IClientFactory::ClientPtr client, std::string const &serviceId)
+            CreateService(Net::IClientFactory::ClientPtr client, Service::ServiceId serviceId)
             {
                 if (!client)
-                    throw std::invalid_argument{""};
-
-                if (serviceId.empty())
-                    throw std::invalid_argument{""};
+                    throw std::invalid_argument{"[Mif::Remote::Predefined::CreateService] Empty client ptr."};
 
                 using Client = PSClient<TSerialization>;
                 using ProtocolChain = Protocol::ArchivedFrame<Client>;

@@ -7,6 +7,7 @@
 
 // MIF
 #include <mif/application/application.h>
+#include <mif/common/crc32.h>
 #include <mif/common/log.h>
 #include <mif/net/http/clients.h>
 
@@ -52,7 +53,8 @@ private:
 
         auto client = proxy->GetClientItem<Service::Ipc::WebPSClient>();
 
-        auto service = client->CreateService<Service::IAdmin>("WebService.Admin");
+        auto service = client->CreateService<Service::IAdmin>(
+                Mif::Common::Crc32("WebService.Admin"));
 
         MIF_LOG(Info) << "Client started.";
 

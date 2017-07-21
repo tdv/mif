@@ -12,6 +12,7 @@
 #include <string>
 
 // MIF
+#include "mif/common/crc32.h"
 #include "mif/service/iservice.h"
 
 namespace Mif
@@ -23,6 +24,19 @@ namespace Mif
             : public Inherit<IService>
         {
             virtual IServicePtr Create(ServiceId id) = 0;
+
+            template <typename T>
+            TServicePtr<T> Create(ServiceId id)
+            {
+                return Service::Cast<T>(Create(id));
+            }
+
+            template <typename T>
+            TServicePtr<T> Create(std::string const &id)
+            {
+                return Create<T>(Common::Crc32str(id));
+            }
+
         };
 
         using IFactoryPtr = TServicePtr<IFactory>;

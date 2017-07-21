@@ -6,28 +6,17 @@
 //-------------------------------------------------------------------
 
 // MIF
-#include <mif/application/application.h>
+#include <mif/application/tcp_service_client.h>
 #include <mif/common/log.h>
-#include <mif/net/tcp/clients.h>
-#include <mif/remote/predefined/client_factory.h>
 
 // COMMON
 #include "common/ps/imy_company.h"
 
 class Application
-    : public Mif::Application::Application
+    : public Mif::Application::TcpServiceClient
 {
 public:
-    Application(int argc, char const **argv)
-        : Mif::Application::Application{argc, argv}
-    {
-        boost::program_options::options_description options{"Client options"};
-        options.add_options()
-                ("host", boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
-                ("port", boost::program_options::value<std::string>()->default_value("55555"), "Server port");
-
-        AddCustomOptions(options);
-    }
+    using TcpServiceClient::TcpServiceClient;
 
 private:
     void ShowEmployees(Service::Data::Employees const &employees) const
@@ -42,24 +31,10 @@ private:
         }
     }
 
-    // Mif.Application.Application
-    virtual void OnStart() override final
+    // Mif.Application.TcpServiceClient
+    virtual void Init(Mif::Service::IFactoryPtr factory) override final
     {
-        auto const &options = GetOptions();
-
-        auto const host = options["host"].as<std::string>();
-        auto const port = options["port"].as<std::string>();
-
-        MIF_LOG(Info) << "Starting client on " << host << ":" << port;
-
-        std::chrono::microseconds timeout{10 * 1000 * 1000};
-
-        auto clientFactory = Mif::Remote::Predefined::MakeClientFactory(4, timeout);
-
-        Mif::Net::Tcp::Clients clients(clientFactory);
-
-        auto service = Mif::Remote::Predefined::CreateService<Service::IMyCompany>(
-                clients.RunClient(host, port), "MyCompany");
+        auto service = factory->Create<Service::IMyCompany>("MyCompany");
 
         {
             Service::Data::Employee e;

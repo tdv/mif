@@ -5,11 +5,15 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
+// STD
+#include <mutex>
+
 // MIF
 #include "mif/application/tcp_service_client.h"
 #include "mif/common/log.h"
 #include "mif/common/unused.h"
-#include "mif/net/tcp/clients.h"
+#include "mif/net/tcp/connection.h"
+#include "mif/remote/factory.h"
 #include "mif/service/factory.h"
 #include "mif/service/make.h"
 
@@ -18,39 +22,11 @@ namespace Mif
     namespace Application
     {
 
-        namespace
-        {
-
-            class Factory
-                : public Service::Inherit<Service::IFactory>
-            {
-            public:
-                Factory(std::string const &host, std::string const &port, Net::IClientFactoryPtr clientFactory)
-                    : m_host{host}
-                    , m_port{port}
-                    , m_clients{clientFactory}
-                {
-                }
-
-            private:
-                std::string m_host;
-                std::string m_port;
-                Net::Tcp::Clients m_clients;
-                Net::IClientFactory::ClientPtr m_client;
-
-                // IFactory
-                virtual Service::IServicePtr Create(Service::ServiceId id) override final
-                {
-                    (void)id;
-                    return {};
-                }
-            };
-
-        }   // namespace
-
-        TcpServiceClient::TcpServiceClient(int argc, char const **argv, ClientFactory const &clientFactory)
+        TcpServiceClient::TcpServiceClient(int argc, char const **argv,
+                    ClientFactory const &clientFactory, ServiceCreator const &serviceCreator)
             : NetBaseApplication{argc, argv}
             , m_clientFactory{clientFactory}
+            , m_serviceCreator{serviceCreator}
         {
         }
 
@@ -76,9 +52,10 @@ namespace Mif
             auto factory = Service::Make<Service::Factory, Service::Factory>();
             auto clientFactory = m_clientFactory(workers, timeout, factory);
 
-            m_factory = Service::Make<Factory, Service::IFactory>(host, port, clientFactory);
+            auto connection = std::make_shared<Net::Tcp::Connection>(host, port, clientFactory);
+            auto remoteFactory = Service::Make<Remote::Factory, Service::IFactory>(connection, m_serviceCreator);
 
-            Init(m_factory);
+            Init(remoteFactory);
 
             MIF_LOG(Info) << "Client is successfully started.";
         }
@@ -86,8 +63,6 @@ namespace Mif
         void TcpServiceClient::OnDone()
         {
             MIF_LOG(Info) << "Stopping client ...";
-
-            m_factory.reset();
 
             try
             {

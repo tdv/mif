@@ -27,6 +27,7 @@
 #include "mif/common/log.h"
 #include "mif/common/types.h"
 #include "mif/common/uuid_generator.h"
+#include "mif/common/unused.h"
 #include "mif/remote/detail/iobject_manager.h"
 #include "mif/remote/detail/registry.h"
 #include "mif/remote/detail/type_traits.h"
@@ -154,7 +155,7 @@ namespace Mif
 
                 using Sender = std::function<DeserializerPtr (std::string const &, Serializer &)>;
 
-                Proxy(IObjectManagerPtr manager, std::string const &serviceId, std::string const &interfaceId,
+                Proxy(IObjectManagerPtr manager, Service::ServiceId serviceId, std::string const &interfaceId,
                         Sender && sender, StubCreator && stubCreator)
                     : m_manager{manager}
                     , m_instance{m_manager->CreateObject(serviceId, interfaceId)}
@@ -302,6 +303,7 @@ namespace Mif
                 typename std::enable_if<std::is_same<TResult, void>::value, TResult>::type
                 ExtractResult(Deserializer &de)
                 {
+                    Common::Unused(de);
                 }
 
                 struct CreateProxyVisitor
@@ -480,9 +482,10 @@ namespace Mif
                         using InterfaceType = typename T::InterfaceType;
                         if (interfaceId == T::InterfaceId)
                         {
-                            auto newInstance = instance->template Query<InterfaceType>(serviceId);
+                            auto newInstance = Service::Query<InterfaceType>(instance, serviceId);
                             if (!newInstance)
                                 return {};
+
                             return newInstance->template Cast<Service::IService>();
                         }
 
@@ -498,6 +501,7 @@ namespace Mif
 
                 virtual bool ContainInterfaceId(std::string const &id) const
                 {
+                    Common::Unused(id);
                     return false;
                 }
 
@@ -530,10 +534,10 @@ namespace Mif
 
                 // Specialization for all types that are not inherited from IService and not IService
                 template <typename T>
-                typename std::enable_if<Traits::IsNotInterface<T>(), T>::type &&
-                PrepareParam(T && param, Services &)
+                typename std::enable_if<Traits::IsNotInterface<T>(), T>::type
+                PrepareParam(T param, Services &)
                 {
-                    return std::forward<T>(param);
+                    return param;
                 }
 
                 // Specialization for pointers on interfaces based on IService

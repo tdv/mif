@@ -28,6 +28,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/clients/parallel_handler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp/server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp/clients.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp/detail/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server_thread.cpp

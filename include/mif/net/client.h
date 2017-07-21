@@ -29,6 +29,8 @@ namespace Mif
         public:
             Client(std::weak_ptr<IControl> control, std::weak_ptr<IPublisher> publisher);
 
+            bool IsClosed() const;
+
             // IHandler
             virtual void OnData(Common::Buffer buffer) override final;
             virtual void OnClose() override final;
@@ -41,7 +43,6 @@ namespace Mif
         protected:
             bool CloseMe();
             bool Post(Common::Buffer buffer);
-            bool IsClosed() const;
 
             virtual void ProcessData(Common::Buffer /*buffer*/);
             virtual void Close();

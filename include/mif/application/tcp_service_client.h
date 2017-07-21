@@ -33,8 +33,14 @@ namespace Mif
                             Service::FactoryPtr /*factory*/)
                 >;
 
+            using ServiceCreator = std::function<
+                    Service::IServicePtr (Net::IClientFactory::ClientPtr /*client*/,
+                            Service::ServiceId /*service id*/)
+                >;
+
             TcpServiceClient(int argc, char const **argv,
-                    ClientFactory const &clientFactory = Remote::Predefined::MakeClientFactory<>);
+                    ClientFactory const &clientFactory = Remote::Predefined::MakeClientFactory<>,
+                    ServiceCreator const &serviceCreator = Remote::Predefined::CreateService<>);
 
         protected:
             virtual void Init(Service::IFactoryPtr factory);
@@ -42,7 +48,7 @@ namespace Mif
 
         private:
             ClientFactory m_clientFactory;
-            Service::IFactoryPtr m_factory;
+            ServiceCreator m_serviceCreator;
 
             // NetBaseApplication
             virtual void OnInit() override final;

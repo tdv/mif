@@ -58,7 +58,7 @@ namespace Mif
             PSClient& operator = (PSClient &&) = delete;
 
             template <typename TInterface>
-            Service::TServicePtr<TInterface> CreateService(std::string const &id)
+            Service::TServicePtr<TInterface> CreateService(Service::ServiceId id)
             {
                 return Service::Cast<TInterface>(CreateRemoteService<TInterface>(id));
             }
@@ -103,14 +103,12 @@ namespace Mif
                 Service::IFactoryPtr m_factory;
 
                 // IObjectManager
-                virtual std::string CreateObject(std::string const &serviceId, std::string const &interfaceId) override final
+                virtual std::string CreateObject(Service::ServiceId serviceId, std::string const &interfaceId) override final
                 {
-                    if (serviceId.empty())
-                        throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"serviceId\" must not be empty."};
                     if (interfaceId.empty())
                         throw std::invalid_argument{"[Mif::Remote::PSClient::CreateObject] Parameter \"interfaceId\" must not be empty."};
 
-                    auto instance = m_factory->Create(Common::Crc32str(serviceId));
+                    auto instance = m_factory->Create(serviceId);
                     return AppendStub(std::move(instance), interfaceId);
                 }
 
@@ -420,7 +418,7 @@ namespace Mif
             }
 
             template <typename TInterface>
-            Service::IServicePtr CreateRemoteService(std::string const &serviceId)
+            Service::IServicePtr CreateRemoteService(Service::ServiceId serviceId)
             {
                 try
                 {
@@ -437,7 +435,7 @@ namespace Mif
                 catch (std::exception const &e)
                 {
                     throw Detail::ProxyStubException{"[Mif::Remote::PSClient::CreateRemoteService] "
-                        "Failed to create service with id \"" + serviceId + "\". "
+                        "Failed to create service with id \"" + std::to_string(serviceId) + "\". "
                         "Error: " + std::string{e.what()}};
                 }
             }

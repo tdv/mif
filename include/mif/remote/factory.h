@@ -8,7 +8,12 @@
 #ifndef __MIF_REMOTE_FACTORY_H__
 #define __MIF_REMOTE_FACTORY_H__
 
+// STD
+#include <functional>
+#include <memory>
+
 // MIF
+#include "mif/net/iconnection.h"
 #include "mif/service/ifactory.h"
 
 namespace Mif
@@ -20,9 +25,14 @@ namespace Mif
             : public Service::Inherit<Service::IFactory>
         {
         public:
-            Factory();
+            using ServiceCreator = std::function<Service::IServicePtr (Net::IConnection::ClientPtr, Service::ServiceId)>;
+
+            Factory(std::shared_ptr<Net::IConnection> connection, ServiceCreator const &serviceCreator);
 
         private:
+            std::shared_ptr<Net::IConnection> m_connection;
+            ServiceCreator m_serviceCreator;
+
             // IFactory
             virtual Service::IServicePtr Create(Service::ServiceId id) override final;
         };
