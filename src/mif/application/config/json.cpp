@@ -55,12 +55,9 @@ namespace Mif
                     virtual bool Next() override final
                     {
                         if (m_cur != m_end)
-                        {
                             ++m_cur;
-                            return true;
-                        }
 
-                        return false;
+                        return m_cur != m_end;
                     }
 
                     virtual bool IsEmpty() const override final
@@ -206,7 +203,7 @@ namespace Mif
 
                 Service::IServicePtr Collection::Get()
                 {
-                    if (!IsEmpty() || m_cur == m_end)
+                    if (IsEmpty() || m_cur == m_end)
                     {
                         throw std::runtime_error{"[Mif::Application::Detail::Collection::Get] "
                                 "Failed to get item. No item."};
