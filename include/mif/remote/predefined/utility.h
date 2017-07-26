@@ -18,6 +18,8 @@
 // MIF
 #include "mif/common/thread_pool.h"
 #include "mif/net/client_factory.h"
+#include "mif/net/tcp/connection.h"
+#include "mif/remote/factory.h"
 #include "mif/remote/meta/iservice.h"
 #include "mif/remote/ps_client.h"
 #include "mif/remote/predefined/protocol/archived_frame.h"
@@ -71,6 +73,16 @@ namespace Mif
                 auto service = ps->template CreateService<TInterface>(serviceId);
 
                 return service;
+            }
+
+            template <typename TSerialization = Serialization::Boost::Binary>
+            inline Service::IFactoryPtr CreateTcpClientServiceFactory(std::string const &host, std::string const &port,
+                    std::uint16_t threadCount, std::chrono::microseconds const &timeout)
+            {
+                auto clientFactory = MakeClientFactory<TSerialization>(threadCount, timeout);
+                auto connection = std::make_shared<Net::Tcp::Connection>(host, port, std::move(clientFactory));
+                return Service::Make<Factory, Service::IFactory>(std::move(connection),
+                        CreateService<Service::IService, TSerialization>);
             }
 
         }   // namespace Predefined
