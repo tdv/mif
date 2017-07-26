@@ -18,6 +18,7 @@ set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(LIBRARIES
     mif
     boost_iostreams
+    boost_date_time
     boost_serialization
     boost_program_options
     boost_log

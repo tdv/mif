@@ -19,6 +19,7 @@ set (ZLIB_LIBRARIES
 
 set (BOOST_LIBRARIES
     iostreams
+    date_time
     serialization
     program_options
     log

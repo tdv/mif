@@ -121,6 +121,8 @@ namespace Mif
                                     auto const sessionIter = headers.find(Constants::Header::Session::GetString());
                                     if (sessionIter == std::end(headers))
                                         throw std::runtime_error{"No session from server."};
+                                    if (sessionIter->second.empty())
+                                        throw std::runtime_error{"Empty session from server."};
                                     if (sessionIter->second != m_sessionId)
                                     {
                                         throw std::runtime_error{"Bad session from server. "

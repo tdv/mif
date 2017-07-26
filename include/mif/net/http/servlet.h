@@ -19,7 +19,7 @@ namespace Mif
         namespace Http
         {
 
-            ServerHandler MakeServlet(std::shared_ptr<IClientFactory> factory);
+            ServerHandler MakeServlet(std::shared_ptr<IClientFactory> factory, std::uint32_t sessionTimeout = 180 /*seconds*/);
 
         }   // namespace Http
     }   // namespace Net

@@ -6,6 +6,7 @@
 //-------------------------------------------------------------------
 
 // STD
+#include <ctime>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -13,6 +14,8 @@
 #include <thread>
 
 // BOOST
+#include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/scope_exit.hpp>
 
 // EVENT
@@ -156,9 +159,29 @@ namespace Mif
                     class Servlet final
                     {
                     public:
-                        Servlet(std::shared_ptr<IClientFactory> factory)
+                        Servlet(std::shared_ptr<IClientFactory> factory, std::uint32_t sessionTimeout)
                             : m_factory{factory}
+                            , m_sessionTimeout{sessionTimeout}
                         {
+                            m_iosWork.reset(new boost::asio::io_service::work{m_ioService});
+                            m_iosWorker.reset(new std::thread{[this] { m_ioService.run(); }});
+                            auto timer = std::make_shared<boost::asio::deadline_timer>(m_ioService,
+                                    boost::posix_time::seconds{m_cleanerTimeout});
+                            timer->async_wait(std::bind(&Servlet::OnCleaner, this, timer, std::placeholders::_1));
+                        }
+
+                        ~Servlet()
+                        {
+                            try
+                            {
+                                m_iosWork.reset();
+                                m_ioService.stop();
+                            }
+                            catch (std::exception const &e)
+                            {
+                                MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Servlet::~Servlet] "
+                                        << "Error: " << e.what();
+                            }
                         }
 
                         void OnRequest(IInputPack const &request, IOutputPack &response)
@@ -260,6 +283,13 @@ namespace Mif
                         using Sessions = std::map<std::string, SessionPtr>;
 
                         std::shared_ptr<IClientFactory> m_factory;
+                        std::uint32_t m_sessionTimeout;
+
+                        std::int64_t const m_cleanerTimeout = 60;
+
+                        boost::asio::io_service m_ioService;
+                        std::unique_ptr<std::thread, void (*)(std::thread *)> m_iosWorker{nullptr, [] (std::thread *t) { if (t) t->join(); } };
+                        std::unique_ptr<boost::asio::io_service::work> m_iosWork;
 
                         LockType m_lock;
                         Sessions m_sessions;
@@ -301,14 +331,49 @@ namespace Mif
                             pack.SetCode(code);
                             pack.SetData({std::begin(message), std::end(message)});
                         }
+
+                        void OnCleaner(std::shared_ptr<boost::asio::deadline_timer>,
+                                boost::system::error_code const &error)
+                        {
+                            if (error)
+                            {
+                                MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Servlet::OnCleaner] "
+                                        << "Failed to wati timer on clean. Error: " << error.message();
+                            }
+
+                            {
+                                auto const now = std::time(nullptr);
+                                LockGuard lock{m_lock};
+                                for (auto i = std::begin(m_sessions) ; i != std::end(m_sessions) ; )
+                                {
+                                    if (i->second->NeedForClose() ||
+                                            std::difftime(now, i->second->GetTimestamp()) >= m_sessionTimeout)
+                                    {
+                                        auto id = i->first;
+                                        m_sessions.erase(i++);
+
+                                        MIF_LOG(Info) << "[Mif::Net::Http::Detail::Servlet::OnCleaner] "
+                                                << "Expired session with id \"" << id << "\" was deleted.";
+                                    }
+                                    else
+                                    {
+                                        ++i;
+                                    }
+                                }
+                            }
+
+                            auto timer = std::make_shared<boost::asio::deadline_timer>(m_ioService,
+                                    boost::posix_time::seconds{m_cleanerTimeout});
+                            timer->async_wait(std::bind(&Servlet::OnCleaner, this, timer, std::placeholders::_1));
+                        }
                     };
 
                 }   // namespace
             }   // namespace Detail
 
-            ServerHandler MakeServlet(std::shared_ptr<IClientFactory> factory)
+            ServerHandler MakeServlet(std::shared_ptr<IClientFactory> factory, std::uint32_t sessionTimeout)
             {
-                auto adapter = std::make_shared<Detail::Servlet>(std::move(factory));
+                auto adapter = std::make_shared<Detail::Servlet>(std::move(factory), sessionTimeout);
                 auto handler = std::bind(&Detail::Servlet::OnRequest, adapter, std::placeholders::_1, std::placeholders::_2);
                 return handler;
             }
