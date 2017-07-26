@@ -5,8 +5,8 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-#ifndef __MIF_REMOTE_PREDEFINED_CLIENT_FACTORY_H__
-#define __MIF_REMOTE_PREDEFINED_CLIENT_FACTORY_H__
+#ifndef __MIF_REMOTE_PREDEFINED_UTILITY_H__
+#define __MIF_REMOTE_PREDEFINED_UTILITY_H__
 
 // STD
 #include <chrono>
@@ -77,4 +77,4 @@ namespace Mif
     }   // namespace Remote
 }   // namespace Mif
 
-#endif  // !__MIF_REMOTE_PREDEFINED_CLIENT_FACTORY_H__
+#endif  // !__MIF_REMOTE_PREDEFINED_UTILITY_H__

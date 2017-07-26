@@ -18,7 +18,7 @@
 #include "mif/application/net_base_application.h"
 #include "mif/service/factory.h"
 #include "mif/net/tcp/server.h"
-#include "mif/remote/predefined/client_factory.h"
+#include "mif/remote/predefined/utility.h"
 
 namespace Mif
 {

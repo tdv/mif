@@ -5,8 +5,8 @@
 //  Copyright (C) 2016-2017 tdv
 //-------------------------------------------------------------------
 
-#ifndef __EXAMPLES_COMMON_CLIENT_H__
-#define __EXAMPLES_COMMON_CLIENT_H__
+#ifndef __HTTP_COMMON_CLIENT_H__
+#define __HTTP_COMMON_CLIENT_H__
 
 // STD
 #include <chrono>
@@ -27,28 +27,28 @@ namespace Service
     namespace Ipc
     {
 
-        using WebPSClient = Mif::Remote::PSClient<Mif::Remote::Predefined::Serialization::Json>;
+        using PSClient = Mif::Remote::PSClient<Mif::Remote::Predefined::Serialization::Json>;
 
         namespace Detail
         {
 
-            using WebProtocolChain = Mif::Net::ClientsChain<WebPSClient>;
-            using WebClientFactory = Mif::Net::ClientFactory<WebProtocolChain>;
+            using ProtocolChain = Mif::Net::ClientsChain<PSClient>;
+            using ClientFactory = Mif::Net::ClientFactory<ProtocolChain>;
 
         }   // namespace Detail
 
-        using WebClientsChain = Detail::WebProtocolChain;
+        using ClientsChain = Detail::ProtocolChain;
 
-        inline Mif::Net::IClientFactoryPtr MakeWebClientFactory(std::chrono::microseconds const &timeout,
+        inline Mif::Net::IClientFactoryPtr MakeClientFactory(std::chrono::microseconds const &timeout,
                 Mif::Service::IFactoryPtr factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::IFactory>())
         {
-            return std::make_shared<Detail::WebClientFactory>
+            return std::make_shared<Detail::ClientFactory>
                 (
-                    Mif::Common::MakeCreator<WebPSClient>(timeout, factory)
+                    Mif::Common::MakeCreator<PSClient>(timeout, factory)
                 );
         }
 
     }   // namespace Ipc
 }   // namespace Service
 
-#endif  // !__EXAMPLES_COMMON_CLIENT_H__
+#endif  // !__HTTP_COMMON_CLIENT_H__

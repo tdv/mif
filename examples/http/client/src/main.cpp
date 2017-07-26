@@ -11,7 +11,7 @@
 #include <mif/common/log.h>
 #include <mif/net/http/clients.h>
 
-// COMMON
+// THIS
 #include "common/client.h"
 #include "common/ps/iadmin.h"
 
@@ -43,15 +43,15 @@ private:
 
         std::chrono::microseconds const timeout{10 * 1000 * 1000};
 
-        auto clientFactory = Service::Ipc::MakeWebClientFactory(timeout);
+        auto clientFactory = Service::Ipc::MakeClientFactory(timeout);
 
         Mif::Net::Http::Clients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<Service::Ipc::WebClientsChain>(clients.RunClient(host, port, "/admin"));
+        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port, "/admin"));
 
         MIF_LOG(Info) << "Client is successfully started.";
 
-        auto client = proxy->GetClientItem<Service::Ipc::WebPSClient>();
+        auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
 
         auto service = client->CreateService<Service::IAdmin>(
                 Mif::Common::Crc32("WebService.Admin"));

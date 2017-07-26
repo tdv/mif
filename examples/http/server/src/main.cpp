@@ -15,6 +15,7 @@
 #include "common/ps/iadmin.h"
 
 // THIS
+#include "common/client.h"
 #include "common/id/service.h"
 
 class Application
@@ -41,7 +42,7 @@ private:
 
         std::chrono::microseconds const timeout{10 * 1000 * 1000};
 
-        auto clientFactory = Service::Ipc::MakeWebClientFactory(timeout, factory);
+        auto clientFactory = Service::Ipc::MakeClientFactory(timeout, factory);
 
         handlers.emplace(adminLocation, Mif::Net::Http::MakeServlet(clientFactory));
         handlers.emplace(viewLocation, Mif::Net::Http::MakeWebService(webService));

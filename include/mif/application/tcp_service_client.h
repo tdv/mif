@@ -16,7 +16,7 @@
 // MIF
 #include "mif/application/net_base_application.h"
 #include "mif/service/ifactory.h"
-#include "mif/remote/predefined/client_factory.h"
+#include "mif/remote/predefined/utility.h"
 
 namespace Mif
 {
