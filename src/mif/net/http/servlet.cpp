@@ -72,23 +72,23 @@ namespace Mif
                         {
                             auto const threadId = std::this_thread::get_id();
 
-                            BOOST_SCOPE_EXIT(&threadId, &m_lock, &m_responses)
-                            {
-                                LockGuard lock{m_lock};
-                                auto iter = m_responses.find(threadId);
-                                if (iter != std::end(m_responses))
-                                    m_responses.erase(iter);
-                            }
-                            BOOST_SCOPE_EXIT_END
-
-                            try
-                            {
+                            auto cleanResponse = [this, &threadId]
                                 {
                                     LockGuard lock{m_lock};
                                     auto iter = m_responses.find(threadId);
                                     if (iter != std::end(m_responses))
                                         m_responses.erase(iter);
-                                }
+                                };
+
+                            BOOST_SCOPE_EXIT(&cleanResponse)
+                            {
+                                cleanResponse();
+                            }
+                            BOOST_SCOPE_EXIT_END
+
+                            try
+                            {
+                                cleanResponse();
 
                                 {
                                     LockGuard lock{m_lock};
@@ -161,10 +161,6 @@ namespace Mif
                         {
                         }
 
-                        ~Servlet()
-                        {
-                        }
-
                         void OnRequest(IInputPack const &request, IOutputPack &response)
                         {
                             std::string sessionId;
@@ -176,6 +172,10 @@ namespace Mif
                                     auto const iter = headers.find(Constants::Header::Session::GetString());
                                     if (iter != std::end(headers))
                                         sessionId = iter->second;
+                                    else
+                                        throw std::invalid_argument{"Session not found."};
+                                    if (sessionId.empty())
+                                        throw std::invalid_argument{"Empty session."};
                                 }
 
                                 SessionPtr session;
@@ -202,15 +202,16 @@ namespace Mif
 
                                 auto requestData = request.GetData();
                                 if (requestData.empty())
+                                {
                                     throw std::invalid_argument{"No input data."};
+                                }
                                 else
                                 {
                                     auto responseData = session->OnData(std::move(requestData));
+                                    response.SetData(std::move(responseData));
                                     if (!session->NeedForClose())
                                     {
-                                        response.SetData(std::move(responseData));
-                                        if (!sessionId.empty())
-                                            response.SetHeader(Constants::Header::Session::GetString(), sessionId);
+                                        response.SetHeader(Constants::Header::Session::GetString(), sessionId);
                                         SetKeepAliveFromClient(headers, response);
                                     }
                                     else

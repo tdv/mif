@@ -14,10 +14,10 @@
 #include <memory>
 
 // MIF
+#include <mif/net/clients_chain.h>
 #include <mif/net/client_factory.h>
 #include <mif/remote/ps_client.h>
 #include <mif/remote/predefined/serialization/json.h>
-#include <mif/remote/predefined/client_factory.h>
 #include <mif/service/ifactory.h>
 #include <mif/service/factory.h>
 #include <mif/service/make.h>
