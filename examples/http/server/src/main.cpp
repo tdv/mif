@@ -10,10 +10,6 @@
 #include <mif/net/http/servlet.h>
 #include <mif/net/http/make_web_service.h>
 
-// COMMON
-#include "common/client.h"
-#include "common/ps/iadmin.h"
-
 // THIS
 #include "common/client.h"
 #include "common/id/service.h"
