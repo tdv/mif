@@ -1,13 +1,28 @@
+dist:     trusty    # используем Ubuntu 14.04 Trusty Tahr (а не 12.02 Precise Pangolin)
+sudo:     required  # используем Virtual Machine (а не Docker container)
+
 language: cpp
 
+os:
+    - linux
+
 compiler:
-  - gcc
+    - gcc
+
+env:
+    - TARGET_CPU=amd64 BUILD_CONFIGURATION=Debug
+    - TARGET_CPU=amd64 BUILD_CONFIGURATION=Release
+    - TARGET_CPU=x86 BUILD_CONFIGURATION=Debug
+    - TARGET_CPU=x86 BUILD_CONFIGURATION=Release
 
 matrix:
-  include:
-    os: linux
-    dist: trusty
+    exclude:
+          compiler: gcc
 
-before_install:
-    - eval "${MATRIX_EVAL}"
-
+script:
+    # скрипт сборки и тестирования проекта:
+    - mkdir build
+    - cd build
+#    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_CONFIGURATION -DTARGET_CPU=$TARGET_CPU
+#    - cmake --build .
+#    - ctest --output-on-failure
