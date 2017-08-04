@@ -23,7 +23,9 @@ before_install:
 
 
 script:
-  - ./download_third_party.sh
   - mkdir build
   - cd build
   - cmake .. && make -j
+
+notifications:
+  email: false
