@@ -10,13 +10,9 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-      addons:
-        apt:
-          sources:
             - george-edison55-precise-backports
           packages:
+            - g++-5
             - cmake-data
             - cmake
 
