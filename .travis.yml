@@ -1,35 +1,29 @@
-dist:     trusty
-sudo:     required
-
-language: cpp
-
-os:
-    - linux
-
-compiler:
-    - gcc
-
-env:
-    - TARGET_CPU=amd64 BUILD_CONFIGURATION=Debug
-    - TARGET_CPU=amd64 BUILD_CONFIGURATION=Release
-    - TARGET_CPU=x86 BUILD_CONFIGURATION=Debug
-    - TARGET_CPU=x86 BUILD_CONFIGURATION=Release
+language: none
 
 matrix:
-    exclude:
-        - os:       osx
-          compiler: gcc
+  include:
+    - os: linux
+      dist: trusty
+      compiler: gcc
+      env: CXX=g++-5 CC=gcc-5 QT=5
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
 
-        - os:  osx
-          env: TARGET_CPU=x86 BUILD_CONFIGURATION=Debug
+git:
+  depth: 10
 
-        - os:  osx
-          env: TARGET_CPU=x86 BUILD_CONFIGURATION=Release
+before_install:
+   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq ; fi
+#   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install build-essential libgl1-mesa-dev ; fi
+#   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -yy install qtbase5-dev ; fi
+
 
 script:
-    - ./download_third_party.sh
-    - mkdir build
-    - cd build
-    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_CONFIGURATION -DTARGET_CPU=$TARGET_CPU
-    - cmake --build .
-#    - ctest --output-on-failure
+  - ./download_third_party.sh
+  - mkdir build
+  - cd build
+  - cmake .. && make -j
