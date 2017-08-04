@@ -17,7 +17,14 @@ env:
 
 matrix:
     exclude:
+        - os:       osx
           compiler: gcc
+
+        - os:  osx
+          env: TARGET_CPU=x86 BUILD_CONFIGURATION=Debug
+
+        - os:  osx
+          env: TARGET_CPU=x86 BUILD_CONFIGURATION=Release
 
 script:
     # скрипт сборки и тестирования проекта:
