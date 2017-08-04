@@ -12,6 +12,7 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
+      addons:
         apt:
           sources:
             - george-edison55-precise-backports
