@@ -22,7 +22,9 @@ before_install:
 #   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -yy install qtbase5-dev ; fi
 
 
-build:
+build: make
+
+script:
   - mkdir build
   - cd build
   - cmake .. && make -j
