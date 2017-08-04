@@ -5,13 +5,19 @@ matrix:
     - os: linux
       dist: trusty
       compiler: gcc
-      env: CXX=g++-5 CC=gcc-5 QT=5
+      env: CXX=g++-5 CC=gcc-5
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
+        apt:
+          sources:
+            - george-edison55-precise-backports
+          packages:
+            - cmake-data
+            - cmake
 
 git:
   depth: 10
@@ -21,8 +27,6 @@ before_install:
 #   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install build-essential libgl1-mesa-dev ; fi
 #   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -yy install qtbase5-dev ; fi
 
-
-build: make
 
 script:
   - mkdir build
