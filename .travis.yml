@@ -10,14 +10,8 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - george-edison55-precise-backports
           packages:
             - g++-5
-            - cmake-data
-            - cmake
-
-git:
-  depth: 10
 
 before_install:
    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq ; fi
