@@ -26,8 +26,7 @@ before_script:
   - cmake ..
 
 script: 
-  - make -j
-  - echo "Ok"
+  - make
 
 notifications:
   email: false
