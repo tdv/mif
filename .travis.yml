@@ -27,6 +27,7 @@ before_script:
 
 script: 
   - make 1>build_log.txt
+  - tail -n 100 build_log.txt
 
 notifications:
   email: false
