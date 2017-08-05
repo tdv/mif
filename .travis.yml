@@ -20,13 +20,13 @@ before_install:
 
 
 before_script:
-  - ./download_third_party.sh
+  - ./download_third_party.sh 1>download_log.txt
   - mkdir build
   - cd build
   - cmake ..
 
 script: 
-  - make 2>out.txt
+  - make 1>build_log.txt
 
 notifications:
   email: false
