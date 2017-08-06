@@ -14,10 +14,7 @@ matrix:
             - g++-5
 
 before_install:
-   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq ; fi
-#   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install build-essential libgl1-mesa-dev ; fi
-#   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -yy install qtbase5-dev ; fi
-
+   - sudo apt-get update -qq
 
 before_script:
   - ./download_third_party.sh 1>download_log.txt
@@ -27,7 +24,36 @@ before_script:
 
 script: 
   - make 1>build_log.txt
-  - tail -n 100 build_log.txt
+  - cd ../examples/hello_world
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - cd ../../complex_type
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - cd ../../inheritance
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - cd ../../visitor
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - cd ../../http
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - cd ../../db_client
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
 
 notifications:
   email: false
