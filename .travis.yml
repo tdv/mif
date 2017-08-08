@@ -54,6 +54,11 @@ script:
   - cd build
   - cmake ..
   - make
+  - cd ../../reflection
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
 
 notifications:
   email: false
