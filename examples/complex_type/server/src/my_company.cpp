@@ -10,11 +10,13 @@
 
 // MIF
 #include <mif/common/log.h>
+#include <mif/reflection/reflection.h>
 #include <mif/service/creator.h>
 
 // COMMON
 #include "common/id/service.h"
 #include "common/interface/imy_company.h"
+#include "common/meta/data.h"
 
 namespace Service
 {
@@ -58,7 +60,7 @@ namespace Service
                         << "Name: " << employee.name << " "
                         << "LastName: " << employee.lastName << " "
                         << "Age: " << employee.age << " "
-                        << "Position: " << employee.position;
+                        << "Position: " << Mif::Reflection::ToString(employee.position);
                     return id;
                 }
 
@@ -77,7 +79,7 @@ namespace Service
                             << "Name: " << iter->second.name << " "
                             << "LastName: " << iter->second.lastName << " "
                             << "Age: " << iter->second.age << " "
-                            << "Position: " << iter->second.position;
+                            << "Position: " << Mif::Reflection::ToString(iter->second.position);
 
                         m_employees.erase(iter);
                     }
@@ -96,7 +98,7 @@ namespace Service
                                 << "Name: " << i.second.name << " "
                                 << "LastName: " << i.second.lastName << " "
                                 << "Age: " << i.second.age << " "
-                                << "Position: " << i.second.position;
+                                << "Position: " << Mif::Reflection::ToString(i.second.position);
                         }
                     }
                     return employees;

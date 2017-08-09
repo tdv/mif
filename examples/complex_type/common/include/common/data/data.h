@@ -27,10 +27,17 @@ namespace Service
             std::uint32_t age = 0;
         };
 
+        enum class Position
+        {
+            Unknown,
+            Developer,
+            Manager
+        };
+
         struct Employee
             : public Human
         {
-            std::string position;
+            Position position = Position::Unknown;
         };
 
         using Employees = std::map<ID, Employee>;

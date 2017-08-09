@@ -29,6 +29,12 @@ namespace Service
                 MIF_REFLECT_FIELD(age)
             MIF_REFLECT_END()
 
+            MIF_REFLECT_BEGIN(Position)
+                MIF_REFLECT_FIELD(Unknown)
+                MIF_REFLECT_FIELD(Developer)
+                MIF_REFLECT_FIELD(Manager)
+            MIF_REFLECT_END()
+
             MIF_REFLECT_BEGIN(Employee, Human)
                 MIF_REFLECT_FIELD(position)
             MIF_REFLECT_END()
@@ -38,6 +44,7 @@ namespace Service
 }   // namespace Service
 
 MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Human)
+MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Position)
 MIF_REGISTER_REFLECTED_TYPE(::Service::Data::Meta::Employee)
 
 #endif  // !__COMPLEX_TYPE_COMMON_META_DATA_H__

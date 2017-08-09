@@ -27,7 +27,7 @@ private:
                 << "Name: " << e.second.name << " "
                 << "LastName: " << e.second.lastName << " "
                 << "Age: " << e.second.age << " "
-                << "Position: " << e.second.position;
+                << "Position: " << Mif::Reflection::ToString(e.second.position);
         }
     }
 
@@ -41,7 +41,7 @@ private:
             e.name = "Ivan";
             e.lastName = "Ivanov";
             e.age = 25;
-            e.position = "manager";
+            e.position = Service::Data::Position::Manager;
             auto const eId = service->AddEmployee(e);
             MIF_LOG(Info) << "Employee Id: " << eId;
         }
@@ -51,7 +51,7 @@ private:
             e.name = "Petr";
             e.lastName = "Petrov";
             e.age = 30;
-            e.position = "developer";
+            e.position = Service::Data::Position::Developer;
             auto const eId = service->AddEmployee(e);
             MIF_LOG(Info) << "Employee Id: " << eId;
         }
