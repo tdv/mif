@@ -59,6 +59,11 @@ script:
   - cd build
   - cmake ..
   - make
+  - cd ../../http_echo_server
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
 
 notifications:
   email: false
