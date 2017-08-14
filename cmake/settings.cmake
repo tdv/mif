@@ -1,6 +1,8 @@
-project (Mif)
+project (Mif LANGUAGES CXX)
 set (PROJECT ${PROJECT_NAME})
 string (TOLOWER "${PROJECT}" PROJECT_LC)
+
+set (MIF_STD_CXX "c++11")
 
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/MyCMakeScripts)
 
@@ -23,7 +25,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -fPIC -std=c++11")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -fPIC -std=${MIF_STD_CXX}")
 set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 set (CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")

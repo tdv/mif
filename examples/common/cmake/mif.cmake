@@ -1,4 +1,3 @@
-include(ExternalProject)
 include (../common/cmake/settings.cmake)
 
 set (THITD_PARTY_PATH "${CMAKE_SOURCE_DIR}/../../third_party")

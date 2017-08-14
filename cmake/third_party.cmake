@@ -1,6 +1,6 @@
 include(ExternalProject)
-
-include (cmake/options.cmake)
+include(cmake/options.cmake)
+include(cmake/third_party_paths.cmake)
 
 set (MIF_THIRD_PARTY_LIBS
     ${MIF_THIRD_PARTY_LIBS}
@@ -42,12 +42,6 @@ set (SQLITE_LIBRARIES
     sqlite3
 )
 
-set (MIF_ZLIB_CMAKE_ARGS
-)
-
-set (MIF_BOOST_CMAKE_ARGS
-)
-
 set (MIF_JSONCPP_CMAKE_ARGS "-DJSONCPP_WITH_TESTS=OFF"
     "-DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF"
     "-DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF"
@@ -65,15 +59,12 @@ set (MIF_EVENT_CMAKE_ARGS "-DEVENT__BUILD_SHARED_LIBRARIES=OFF"
 
 set (MIF_THIRD_PARTY_PROJECTS "")
 
-function (mif_add_third_party_project
-        from_git
-        project_name
-        project_name_upper
-        source
-        tag
-    )
-    set (MIF_LIB_INSTALL_DIR ${project_name_upper}_INSTALLDIR})
-    set (MIF_LIB_CMAKE_ARGS "${MIF_${project_name_upper}_CMAKE_ARGS}")
+macro (mif_add_third_party_project_begin project_name)
+    string (TOUPPER ${project_name} MIF_PROJECT_NAME_UP)
+    set (MIF_LIB_SOURCE_PATH ${MIF_${MIF_PROJECT_NAME_UP}_LOCAL_PATH})
+
+    set (MIF_LIB_INSTALL_DIR ${MIF_PROJECT_NAME_UP}_INSTALLDIR})
+    set (MIF_LIB_CMAKE_ARGS "${MIF_${MIF_PROJECT_NAME_UP}_CMAKE_ARGS}")
 
     set (MIF_LIB_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/${project_name})
 
@@ -86,148 +77,92 @@ function (mif_add_third_party_project
     unset (MIF_LIB_LIBRARIES_DIR)
 
     set (MIF_THIRD_PARTY_PROJECT ${project_name}-project)
+endmacro()
 
-    if (${from_git})
-        ExternalProject_Add (${MIF_THIRD_PARTY_PROJECT}
-            GIT_REPOSITORY ${source}
-            GIT_TAG ${tag}
-            UPDATE_COMMAND ""
-            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_LIB_INSTALL_DIR} 
-                -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
-                ${MIF_LIB_CMAKE_ARGS}
-        )
-    else()
-        ExternalProject_Add (${MIF_THIRD_PARTY_PROJECT}
-            SOURCE_DIR ${source}
-            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_LIB_INSTALL_DIR} 
-                -DCMAKE_CXX_FLAGS:INTERNAL=${CMAKE_CXX_FLAGS} 
-                -DCMAKE_C_FLAGS:INTERNAL=${CMAKE_C_FLAGS} 
-                ${MIF_LIB_CMAKE_ARGS}
-        )
-    endif()
-
+macro (mif_add_third_party_project_end)
     unset (MIF_THIRD_PARTY_PROJECT)
-
     unset (MIF_LIB_INSTALL_DIR)
     unset (MIF_LIB_CMAKE_ARGS)
+    unset (MIF_LIB_SOURCE_PATH)
+    unset (MIF_PROJECT_NAME_UP)
+endmacro()
+
+function (mif_add_third_party_project project_name)
+    mif_add_third_party_project_begin(${project_name})
+
+    ExternalProject_Add (${MIF_THIRD_PARTY_PROJECT}
+        SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_LIB_INSTALL_DIR} 
+            -DCMAKE_CXX_FLAGS:INTERNAL=${CMAKE_CXX_FLAGS} 
+            -DCMAKE_C_FLAGS:INTERNAL=${CMAKE_C_FLAGS} 
+            ${MIF_LIB_CMAKE_ARGS}
+    )
+
+    mif_add_third_party_project_end()
 endfunction()
 
-function (mif_add_local_third_party_project project_name)
-    string (TOUPPER ${project_name} LIB_NAME_UP)
-            
-    set (MIF_LIB_LOCAL_PATH ${MIF_${LIB_NAME_UP}_LOCAL_PATH})
+function (mif_add_boost_project)
+    mif_add_third_party_project_begin("boost")
 
-    mif_add_third_party_project(FALSE ${project_name} ${LIB_NAME_UP} ${MIF_LIB_LOCAL_PATH} "")
-
-    unset (MIF_LIB_LOCAL_PATH)
-endfunction()
-
-function (mif_add_git_third_party_project project_name)
-    string (TOUPPER ${project_name} LIB_NAME_UP)
-            
-    set (MIF_LIB_GITHUB_URL ${MIF_${LIB_NAME_UP}_GITHUB_URL})
-    set (MIF_LIB_GITHUB_TAG ${MIF_${LIB_NAME_UP}_GITHUB_TAG})
-
-    mif_add_third_party_project(TRUE ${project_name} ${LIB_NAME_UP} ${MIF_LIB_GITHUB_URL} ${MIF_LIB_GITHUB_TAG})
-
-    unset (MIF_LIB_GITHUB_URL)
-    unset (MIF_LIB_GITHUB_TAG)
-endfunction()
-
-function (mif_add_boost_project from_git)
-    set (BOSST_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/boost)
-    set (BOOST_INCLUDE_DIR ${BOSST_INSTALL_DIR}/include)
-    set (BOOST_LIBRARIES_DIR ${BOSST_INSTALL_DIR}/lib)
-    include_directories (SYSTEM ${BOOST_INCLUDE_DIR})
-    link_directories(${BOOST_LIBRARIES_DIR})
     foreach (lib ${BOOST_LIBRARIES})
         if (DEFINED MIF_LIB_BOOST_LIB_LIST)
             set (MIF_LIB_BOOST_LIB_LIST "${MIF_LIB_BOOST_LIB_LIST},")
         endif()
         set (MIF_LIB_BOOST_LIB_LIST "${MIF_LIB_BOOST_LIB_LIST}${lib}")
     endforeach()
-    if (from_git)
-        ExternalProject_Add(boost-project
-            GIT_REPOSITORY ${MIF_BOOST_GITHUB_URL}
-            GIT_TAG ${MIF_BOOST_GITHUB_TAG}
-            BUILD_IN_SOURCE 1
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
-            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=c++11 -fPIC" link=static threading=multi runtime-link=static
-            INSTALL_COMMAND ""
-        )
-    else()
-        ExternalProject_Add(boost-project
-            SOURCE_DIR ${MIF_BOOST_LOCAL_PATH}
-            BUILD_IN_SOURCE 1
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOSST_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
-            BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=c++11 -fPIC" link=static threading=multi runtime-link=static
-            INSTALL_COMMAND ""
-        )
-    endif()
+
+    ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
+        SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
+        BUILD_IN_SOURCE 1
+        UPDATE_COMMAND ""
+        CONFIGURE_COMMAND ./bootstrap.sh --prefix=${MIF_LIB_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
+        BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=${MIF_STD_CXX} -fPIC" link=static threading=multi runtime-link=static
+        INSTALL_COMMAND ""
+    )
+
+    mif_add_third_party_project_end()
+
+    set (BOOST_LIBS_LIST "")
+    foreach (boost_lib ${BOOST_LIBRARIES})
+        list (APPEND BOOST_LIBS_LIST boost_${boost_lib})
+    endforeach()
+    unset (BOOST_LIBRARIES)
+    set (BOOST_LIBRARIES ${BOOST_LIBS_LIST})
+    unset (BOOST_LIBS_LIST)
+
 endfunction()
 
-function (mif_add_libpq_project from_git)
-    set (LIBPQ_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/libpq)
-    set (LIBPQ_INCLUDE_DIR ${LIBPQ_INSTALL_DIR}/include)
-    set (LIBPQ_LIBRARIES_DIR ${LIBPQ_INSTALL_DIR}/lib)
-    include_directories (SYSTEM ${LIBPQ_INCLUDE_DIR})
-    link_directories(${LIBPQ_LIBRARIES_DIR})
-    if (from_git)
-        ExternalProject_Add(libpq-project
-            GIT_REPOSITORY ${MIF_LIBPQ_GITHUB_URL}
-            GIT_TAG ${MIF_LIBPQ_GITHUB_TAG}
-            BUILD_IN_SOURCE 1
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${LIBPQ_INSTALL_DIR}
-            BUILD_COMMAND make -C src/interfaces/libpq
-            INSTALL_COMMAND make -C src/interfaces/libpq install
-                    && cp src/include/postgres_ext.h ${LIBPQ_INSTALL_DIR}/include
-                    && cp src/include/pg_config_ext.h ${LIBPQ_INSTALL_DIR}/include
-        )
-    else()
-        ExternalProject_Add(libpq-project
-            SOURCE_DIR ${MIF_LIBPQ_LOCAL_PATH}
-            BUILD_IN_SOURCE 1
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${LIBPQ_INSTALL_DIR}
-            BUILD_COMMAND make -C src/interfaces/libpq
-            INSTALL_COMMAND make -C src/interfaces/libpq install
-                    && cp src/include/postgres_ext.h ${LIBPQ_INSTALL_DIR}/include
-                    && cp src/include/pg_config_ext.h ${LIBPQ_INSTALL_DIR}/include
-        )
-    endif()
+function (mif_add_libpq_project)
+    mif_add_third_party_project_begin("libpq")
+
+    ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
+        SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
+        BUILD_IN_SOURCE 1
+        UPDATE_COMMAND ""
+        CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${MIF_LIB_INSTALL_DIR}
+        BUILD_COMMAND make -C src/interfaces/libpq
+        INSTALL_COMMAND make -C src/interfaces/libpq install
+                && cp src/include/postgres_ext.h ${MIF_LIB_INSTALL_DIR}/include
+                && cp src/include/pg_config_ext.h ${MIF_LIB_INSTALL_DIR}/include
+    )
+
+    mif_add_third_party_project_end()
 endfunction()
 
-function (mif_add_sqlite_project from_git)
-    set (SQLITE_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/sqlite)
-    set (SQLITE_INCLUDE_DIR ${SQLITE_INSTALL_DIR}/include)
-    set (SQLITE_LIBRARIES_DIR ${SQLITE_INSTALL_DIR}/lib)
-    include_directories (SYSTEM ${SQLITE_INCLUDE_DIR})
-    link_directories(${SQLITE_LIBRARIES_DIR})
-    if (from_git)
-        ExternalProject_Add(sqlite-project
-            GIT_REPOSITORY ${MIF_SQLITE_GITHUB_URL}
-            GIT_TAG ${MIF_SQLITE_GITHUB_TAG}
-            BUILD_IN_SOURCE 1
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
-            BUILD_COMMAND make
-            INSTALL_COMMAND make install
-        )
-    else()
-        ExternalProject_Add(sqlite-project
-            SOURCE_DIR ${MIF_SQLITE_LOCAL_PATH}
-            BUILD_IN_SOURCE 1
-            UPDATE_COMMAND ""
-            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
+function (mif_add_sqlite_project)
+    mif_add_third_party_project_begin("sqlite")
 
-            BUILD_COMMAND make
-            INSTALL_COMMAND make install
-        )
-    endif()
+    ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
+        SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
+        BUILD_IN_SOURCE 1
+        UPDATE_COMMAND ""
+        CONFIGURE_COMMAND ./configure --prefix=${MIF_LIB_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
+
+        BUILD_COMMAND make
+        INSTALL_COMMAND make install
+    )
+
+    mif_add_third_party_project_end()
 endfunction()
 
 function (mif_add_third_party_paths lib)
@@ -248,43 +183,20 @@ function (mif_add_third_party_paths lib)
 endfunction()
 
 if (MIF_NEED_THIRD_PARTY_BUILD)
-    if (MIF_THIRD_PARTY_GIT)
-        if (MIF_GITHUB_SOURCE)
-            include (cmake/github_source.cmake)
-            foreach (lib ${MIF_THIRD_PARTY_LIBS})
-                mif_add_git_third_party_project(${lib})
-            endforeach (lib)
-            mif_add_boost_project(TRUE)
-            mif_add_libpq_project(TRUE)
-            mif_add_sqlite_project(TRUE)
-        else()
-            message(FATAL_ERROR "[MIF] No support of getting third_party from not a github source")
-        endif()
-    else()
-        include (cmake/local_source.cmake)
-        foreach (lib ${MIF_THIRD_PARTY_LIBS})
-            mif_add_local_third_party_project(${lib})
-        endforeach (lib)
-        mif_add_boost_project(FALSE)
-        mif_add_libpq_project(FALSE)
-        mif_add_sqlite_project(FALSE)
-    endif()
+    foreach (lib ${MIF_THIRD_PARTY_LIBS})
+        mif_add_third_party_project(${lib})
+    endforeach (lib)
+    mif_add_boost_project()
+    mif_add_libpq_project()
+    mif_add_sqlite_project()
 else()
-    mif_add_third_party_paths(zlib)
-    mif_add_third_party_paths(boost)
-    mif_add_third_party_paths(jsoncpp)
-    mif_add_third_party_paths(event)
-    mif_add_third_party_paths(libpq)
-    mif_add_third_party_paths(sqlite)
+    foreach (lib ${MIF_THIRD_PARTY_LIBS})
+        mif_add_third_party_paths(${lib})
+    endforeach (lib)
+    mif_add_third_party_paths(${boost})
+    mif_add_third_party_paths(${libpq})
+    mif_add_third_party_paths(${sqlite})
 endif()
-
-set (BOOST_LIBS_LIST "")
-foreach (boost_lib ${BOOST_LIBRARIES})
-    list (APPEND BOOST_LIBS_LIST boost_${boost_lib})
-endforeach()
-unset (BOOST_LIBRARIES)
-set (BOOST_LIBRARIES ${BOOST_LIBS_LIST})
-unset (BOOST_LIBS_LIST)
 
 foreach (lib ${MIF_THIRD_PARTY_LIBS})
     list (APPEND MIF_THIRD_PARTY_PROJECTS ${lib}-project)
