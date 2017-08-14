@@ -14,10 +14,7 @@ class Application
     : public Mif::Application::HttpServer
 {
 public:
-    Application(int argc, char const **argv)
-        : HttpServer{argc, argv}
-    {
-    }
+    using HttpServer::HttpServer;
 
 private:
     // Mif.Application.HttpService
@@ -34,6 +31,7 @@ private:
             response.SetCode(Mif::Net::Http::Code::Ok);
             response.SetHeader(Mif::Net::Http::Constants::Header::Connection::GetString(),
                                Mif::Net::Http::Constants::Value::Connection::Close::GetString());
+
             response.SetData(std::move(data));
         };
     }
