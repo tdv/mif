@@ -387,6 +387,10 @@ int main(int argc, char const **argv)
     return Mif::Application::Run<Application>(argc, argv);
 }
 ```
+**Test server***
+```bash
+curl -iv -X POST "http://localhost:55555/" -d 'Test data'
+```
 
 ## DB client
 [Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
