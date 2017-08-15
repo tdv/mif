@@ -344,6 +344,50 @@ The "Visitor" example demonstrates the mechanism of remote callbacks for interfa
 **Description**  
 The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP.
 
+## HTTP-echo-server
+[Source code](https://github.com/tdv/mif/tree/master/examples/http_echo_server)  
+**Description**  
+The example demonstrates the work of the simple HTTP echo server.
+[HTTP-echo-server](https://github.com/tdv/mif/blob/master/examples/http_echo_server/src/main.cpp)  
+```cpp
+// MIF
+#include <mif/application/http_server.h>
+#include <mif/common/log.h>
+#include <mif/net/http/constants.h>
+
+class Application
+    : public Mif::Application::HttpServer
+{
+public:
+    using HttpServer::HttpServer;
+
+private:
+    // Mif.Application.HttpServer
+    virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
+    {
+        handlers["/"] = [] (Mif::Net::Http::IInputPack const &request,
+                Mif::Net::Http::IOutputPack &response)
+        {
+            auto data = request.GetData();
+
+            MIF_LOG(Info) << "Process request \"" << request.GetPath() << request.GetQuery() << "\"\t Data: "
+                    << (data.empty() ? std::string{"null"} : std::string{std::begin(data), std::end(data)});
+
+            response.SetCode(Mif::Net::Http::Code::Ok);
+            response.SetHeader(Mif::Net::Http::Constants::Header::Connection::GetString(),
+                               Mif::Net::Http::Constants::Value::Connection::Close::GetString());
+
+            response.SetData(std::move(data));
+        };
+    }
+};
+
+int main(int argc, char const **argv)
+{
+    return Mif::Application::Run<Application>(argc, argv);
+}
+```
+
 ## DB client
 [Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
 **Description**  
