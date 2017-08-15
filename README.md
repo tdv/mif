@@ -387,7 +387,7 @@ int main(int argc, char const **argv)
     return Mif::Application::Run<Application>(argc, argv);
 }
 ```
-**Test server***
+**Test**
 ```bash
 curl -iv -X POST "http://localhost:55555/" -d 'Test data'
 ```
