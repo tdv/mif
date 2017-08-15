@@ -344,7 +344,7 @@ The "Visitor" example demonstrates the mechanism of remote callbacks for interfa
 **Description**  
 The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP.
 
-## HTTP-echo-server
+## HTTP Echo Server
 [Source code](https://github.com/tdv/mif/tree/master/examples/http_echo_server)  
 **Description**  
 The example demonstrates the work of the simple HTTP echo server.
