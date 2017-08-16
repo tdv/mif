@@ -392,6 +392,11 @@ int main(int argc, char const **argv)
 curl -iv -X POST "http://localhost:55555/" -d 'Test data'
 ```
 
+## Reflection
+[Source code](https://github.com/tdv/mif/tree/master/examples/reflection)  
+**Description**  
+The example demonstrates the mechanism of C++ data struct reflection. This can be used as a starting point for building application with serialization, ORM and REST API.
+
 ## DB client
 [Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
 **Description**  
