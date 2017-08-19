@@ -10,6 +10,7 @@
 #include <mif/common/log.h>
 
 // COMMON
+#include "common/id/service.h"
 #include "common/ps/imy_company.h"
 
 class Application
@@ -34,7 +35,7 @@ private:
     // Mif.Application.TcpServiceClient
     virtual void Init(Mif::Service::IFactoryPtr factory) override final
     {
-        auto service = factory->Create<Service::IMyCompany>("MyCompany");
+        auto service = factory->Create<Service::IMyCompany>(Service::Id::MyCompany);
 
         {
             Service::Data::Employee e;

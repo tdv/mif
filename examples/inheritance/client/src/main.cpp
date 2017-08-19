@@ -10,6 +10,7 @@
 #include <mif/common/log.h>
 
 // COMMON
+#include "common/id/service.h"
 #include "common/ps/iface.h"
 
 class Application
@@ -22,7 +23,7 @@ private:
     // Mif.Application.TcpServiceClient
     virtual void Init(Mif::Service::IFactoryPtr factory) override final
     {
-        auto service = factory->Create<Service::IEmployee>("Service");
+        auto service = factory->Create<Service::IEmployee>(Service::Id::Service);
 
         auto human = service->Cast<Service::IHuman>();
         MIF_LOG(Info) << "Name: \"" << human->GetName() << "\"";

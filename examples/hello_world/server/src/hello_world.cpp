@@ -25,7 +25,7 @@ namespace Service
         {
 
             class HelloWorld
-                : public IHelloWorld
+                : public Mif::Service::Inherit<IHelloWorld>
             {
             public:
                 HelloWorld()

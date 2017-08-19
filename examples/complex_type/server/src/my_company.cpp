@@ -26,7 +26,7 @@ namespace Service
         {
 
             class MyCompany
-                : public IMyCompany
+                : public Mif::Service::Inherit<IMyCompany>
             {
             public:
                 MyCompany()

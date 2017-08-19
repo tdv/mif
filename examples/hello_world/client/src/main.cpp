@@ -10,6 +10,7 @@
 #include <mif/common/log.h>
 
 // COMMON
+#include "common/id/service.h"
 #include "common/ps/ihello_world.h"
 
 class Application
@@ -22,7 +23,7 @@ private:
     // Mif.Application.TcpServiceClient
     virtual void Init(Mif::Service::IFactoryPtr factory) override final
     {
-        auto service = factory->Create<Service::IHelloWorld>("HelloWorld");
+        auto service = factory->Create<Service::IHelloWorld>(Service::Id::HelloWorld);
 
         MIF_LOG(Info) << "Add words.";
 

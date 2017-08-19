@@ -17,7 +17,7 @@ public:
     using HttpServer::HttpServer;
 
 private:
-    // Mif.Application.HttpService
+    // Mif.Application.HttpServer
     virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
     {
         handlers["/"] = [] (Mif::Net::Http::IInputPack const &request,

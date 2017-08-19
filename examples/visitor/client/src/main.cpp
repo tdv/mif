@@ -10,6 +10,7 @@
 #include <mif/common/log.h>
 
 // COMMON
+#include "common/id/service.h"
 #include "common/ps/iface.h"
 
 namespace Service
@@ -47,7 +48,7 @@ private:
     // Mif.Application.TcpServiceClient
     virtual void Init(Mif::Service::IFactoryPtr factory) override final
     {
-        auto service = factory->Create<Service::IViewer>("Service");
+        auto service = factory->Create<Service::IViewer>(Service::Id::Service);
 
         auto visitor = Mif::Service::Make<Service::Detail::MessageVisitor, Service::IMessageVisitor>();
         service->Accept(visitor);
