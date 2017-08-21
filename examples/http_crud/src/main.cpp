@@ -25,8 +25,15 @@ private:
     // Mif.Application.HttpService
     virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
     {
+        auto config = GetConfig();
+        if (!config)
+            throw std::runtime_error{"[Application::Init] No config."};
+        auto dbConfig = config->GetConfig("database");
+        if (!dbConfig)
+            throw std::runtime_error{"[Application::Init] No 'database' node in the config."};
         std::string const employeeLocation = "/employee";
-        auto employeeService = Mif::Service::Make<Service::EmployeeService, Mif::Net::Http::IWebService>(employeeLocation);
+        auto employeeService = Mif::Service::Make<Service::EmployeeService, Mif::Net::Http::IWebService>(
+                employeeLocation, dbConfig);
         handlers.emplace(employeeLocation, Mif::Net::Http::MakeWebService(employeeService));
     }
 };
