@@ -3,16 +3,27 @@
 		"daemon": 0,
 		"log": {
 			"level": 4,
-			"dir": ".",
+			"dir": "../build/",
 			"pattern": "log_%5N.log"
 		}
 	},
-	"server":
+	"data":
 	{
-		"host": "0.0.0.0",
-		"port": "55555",
-		"workers": 8,
-		"timesout": 10000000
-	},
-	"data": null
+		"server":
+		{
+			"host": "0.0.0.0",
+			"port": "55555",
+			"workers": 8,
+			"timeout": 10000000
+		},
+		"database":
+		{
+			"host": "localhost",
+			"port": 5432,
+			"user": "postgres",
+			"password": "postgres",
+			"dbname": "crud_test",
+			"connectiontimeout": 10
+		}
+	}
 }
