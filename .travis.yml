@@ -69,6 +69,11 @@ script:
   - cd build
   - cmake ..
   - make
+  - cd ../../microservices
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
 
 notifications:
   email: false
