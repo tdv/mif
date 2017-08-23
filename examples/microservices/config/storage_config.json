@@ -1,0 +1,28 @@
+{
+    "common": {
+        "daemon": 0,
+        "log": {
+            "level": 4,
+            "dir": ".",
+            "pattern": "log_%5N.log"
+        }
+    },
+    "data":
+    {
+        "server": {
+            "host": "0.0.0.0",
+            "port": "55000",
+            "workers": 8,
+            "timeout": 10000000
+        },
+        "database":
+        {
+            "host": "localhost",
+            "port": 5432,
+            "user": "postgres",
+            "password": "postgres",
+            "dbname": "crud_test",
+            "connectiontimeout": 10
+        }
+    }
+}
