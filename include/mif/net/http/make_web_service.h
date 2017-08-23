@@ -15,6 +15,7 @@
 
 // MIF
 #include "mif/net/http/iweb_service.h"
+#include "mif/service/create.h"
 #include "mif/service/make.h"
 
 namespace Mif
@@ -35,6 +36,14 @@ namespace Mif
             MakeWebService(TArgs && ... args)
             {
                 auto service = Service::Make<TService, IWebService>(std::forward<TArgs>(args) ... );
+                auto handler = std::bind(&IWebService::OnRequest, service, std::placeholders::_1, std::placeholders::_2);
+                return handler;
+            }
+
+            template <Service::ServiceId Id, typename ... TArgs>
+            inline ServerHandler MakeWebService(TArgs && ... args)
+            {
+                auto service = Service::Create<Id, IWebService>(std::forward<TArgs>(args) ... );
                 auto handler = std::bind(&IWebService::OnRequest, service, std::placeholders::_1, std::placeholders::_2);
                 return handler;
             }
