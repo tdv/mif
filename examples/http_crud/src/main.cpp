@@ -16,10 +16,7 @@ class Application
     : public Mif::Application::HttpServer
 {
 public:
-    Application(int argc, char const **argv)
-        : HttpServer{argc, argv}
-    {
-    }
+    using HttpServer::HttpServer;
 
 private:
     // Mif.Application.HttpService
