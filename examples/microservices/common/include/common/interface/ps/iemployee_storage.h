@@ -27,7 +27,7 @@ namespace Common
             MIF_REMOTE_METHOD(Read)
             MIF_REMOTE_METHOD(Update)
             MIF_REMOTE_METHOD(Delete)
-            MIF_REMOTE_METHOD(List)
+            //MIF_REMOTE_METHOD(List)
         MIF_REMOTE_PS_END()
 
     }   // namespace Meta

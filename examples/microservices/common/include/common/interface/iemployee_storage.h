@@ -29,7 +29,7 @@ namespace Common
         virtual void Delete(Data::ID const &id) = 0;
 
         // CRUD extension method
-        virtual Data::Employees List(std::size_t const *offset, std::size_t const *limit) const = 0;
+        //virtual Data::Employees List(std::size_t const *offset, std::size_t const *limit) const = 0;
     };
 
 }   // namespace Common
