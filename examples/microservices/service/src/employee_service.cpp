@@ -9,7 +9,9 @@
 #include <stdexcept>
 
 // MIF
+#include "mif/application/iconfig.h"
 #include "mif/net/http/web_service.h"
+#include <mif/remote/predefined/utility.h>
 #include <mif/service/creator.h>
 #include <mif/service/ifactory.h>
 
@@ -34,11 +36,19 @@ namespace Service
             {
             public:
 
-                EmployeeService(std::string const &pathPrefix, Mif::Service::IFactoryPtr factory)
-                    : m_factory{std::move(factory)}
+                EmployeeService(std::string const &pathPrefix, Mif::Application::IConfigPtr config)
                 {
-                    if (!m_factory)
-                        throw std::invalid_argument{"[Service::Detail::EmployeeService] Empty factory ptr."};
+                    if (!config)
+                        throw std::invalid_argument{"[Service::Detail::EmployeeService] No config."};
+
+                    auto const host = config->GetValue("host");
+                    auto const port = config->GetValue("port");
+                    auto const workers = config->GetValue<std::uint16_t>("workers");
+                    std::chrono::microseconds const timeout{config->GetValue<std::uint32_t>("timeout")};
+
+                    m_factory = Mif::Remote::Predefined::CreateTcpClientServiceFactory(
+                            host, port, workers, timeout
+                        );
 
                     AddHandler(pathPrefix + "/create", this, &EmployeeService::Create);
                 }
@@ -80,5 +90,5 @@ MIF_SERVICE_CREATOR
     ::Service::Id::Employee,
     ::Service::Detail::EmployeeService,
     std::string,
-    Mif::Service::IFactoryPtr
+    Mif::Application::IConfigPtr
 )

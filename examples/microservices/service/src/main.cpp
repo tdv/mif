@@ -8,7 +8,6 @@
 // MIF
 #include <mif/application/http_server.h>
 #include <mif/net/http/make_web_service.h>
-#include <mif/remote/predefined/utility.h>
 
 // THIS
 #include "id/service.h"
@@ -26,22 +25,10 @@ private:
         auto config = GetConfig();
         if (!config)
             throw std::runtime_error{"[Service::Application::Init] No config."};
-        auto stgConfig = config->GetConfig("storage");
-        if (!stgConfig)
-            throw std::runtime_error{"[Service::Application::Init] No 'storage' config node."};
-
-        auto const host = stgConfig->GetValue("host");
-        auto const port = stgConfig->GetValue("port");
-        auto const workers = stgConfig->GetValue<std::uint16_t>("workers");
-        std::chrono::microseconds const timeout{stgConfig->GetValue<std::uint32_t>("timeout")};
-
-        auto remoteFactory = Mif::Remote::Predefined::CreateTcpClientServiceFactory(
-                host, port, workers, timeout
-            );
 
         std::string const employeeLocation = "/employee";
         auto employeeHandler = Mif::Net::Http::MakeWebService<Service::Id::Employee>(
-                employeeLocation, remoteFactory
+                employeeLocation, config->GetConfig("storage")
             );
 
         handlers.emplace(employeeLocation, employeeHandler);
