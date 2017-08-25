@@ -13,6 +13,7 @@
 
 // THIS
 #include "common/client.h"
+#include "common/id/service.h"
 #include "common/ps/iadmin.h"
 
 class Application
@@ -53,13 +54,11 @@ private:
 
         auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
 
-        auto service = client->CreateService<Service::IAdmin>(
-                Mif::Common::Crc32("WebService.Admin"));
+        auto service = client->CreateService<Service::IAdmin>(Service::Id::Service);
 
         MIF_LOG(Info) << "Client started.";
 
-
-        MIF_LOG(Info) << "Add words.";
+        MIF_LOG(Info) << "Set new document title and body.";
 
         service->SetTitle("Client title");
         service->SetBody("Client body");

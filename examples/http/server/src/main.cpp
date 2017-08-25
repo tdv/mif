@@ -10,9 +10,10 @@
 #include <mif/net/http/servlet.h>
 #include <mif/net/http/make_web_service.h>
 
-// THIS
+// COMMON
 #include "common/client.h"
 #include "common/id/service.h"
+#include "common/ps/iadmin.h"
 
 class Application
     : public Mif::Application::HttpServer

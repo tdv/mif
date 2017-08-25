@@ -288,7 +288,7 @@ namespace Mif
                         std::int64_t const m_cleanerTimeout = 60;
 
                         boost::asio::io_service m_ioService;
-                        std::unique_ptr<std::thread, void (*)(std::thread *)> m_iosWorker{nullptr, [] (std::thread *t) { if (t) t->join(); } };
+                        std::unique_ptr<std::thread, void (*)(std::thread *)> m_iosWorker{nullptr, [] (std::thread *t) { if (t) t->join(); delete t; } };
                         std::unique_ptr<boost::asio::io_service::work> m_iosWork;
 
                         LockType m_lock;
