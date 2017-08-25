@@ -205,7 +205,7 @@ namespace Storage
                     }
                 }
 
-                virtual Common::Data::Employees List(std::size_t const *offset, std::size_t const *limit) const //override final
+                virtual Common::Data::Employees List(std::size_t offset, std::size_t limit) const override final
                 {
                     Common::Data::Employees employees;
 
@@ -220,17 +220,17 @@ namespace Storage
 
                         Mif::Db::IStatement::Parameters params;
 
-                        if (offset)
+                        if (offset != std::numeric_limits<std::size_t>::max())
                         {
                             sql += "OFFSET $1::integer ";
-                            params.push_back(std::to_string(*offset));
+                            params.push_back(std::to_string(offset));
                         }
 
-                        if (limit)
+                        if (limit != std::numeric_limits<std::size_t>::max())
                         {
-                            auto const index = !offset ? 1 : 2;
+                            auto const index = offset == std::numeric_limits<std::size_t>::max() ? 1 : 2;
                             sql += "LIMIT $" + std::to_string(index) + "::integer ";
-                            params.push_back(std::to_string(*limit));
+                            params.push_back(std::to_string(limit));
                         }
 
                         sql += ";";

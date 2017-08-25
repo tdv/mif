@@ -10,6 +10,7 @@
 
 // STD
 #include <cstdint>
+#include <limits>
 
 // MIF
 #include <mif/service/iservice.h>
@@ -29,7 +30,8 @@ namespace Common
         virtual void Delete(Data::ID const &id) = 0;
 
         // CRUD extension method
-        //virtual Data::Employees List(std::size_t const *offset, std::size_t const *limit) const = 0;
+        virtual Data::Employees List(std::size_t offset = std::numeric_limits<std::size_t>::max(),
+                std::size_t limit = std::numeric_limits<std::size_t>::max()) const = 0;
     };
 
 }   // namespace Common
