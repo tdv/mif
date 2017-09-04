@@ -24,7 +24,12 @@ before_script:
 
 script: 
   - make 1>build_log.txt
-  - cd ../examples/hello_world
+  - cd ../template
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - cd ../../examples/hello_world
   - mkdir build
   - cd build
   - cmake ..
