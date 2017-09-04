@@ -52,6 +52,17 @@ cd build
 cmake ..  
 make  
 ```
+**NOTE:** To develop your applications, you can use the application template. After downloading the MIF project, follow the steps
+```bash
+cd mif/template
+mkdir build  
+cd build  
+cmake ..  
+make  
+```
+After that you can change this template to create your own application.
+
+
 ## Run examples
 
 Server:
