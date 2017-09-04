@@ -4,7 +4,7 @@ MIF is a с++11 web-application framework designed for the backend micro-service
 [![Build Status](https://travis-ci.org/tdv/mif.svg?branch=master)](https://travis-ci.org/tdv/mif)
 
 # Version
-1.1.0  
+1.2.0  
 
 **NOTE:** The master branch is actively developed, use latest release for production use.
 
