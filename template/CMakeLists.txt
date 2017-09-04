@@ -213,7 +213,7 @@ list (APPEND THIRD_PARTY_PROJECTS ${MIF_PROJECT})
 
 ExternalProject_Add (${MIF_PROJECT}
             GIT_REPOSITORY https://github.com/tdv/mif.git
-            GIT_TAG master
+            GIT_TAG v1.1.0
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_INSTALL_DIR} 
