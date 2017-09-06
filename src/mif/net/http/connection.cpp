@@ -43,23 +43,35 @@ namespace Mif
                 Impl(Impl &&) = delete;
                 Impl& operator = (Impl &&) = delete;
 
-                Impl(std::string const &host, std::string const &port,
-                    ClientHandler const &handler, OnCloseHandler const &onClose)
+                Impl(Params const &params, ClientHandler const &handler,
+                        OnCloseHandler const &onClose)
                     : m_handler{handler}
                     , m_onClose{onClose}
-                    , m_host{host}
-                    , m_port{port}
+                    , m_host{params.host}
+                    , m_port{params.port}
                     , m_base{Detail::Utility::CreateEventBase()}
-                    , m_connection{evhttp_connection_base_new(m_base.get(), nullptr, host.c_str(),
-                        static_cast<ev_uint16_t>(std::stoi(port))), &evhttp_connection_free}
+                    , m_connection{evhttp_connection_base_new(m_base.get(), nullptr, params.host.c_str(),
+                        static_cast<ev_uint16_t>(std::stoi(params.port))), &evhttp_connection_free}
                 {
                     if (!m_connection)
                     {
                         throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] "
-                            "Failed to create connection to \"" + host + ":" + port + "\"."};
+                            "Failed to create connection to \"" + m_host + ":" + m_port + "\"."};
                     }
 
                     evhttp_connection_set_closecb(m_connection.get(), &Impl::OnClose, this);
+
+                    if (params.timeout != std::chrono::seconds::max())
+                        evhttp_connection_set_timeout(m_connection.get(), params.timeout.count());
+
+                    if (params.retriesCount != std::numeric_limits<std::size_t>::max())
+                        evhttp_connection_set_retries(m_connection.get(), params.retriesCount);
+
+                    if (params.maxHeaderSize != std::numeric_limits<std::size_t>::max())
+                        evhttp_connection_set_max_headers_size(m_connection.get(), params.maxHeaderSize);
+
+                    if (params.maxBodySize != std::numeric_limits<std::size_t>::max())
+                        evhttp_connection_set_max_body_size(m_connection.get(), params.maxBodySize);
 
                     {
                         EventPtr timer{event_new(m_base.get(), -1, EV_PERSIST, &Impl::OnTimer, this), &event_free};
@@ -72,6 +84,12 @@ namespace Mif
                     }
 
                     m_thread.reset(new std::thread{std::bind(&Impl::Run, this)});
+                }
+
+                Impl(std::string const &host, std::string const &port,
+                        ClientHandler const &handler, OnCloseHandler const &onClose)
+                    : Impl{[&host, &port] { Params prm; prm.host = host; prm.port = port; return prm; } (), handler, onClose}
+                {
                 }
 
                 ~Impl()
@@ -257,8 +275,14 @@ namespace Mif
 
 
             Connection::Connection(std::string const &host, std::string const &port,
-                ClientHandler const &handler, OnCloseHandler const &onClose)
+                    ClientHandler const &handler, OnCloseHandler const &onClose)
                 : m_impl{new Impl{host, port, handler, onClose}}
+            {
+            }
+
+            Connection::Connection(Params const &params, ClientHandler const &handler,
+                    OnCloseHandler const &onClose)
+                : m_impl{new Impl{params, handler, onClose}}
             {
             }
 

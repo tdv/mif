@@ -7,6 +7,7 @@
 
 // STD
 #include <cstdint>
+#include <cstdlib>
 #include <stdexcept>
 #include <thread>
 
@@ -43,8 +44,7 @@ namespace Mif
                     , m_socket{m_ioService}
                     , m_work{m_ioService}
                 {
-                    std::exception_ptr exception{};
-                    m_thread.reset(new std::thread([this, &exception] ()
+                    m_thread.reset(new std::thread([this] ()
                             {
                                 try
                                 {
@@ -52,14 +52,13 @@ namespace Mif
                                 }
                                 catch (std::exception const &e)
                                 {
-                                    exception = std::current_exception();
+                                    MIF_LOG(Fatal) << "[Mif::Net::Tcp::Server::Impl] Failed to run io_service. "
+                                            << "Error: " << e.what();
+                                    std::exit(EXIT_FAILURE);
                                 }
                             }
                         )
                     );
-
-                    if (exception)
-                        std::rethrow_exception(exception);
 
                     DoAccept();
                 }

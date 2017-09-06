@@ -9,6 +9,9 @@
 #define __MIF_NET_HTTP_CONNECTION_H__
 
 // STD
+#include <chrono>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -29,8 +32,21 @@ namespace Mif
                 using OnCloseHandler = std::function<void ()>;
                 using IOutputPackPtr = std::unique_ptr<IOutputPack>;
 
+                struct Params
+                {
+                    std::string host;
+                    std::string port;
+                    std::chrono::seconds timeout = std::chrono::seconds::max();
+                    std::size_t retriesCount = std::numeric_limits<std::size_t>::max();
+                    std::size_t maxHeaderSize = std::numeric_limits<std::size_t>::max();
+                    std::size_t maxBodySize = std::numeric_limits<std::size_t>::max();
+                };
+
                 Connection(std::string const &host, std::string const &port,
                     ClientHandler const &handler, OnCloseHandler const &onClose = [] () {});
+
+                Connection(Params const &params, ClientHandler const &handler,
+                    OnCloseHandler const &onClose = [] () {});
 
                 ~Connection();
 

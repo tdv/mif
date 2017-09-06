@@ -7,6 +7,7 @@ set (MIF_THIRD_PARTY_LIBS
     zlib
     jsoncpp
     event
+    pugixml
 )
 
 set (JSONCPP_LIBRARIES
@@ -32,6 +33,10 @@ set (EVENT_LIBRARIES
     event
     event_core
     event_extra
+)
+
+set (PUGIXML_LIBRARIES
+    pugixml
 )
 
 set (LIBPQ_LIBRARIES
@@ -92,10 +97,18 @@ function (mif_add_third_party_project project_name)
 
     ExternalProject_Add (${MIF_THIRD_PARTY_PROJECT}
         SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
+        UPDATE_COMMAND ""
+        BUILD_IN_SOURCE 1
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_LIB_INSTALL_DIR} 
             -DCMAKE_CXX_FLAGS:INTERNAL=${CMAKE_CXX_FLAGS} 
             -DCMAKE_C_FLAGS:INTERNAL=${CMAKE_C_FLAGS} 
             ${MIF_LIB_CMAKE_ARGS}
+        LOG_DOWNLOAD 1
+        LOG_UPDATE 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_TEST 1
+        LOG_INSTALL 1
     )
 
     mif_add_third_party_project_end()
@@ -113,11 +126,18 @@ function (mif_add_boost_project)
 
     ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
         SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
-        BUILD_IN_SOURCE 1
         UPDATE_COMMAND ""
+        BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ./bootstrap.sh --prefix=${MIF_LIB_INSTALL_DIR} --with-libraries=${MIF_LIB_BOOST_LIB_LIST} --without-icu --without-icu
         BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=${MIF_STD_CXX} -fPIC" link=static threading=multi runtime-link=static
         INSTALL_COMMAND ""
+        DEPENDS "zlib-project"
+        LOG_DOWNLOAD 1
+        LOG_UPDATE 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_TEST 1
+        LOG_INSTALL 1
     )
 
     mif_add_third_party_project_end()
@@ -137,13 +157,17 @@ function (mif_add_libpq_project)
 
     ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
         SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
-        BUILD_IN_SOURCE 1
         UPDATE_COMMAND ""
+        BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${MIF_LIB_INSTALL_DIR}
-        BUILD_COMMAND make -C src/interfaces/libpq
-        INSTALL_COMMAND make -C src/interfaces/libpq install
-                && cp src/include/postgres_ext.h ${MIF_LIB_INSTALL_DIR}/include
-                && cp src/include/pg_config_ext.h ${MIF_LIB_INSTALL_DIR}/include
+        BUILD_COMMAND make install -C src/interfaces/libpq
+        INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory src/include ${MIF_LIB_INSTALL_DIR}/include
+        LOG_DOWNLOAD 1
+        LOG_UPDATE 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_TEST 1
+        LOG_INSTALL 1
     )
 
     mif_add_third_party_project_end()
@@ -154,12 +178,16 @@ function (mif_add_sqlite_project)
 
     ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
         SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
-        BUILD_IN_SOURCE 1
         UPDATE_COMMAND ""
+        BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ./configure --prefix=${MIF_LIB_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
-
-        BUILD_COMMAND make
-        INSTALL_COMMAND make install
+        BUILD_COMMAND ${MAKE}
+        LOG_DOWNLOAD 1
+        LOG_UPDATE 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_TEST 1
+        LOG_INSTALL 1
     )
 
     mif_add_third_party_project_end()

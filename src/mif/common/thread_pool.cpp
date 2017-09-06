@@ -6,6 +6,7 @@
 //-------------------------------------------------------------------
 
 // STD
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 
@@ -63,40 +64,22 @@ namespace Mif
                         if (!count)
                             throw std::invalid_argument{"[Mif::Common::ThreadPool] Thread count must be more than 0."};
 
-                        std::exception_ptr exception{};
                         for ( ; count ; --count)
                         {
-                            m_threads.create_thread([this, &exception] ()
+                            m_threads.create_thread([this] ()
                                     {
                                         try
                                         {
                                             m_ioService.run();
                                         }
-                                        catch (std::exception const &)
+                                        catch (std::exception const &e)
                                         {
-                                            exception = std::current_exception();
+                                            MIF_LOG(Fatal) << "[Mif::Common::ThreadPool] Failed to run io_service. "
+                                                    << "Error: " << e.what();
+                                            std::exit(EXIT_FAILURE);
                                         }
                                     }
                                 );
-
-                            if (exception)
-                                break;
-                        }
-
-                        if (exception)
-                        {
-                            if (count)
-                                Stop();
-
-                            try
-                            {
-                                std::rethrow_exception(exception);
-                            }
-                            catch (std::exception const &e)
-                            {
-                                throw std::runtime_error{"[Mif::Common::ThreadPool] Failed to run thread pool. "
-                                    "Error: " + std::string{e.what()}};
-                            }
                         }
                     }
 

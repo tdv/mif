@@ -24,6 +24,7 @@ set(LIBRARIES
     boost_system
     jsoncpp
     event
+    pugixml
     pthread
     pq.a
     sqlite3

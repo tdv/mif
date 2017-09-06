@@ -18,11 +18,32 @@ set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 #---------------------------------------------------------
 
+#---------------------Third party common -----------------
+
 set (THITD_PARTY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/third_party)
 set (THIRD_PARTY_PROJECTS "")
 set (LIBRARIES "")
 
 list (APPEND LIBRARIES "mif")
+
+set (ZLIB_URL "https://github.com/madler/zlib.git")
+set (ZLIB_TAG "v1.2.8")
+
+set (BOOST_URL "https://sourceforge.net/projects/boost/files/boost/1.65.0/boost_1_65_0.tar.gz")
+
+set (JSONCPP_URL "https://github.com/open-source-parsers/jsoncpp.git")
+set (JSONCPP_TAG "1.8.0")
+
+set (EVENT_URL "https://github.com/libevent/libevent.git")
+set (EVENT_TAG "release-2.1.8-stable")
+
+set (LIBPQ_URL "https://github.com/postgres/postgres.git")
+set (LIBPQ_TAG "REL9_6_2")
+
+set (SQLITE_URL "https://www.sqlite.org/src/tarball/sqlite.tar.gz")
+
+set (MIF_URL "https://github.com/tdv/mif.git")
+set (MIF_TAG "master")
 
 #------------------------ ZLib ---------------------------
 set (ZLIB_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/zlib)
@@ -35,13 +56,19 @@ set (ZLIB_PROJECT "zlib-project")
 list (APPEND THIRD_PARTY_PROJECTS ${ZLIB_PROJECT})
 
 ExternalProject_Add (${ZLIB_PROJECT}
-            GIT_REPOSITORY https://github.com/madler/zlib.git
-            GIT_TAG v1.2.8
+            GIT_REPOSITORY ${ZLIB_URL}
+            GIT_TAG ${ZLIB_TAG}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${ZLIB_INSTALL_DIR} 
                 -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
+            LOG_DOWNLOAD 1
+            LOG_UPDATE 1
+            LOG_CONFIGURE 1
+            LOG_BUILD 1
+            LOG_TEST 1
+            LOG_INSTALL 1
         )
 
 list (APPEND LIBRARIES "z.a")
@@ -76,13 +103,19 @@ foreach (lib ${BOOST_LIBRARIES})
 endforeach()
 
 ExternalProject_Add(${BOOST_PROJECT}
-        URL https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz
+        URL ${BOOST_URL}
         UPDATE_COMMAND ""
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOOST_INSTALL_DIR} --with-libraries=${BOOST_LIBRARIES_LIST} --without-icu --without-icu
         DEPENDS ${ZLIB_PROJECT}
         BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=${STD_CXX} -fPIC" link=static threading=multi runtime-link=static
         INSTALL_COMMAND ""
+        LOG_DOWNLOAD 1
+        LOG_UPDATE 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_TEST 1
+        LOG_INSTALL 1
     )
 
 foreach (lib ${BOOST_LIBRARIES})
@@ -101,8 +134,8 @@ set (JSONCPP_PROJECT "jsoncpp-project")
 list (APPEND THIRD_PARTY_PROJECTS ${JSONCPP_PROJECT})
 
 ExternalProject_Add (${JSONCPP_PROJECT}
-            GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp.git
-            GIT_TAG 1.8.0
+            GIT_REPOSITORY ${JSONCPP_URL}
+            GIT_TAG ${JSONCPP_TAG}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${JSONCPP_INSTALL_DIR} 
@@ -114,6 +147,12 @@ ExternalProject_Add (${JSONCPP_PROJECT}
                 -DBUILD_SHARED_LIBS=OFF
                 -DBUILD_STATIC_LIBS=ON
                 -DJSONCPP_WITH_TESTS=OFF
+            LOG_DOWNLOAD 1
+            LOG_UPDATE 1
+            LOG_CONFIGURE 1
+            LOG_BUILD 1
+            LOG_TEST 1
+            LOG_INSTALL 1
         )
 
 list (APPEND LIBRARIES "jsoncpp")
@@ -130,8 +169,8 @@ set (EVENT_PROJECT "event-project")
 list (APPEND THIRD_PARTY_PROJECTS ${EVENT_PROJECT})
 
 ExternalProject_Add (${EVENT_PROJECT}
-            GIT_REPOSITORY https://github.com/libevent/libevent.git
-            GIT_TAG release-2.1.8-stable
+            GIT_REPOSITORY ${EVENT_URL}
+            GIT_TAG ${EVENT_TAG}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${EVENT_INSTALL_DIR} 
@@ -142,6 +181,12 @@ ExternalProject_Add (${EVENT_PROJECT}
                 -DEVENT__DISABLE_REGRESS=ON
                 -DEVENT__DISABLE_SAMPLES=ON
                 -DEVENT__DISABLE_BENCHMARK=ON
+            LOG_DOWNLOAD 1
+            LOG_UPDATE 1
+            LOG_CONFIGURE 1
+            LOG_BUILD 1
+            LOG_TEST 1
+            LOG_INSTALL 1
         )
 
 list (APPEND LIBRARIES "event")
@@ -160,16 +205,19 @@ set (LIBPQ_PROJECT "pq-project")
 list (APPEND THIRD_PARTY_PROJECTS ${LIBPQ_PROJECT})
 
 ExternalProject_Add (${LIBPQ_PROJECT}
-            GIT_REPOSITORY https://github.com/postgres/postgres.git
-            GIT_TAG REL9_6_2
+            GIT_REPOSITORY ${LIBPQ_URL}
+            GIT_TAG ${LIBPQ_TAG}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${LIBPQ_INSTALL_DIR}
             BUILD_IN_SOURCE 1
             BUILD_COMMAND make install -C src/interfaces/libpq
             INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory src/include ${LIBPQ_INSTALL_DIR}/include
+            LOG_DOWNLOAD 1
+            LOG_UPDATE 1
             LOG_CONFIGURE 1
             LOG_BUILD 1
+            LOG_TEST 1
             LOG_INSTALL 1
         )
 
@@ -187,14 +235,16 @@ set (SQLITE_PROJECT "sqlite-project")
 list (APPEND THIRD_PARTY_PROJECTS ${SQLITE_PROJECT})
 
 ExternalProject_Add (${SQLITE_PROJECT}
-            URL https://www.sqlite.org/src/tarball/sqlite.tar.gz
+            URL ${SQLITE_URL}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
-            BUILD_COMMAND make
-            INSTALL_COMMAND make install
+            BUILD_COMMAND ${MAKE}
+            LOG_DOWNLOAD 1
+            LOG_UPDATE 1
             LOG_CONFIGURE 1
             LOG_BUILD 1
+            LOG_TEST 1
             LOG_INSTALL 1
         )
 
@@ -212,8 +262,8 @@ set (MIF_PROJECT "mif-project")
 list (APPEND THIRD_PARTY_PROJECTS ${MIF_PROJECT})
 
 ExternalProject_Add (${MIF_PROJECT}
-            GIT_REPOSITORY https://github.com/tdv/mif.git
-            GIT_TAG v1.1.0
+            GIT_REPOSITORY ${MIF_URL}
+            GIT_TAG ${MIF_TAG}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_INSTALL_DIR} 
@@ -234,7 +284,12 @@ ExternalProject_Add (${MIF_PROJECT}
                 -DSQLITE_LIBRARIES_DIR=${SQLITE_LIBRARIES_DIR}
             DEPENDS ${BOOST_PROJECT} ${JSONCPP_PROJECT} ${EVENT_PROJECT} ${LIBPQ_PROJECT} ${SQLITE_PROJECT}
             BUILD_COMMAND ${MAKE}
-            INSTALL_COMMAND make install
+            LOG_DOWNLOAD 1
+            LOG_UPDATE 1
+            LOG_CONFIGURE 1
+            LOG_BUILD 1
+            LOG_TEST 1
+            LOG_INSTALL 1
         )
 #---------------------------------------------------------
 
