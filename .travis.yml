@@ -23,7 +23,7 @@ before_script:
   - cmake ..
 
 script: 
-  - make 1>build_log.txt
+  - make -j 8
   - cd ../template
   - mkdir build
   - cd build
