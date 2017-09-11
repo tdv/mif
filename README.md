@@ -414,7 +414,7 @@ The example demonstrates the Json API (CRUD operations) on HTTP server.
 - apply DB schema from folder db
 - modify config/config.xml
 - run http_crud server with parameter --config (in folder 'bin' execute ./http_crud --config=../config/config.xml)
-- esecute commands
+- execute commands
 ```bash
 curl -i -X POST "http://localhost:55555/employee/create" -d '{"name":"Ivan", "lastName":"Ivanov","age":33,"email":"ivanov@mycompany.com","position":"Developer","rate":200000.00}'
 
@@ -440,7 +440,7 @@ The example demonstrates communication between two microservices (the example is
 ./storage —config=storage.xml
 ./service --config=service.xml
 ```
-- esecute commands
+- execute commands
 ```bash
 curl -i -X POST "http://localhost:55555/employee/create" -d '{"name":"Ivan", "lastName":"Ivanov","age":33,"email":"ivanov@mycompany.com","position":"Developer","rate":200000.00}'
 
