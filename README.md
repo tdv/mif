@@ -403,6 +403,56 @@ int main(int argc, char const **argv)
 curl -iv -X POST "http://localhost:55555/" -d 'Test data'
 ```
 
+## HTTP CRUD
+[Source code](https://github.com/tdv/mif/tree/master/examples/http_crud)  
+**Description**  
+The example demonstrates the Json API (CRUD operations) on HTTP server.
+
+
+**Test**
+- run PostgreSQL
+- apply DB schema from folder db
+- modify config/config.xml
+- run http_crud server with parameter --config (in folder 'bin' execute ./http_crud --config=../config/config.xml)
+- esecute commands
+```bash
+curl -i -X POST "http://localhost:55555/employee/create" -d '{"name":"Ivan", "lastName":"Ivanov","age":33,"email":"ivanov@mycompany.com","position":"Developer","rate":200000.00}'
+
+curl -i "http://localhost:55555/employee/read?id=1"
+
+curl -i "http://localhost:55555/employee/update?id=1" -d '{"name":"Ivan", "lastName":"Ivanov","age":33,"email":"ivanov@mycompany.com","position":"Developer","rate":220000.00}'
+
+curl -i "http://localhost:55555/employee/list?limit=2&offset=0"
+
+curl -i "http://localhost:55555/employee/delete?id=1"
+```
+
+## Microservices
+[Source code](https://github.com/tdv/mif/tree/master/examples/microservices)  
+**Description**  
+The example demonstrates communication between two microservices (the example is more powerful version of http crud).
+**Test**
+- run PostgreSQL
+- apply DB schema from folder db
+- modify config/storage.xml
+- run components
+```bash
+./storage —config=storage.xml
+./service --config=service.xml
+```
+- esecute commands
+```bash
+curl -i -X POST "http://localhost:55555/employee/create" -d '{"name":"Ivan", "lastName":"Ivanov","age":33,"email":"ivanov@mycompany.com","position":"Developer","rate":200000.00}'
+
+curl -i "http://localhost:55555/employee/read?id=1"
+
+curl -i "http://localhost:55555/employee/update?id=1" -d '{"name":"Ivan", "lastName":"Ivanov","age":33,"email":"ivanov@mycompany.com","position":"Developer","rate":220000.00}'
+
+curl -i "http://localhost:55555/employee/list?limit=2&offset=0"
+
+curl -i "http://localhost:55555/employee/delete?id=1"
+```
+
 ## Reflection
 [Source code](https://github.com/tdv/mif/tree/master/examples/reflection)  
 **Description**  
