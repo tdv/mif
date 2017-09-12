@@ -20,19 +20,19 @@ namespace Service
         namespace
         {
 
-        class MessageVisitor
-            : public Mif::Service::Inherit<IMessageVisitor>
-        {
-        private:
-            // IMessageVisitor
-            virtual void Visit(IMessagePtr message) override final
+            class MessageVisitor
+                : public Mif::Service::Inherit<IMessageVisitor>
             {
-                if (!message)
-                    throw std::invalid_argument{"Empty message pointer."};
+            private:
+                // IMessageVisitor
+                virtual void Visit(IMessagePtr message) override final
+                {
+                    if (!message)
+                        throw std::invalid_argument{"Empty message pointer."};
 
-                MIF_LOG(Info) << "Message: " << message->GetText();
-            }
-        };
+                    MIF_LOG(Info) << "Message: " << message->GetText();
+                }
+            };
 
         }   // namespace
     }   // namespace Detail

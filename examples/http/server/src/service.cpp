@@ -26,117 +26,117 @@ namespace Service
         namespace
         {
 
-        class WebService
-            : public Mif::Service::Inherit
-                <
-                    IAdmin,
-                    Mif::Net::Http::WebService
-                >
-        {
-        public:
-
-            WebService(std::string const &pathPrefix)
+            class WebService
+                : public Mif::Service::Inherit
+                    <
+                        IAdmin,
+                        Mif::Net::Http::WebService
+                    >
             {
-                AddHandler(pathPrefix + "/stat", this, &WebService::Stat);
-                AddHandler(pathPrefix + "/main-page", this, &WebService::MainPage);
-            }
+            public:
 
-        private:
-            using LockType = std::mutex;
-            using LockGuard = std::lock_guard<LockType>;
-
-            mutable LockType m_lock;
-
-            std::string m_title = "Test page";
-            std::string m_body = "Test page data";
-
-            // IAdmin
-            virtual void SetTitle(std::string const &title) override final
-            {
-                LockGuard lock{m_lock};
-                m_title = title;
-            }
-
-            virtual void SetBody(std::string const &body) override final
-            {
-                LockGuard lock{m_lock};
-                m_body = body;
-            }
-
-            virtual std::string GetPage() const override final
-            {
-                LockGuard lock{m_lock};
-                return "Titlt:\n" + m_title + "\n\nBody:\n" + m_body + "\n";
-            }
-
-            // Web hadlers
-            Result<Mif::Net::Http::JsonSerializer> Stat()
-            {
-                auto const &statisticts = GetStatistics();
-
-                std::map<std::string, std::int64_t> resp;
-
-                resp["Total requests "] = statisticts.general.total;
-                resp["Bad requests "] = statisticts.general.bad;
-
-                for (auto const &s : statisticts.resources)
+                WebService(std::string const &pathPrefix)
                 {
-                    resp["Total requests for '" + s.first + "' "] = s.second.total;
-                    resp["Bad requests for '" + s.first + "' "] = s.second.bad;
+                    AddHandler(pathPrefix + "/stat", this, &WebService::Stat);
+                    AddHandler(pathPrefix + "/main-page", this, &WebService::MainPage);
                 }
 
-                return resp;
-            }
+            private:
+                using LockType = std::mutex;
+                using LockGuard = std::lock_guard<LockType>;
 
-            Result<Mif::Net::Http::PlainTextSerializer>
-            MainPage(Prm<std::string, Name("format")> const &format)
-            {
-                if (!format)
-                    throw std::invalid_argument{"No 'format'"};
+                mutable LockType m_lock;
 
-                std::string title;
-                std::string body;
+                std::string m_title = "Test page";
+                std::string m_body = "Test page data";
 
+                // IAdmin
+                virtual void SetTitle(std::string const &title) override final
                 {
                     LockGuard lock{m_lock};
-                    title = m_title;
-                    body = m_body;
+                    m_title = title;
                 }
 
-                if (format.Get() == "json")
+                virtual void SetBody(std::string const &body) override final
                 {
-                    auto const data = std::make_pair(title, body);
-                    auto const json = Mif::Serialization::Json::Serialize(data);
-                    return {std::string{std::begin(json), std::end(json)}, "application/json;charset=UTF-8"};
+                    LockGuard lock{m_lock};
+                    m_body = body;
                 }
-                else if (format.Get() == "html")
+
+                virtual std::string GetPage() const override final
                 {
-                    std::stringstream html;
-                    html << "<!DOCTYPE html>"
-                         << "<html>"
-                         << "<head>"
-                         << "<title>" << title << "</title>"
-                         << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
-                         << "<meta name=\"resourse-type\" content=\"document\">"
-                         << "</head>"
-                         << "<body>"
-                         << body
-                         << "</body>\n";
-
-
-                    return {html.str(), "text/html"};
+                    LockGuard lock{m_lock};
+                    return "Titlt:\n" + m_title + "\n\nBody:\n" + m_body + "\n";
                 }
-                else if (format.Get() == "text")
+
+                // Web hadlers
+                Result<Mif::Net::Http::JsonSerializer> Stat()
                 {
-                    std::stringstream text;
-                    text << "Title:\n" << title << "\n\n"
-                         << "Body:\n" << body << "\n\n";
-                    return {text.str(), "text/plain; charset=utf-8"};
+                    auto const &statisticts = GetStatistics();
+
+                    std::map<std::string, std::int64_t> resp;
+
+                    resp["Total requests "] = statisticts.general.total;
+                    resp["Bad requests "] = statisticts.general.bad;
+
+                    for (auto const &s : statisticts.resources)
+                    {
+                        resp["Total requests for '" + s.first + "' "] = s.second.total;
+                        resp["Bad requests for '" + s.first + "' "] = s.second.bad;
+                    }
+
+                    return resp;
                 }
 
-                throw std::invalid_argument{"Format '" + format.Get() + "' not supported."};
-            }
-        };
+                Result<Mif::Net::Http::PlainTextSerializer>
+                MainPage(Prm<std::string, Name("format")> const &format)
+                {
+                    if (!format)
+                        throw std::invalid_argument{"No 'format'"};
+
+                    std::string title;
+                    std::string body;
+
+                    {
+                        LockGuard lock{m_lock};
+                        title = m_title;
+                        body = m_body;
+                    }
+
+                    if (format.Get() == "json")
+                    {
+                        auto const data = std::make_pair(title, body);
+                        auto const json = Mif::Serialization::Json::Serialize(data);
+                        return {std::string{std::begin(json), std::end(json)}, "application/json;charset=UTF-8"};
+                    }
+                    else if (format.Get() == "html")
+                    {
+                        std::stringstream html;
+                        html << "<!DOCTYPE html>"
+                             << "<html>"
+                             << "<head>"
+                             << "<title>" << title << "</title>"
+                             << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
+                             << "<meta name=\"resourse-type\" content=\"document\">"
+                             << "</head>"
+                             << "<body>"
+                             << body
+                             << "</body>\n";
+
+
+                        return {html.str(), "text/html"};
+                    }
+                    else if (format.Get() == "text")
+                    {
+                        std::stringstream text;
+                        text << "Title:\n" << title << "\n\n"
+                             << "Body:\n" << body << "\n\n";
+                        return {text.str(), "text/plain; charset=utf-8"};
+                    }
+
+                    throw std::invalid_argument{"Format '" + format.Get() + "' not supported."};
+                }
+            };
 
         }   // namespace
     }   // namespace Detail

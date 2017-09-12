@@ -6,7 +6,7 @@
 //-------------------------------------------------------------------
 
 // MIF
-#include <mif/application/application.h>
+#include <mif/application/net_base_application.h>
 #include <mif/common/crc32.h>
 #include <mif/common/log.h>
 #include <mif/net/http/clients.h>
@@ -17,46 +17,25 @@
 #include "common/ps/iadmin.h"
 
 class Application
-    : public Mif::Application::Application
+    : public Mif::Application::NetBaseApplication
 {
 public:
-    Application(int argc, char const **argv)
-        : Mif::Application::Application{argc, argv}
-    {
-        boost::program_options::options_description options{"Client options"};
-        options.add_options()
-                ("host", boost::program_options::value<std::string>()->default_value("0.0.0.0"), "Server host")
-                ("port", boost::program_options::value<std::string>()->default_value("55555"), "Server port");
-
-        AddCustomOptions(options);
-    }
+    using NetBaseApplication::NetBaseApplication;
 
 private:
     // Mif.Application.Application
-    virtual void OnStart() override final
+    virtual void OnInit() override final
     {
-        auto const &options = GetOptions();
-
-        auto const host = options["host"].as<std::string>();
-        auto const port = options["port"].as<std::string>();
-
-        MIF_LOG(Info) << "Starting client on " << host << ":" << port;
-
-        std::chrono::microseconds const timeout{10 * 1000 * 1000};
-
-        auto clientFactory = Service::Ipc::MakeClientFactory(timeout);
+        auto clientFactory = Service::Ipc::MakeClientFactory(GetTimeout());
 
         Mif::Net::Http::Clients clients(clientFactory);
 
-        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(host, port, "/admin"));
-
-        MIF_LOG(Info) << "Client is successfully started.";
+        auto proxy = std::static_pointer_cast<Service::Ipc::ClientsChain>(clients.RunClient(
+                GetHost(), GetPort(), "/admin"));
 
         auto client = proxy->GetClientItem<Service::Ipc::PSClient>();
 
         auto service = client->CreateService<Service::IAdmin>(Service::Id::Service);
-
-        MIF_LOG(Info) << "Client started.";
 
         MIF_LOG(Info) << "Set new document title and body.";
 
