@@ -12,9 +12,11 @@
 #include <array>
 #include <stdexcept>
 #include <cstdint>
+#include <iterator>
+#include <istream>
 #include <ostream>
-#include <string>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -30,7 +32,6 @@
 
 // MIF
 #include "mif/common/types.h"
-#include "mif/common/index_sequence.h"
 #include "mif/common/static_string.h"
 #include "mif/common/unused.h"
 #include "mif/reflection/reflection.h"
@@ -54,6 +55,8 @@ namespace Mif
                 }   // namespace Tag
 
                 using NodeType = pugi::xml_node;
+
+                //--------------------------------------------------------------------------------------------------------------------------
 
                 template <typename T>
                 void Serialize(std::ostream &stream, T const &object, std::string const &root = {});
@@ -115,6 +118,74 @@ namespace Mif
                 template <std::size_t I, std::size_t N, typename T>
                 typename std::enable_if<I == N, void>::type
                 Serialize(NodeType &node, T const &object);
+
+                //--------------------------------------------------------------------------------------------------------------------------
+
+                template <typename T>
+                void Deserialize(std::istream &stream, T &object, std::string const &root = {});
+
+                template <typename TBases, std::size_t I, typename T>
+                typename std::enable_if<I != std::tuple_size<TBases>::value, void>::type
+                DeserializeBase(NodeType const &node, T &object);
+
+                template <typename TBases, std::size_t I, typename T>
+                typename std::enable_if<I == std::tuple_size<TBases>::value, void>::type
+                DeserializeBase(NodeType const &node, T &object);
+
+                template <typename T>
+                typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <typename T>
+                typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <typename T>
+                typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <std::size_t I, std::size_t N, typename T>
+                typename std::enable_if<I != N, void>::type
+                Deserialize(NodeType const &node, T &object);
+
+                template <std::size_t I, std::size_t N, typename T>
+                typename std::enable_if<I == N, void>::type
+                Deserialize(NodeType const &node, T &object);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsIterable<T>(), void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsSimple<T>() && !std::is_enum<T>::value && !std::is_same<T, std::string>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsSimple<T>() && std::is_same<T, std::string>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <typename TFirst, typename TSecond>
+                void Deserialize(NodeType const &node, std::pair<TFirst, TSecond> &object, std::string const &name);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsSmartPointer<T>(), void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name);
+
+                template <std::size_t I, std::size_t N, typename T>
+                typename std::enable_if<I != N, void>::type
+                Deserialize(NodeType &node, T &object);
+
+                template <std::size_t I, std::size_t N, typename T>
+                typename std::enable_if<I == N, void>::type
+                Deserialize(NodeType &node, T &object);
+
+                template <typename ... T>
+                void Deserialize(NodeType const &node, std::tuple<T ... > &object, std::string const &name);
+
+                template <typename T, std::size_t N>
+                void Deserialize(NodeType const &node, std::array<T, N> &object, std::string const &name);
+
+                //--------------------------------------------------------------------------------------------------------------------------
 
                 template <typename T>
                 inline void Serialize(std::ostream &stream, T const &object, std::string const &root)
@@ -265,10 +336,278 @@ namespace Mif
                     Common::Unused(object);
                 }
 
+                //--------------------------------------------------------------------------------------------------------------------------
+
+                template <typename T>
+                inline void Deserialize(std::istream &stream, T &object, std::string const &root)
+                {
+                    pugi::xml_document doc;
+
+                    auto result = doc.load(stream);
+                    if (!result)
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Deserialize] Failed to parse json. Error: " +
+                            std::string{result.description()}};
+                    }
+
+                    Deserialize(doc, object, root);
+                }
+
+                template <typename TBases, std::size_t I, typename T>
+                inline typename std::enable_if<I != std::tuple_size<TBases>::value, void>::type
+                DeserializeBase(NodeType const &node, T &object)
+                {
+                    using Base = typename std::tuple_element<I, TBases>::type;
+                    Deserialize(node, static_cast<Base &>(object),
+                            Reflection::Reflect<Base>::FullName::GetString());
+                    DeserializeBase<TBases, I + 1>(node, object);
+                }
+
+                template <typename TBases, std::size_t I, typename T>
+                inline typename std::enable_if<I == std::tuple_size<TBases>::value, void>::type
+                DeserializeBase(NodeType const &node, T &object)
+                {
+                    Common::Unused(node);
+                    Common::Unused(object);
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    using Meta = Reflection::Reflect<T>;
+                    using Bases = typename Meta::Base;
+                    auto const item = node.child((!name.empty() ? name : Meta::Name::GetString()).c_str());
+                    DeserializeBase<Bases, 0>(item, object);
+                    Deserialize<0, Meta::Fields::Count>(item, object);
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    if (node)
+                    {
+                        if (auto const item = node.child(name.c_str()))
+                        {
+
+                            if (auto const *value = item.child_value())
+                            {
+                                object = Reflection::FromString<T>(value);
+                            }
+                            else
+                            {
+                                throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                        "Failed to parse enum value. No value in the node \"" + name + "\"."};
+                            }
+
+                        }
+                        else
+                        {
+                            throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                    "Failed to parse enum value. No node \"" + name + "\"."};
+                        }
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse enum value. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <typename T>
+                inline typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    if (node)
+                    {
+                        if (auto const item = node.child(name.c_str()))
+                        {
+
+                            if (auto const *value = item.child_value())
+                            {
+                                object = static_cast<T>(std::stoull(value));
+                            }
+                            else
+                            {
+                                throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                        "Failed to parse enum value. No value in the node \"" + name + "\"."};
+                            }
+
+                        }
+                        else
+                        {
+                            throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                    "Failed to parse enum value. No node \"" + name + "\"."};
+                        }
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse enum value. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <std::size_t I, std::size_t N, typename T>
+                inline typename std::enable_if<I != N, void>::type
+                Deserialize(NodeType const &node, T &object)
+                {
+                    using Meta = typename Reflection::Reflect<T>;
+                    using Field = typename Meta::Fields::template Field<I>;
+                    Deserialize(node, object.*Field::Access(), Field::Name::GetString());
+                    Deserialize<I + 1, N>(node, object);
+                }
+
+                template <std::size_t I, std::size_t N, typename T>
+                inline typename std::enable_if<I == N, void>::type
+                Deserialize(NodeType const &node, T &object)
+                {
+                    Common::Unused(node);
+                    Common::Unused(object);
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsIterable<T>(), void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    if (auto const item = node.child(name.c_str()))
+                    {
+                        for (auto const &i : item.children())
+                        {
+                            if (i.name() != std::string{Tag::Item::GetString()})
+                                continue;
+                            using Type = typename T::value_type;
+                            Type data;
+                            Deserialize(i, data, name);
+                            *std::inserter(object, std::end(object)) = std::move(data);
+                        }
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse container. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsSimple<T>() && !std::is_enum<T>::value && !std::is_same<T, std::string>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    if (auto const item = node.child(name.c_str()))
+                    {
+                        std::stringstream{item.child_value()} >> object;
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse value. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsSimple<T>() && std::is_same<T, std::string>::value, void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    if (auto const item = node.child(name.c_str()))
+                    {
+                        object = item.child_value();
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse string. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <typename TFirst, typename TSecond>
+                inline void Deserialize(NodeType const &node, std::pair<TFirst, TSecond> &object, std::string const &name)
+                {
+                    if (node)
+                    {
+                        Deserialize(node, const_cast<typename std::remove_const<TFirst>::type &>(object.first), Tag::Id::GetString());
+                        Deserialize(node, object.second, Tag::Value::GetString());
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse pair. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsSmartPointer<T>(), void>::type
+                Deserialize(NodeType const &node, T &object, std::string const &name)
+                {
+                    if (node)
+                    {
+                        using Type = typename T::element_type;
+                        object.reset(new Type{});
+                        Deserialize(node, *object, name);
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse item. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <std::size_t I, std::size_t N, typename T>
+                inline typename std::enable_if<I != N, void>::type
+                Deserialize(NodeType &node, T &object)
+                {
+                    if (!node)
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse tuple item."};
+                    }
+
+                    Deserialize(node, std::get<I>(object), Tag::Item::GetString());
+
+                    node.remove_child(Tag::Item::GetString());
+
+                    Deserialize<I + 1, N>(node, object);
+                }
+
+                template <std::size_t I, std::size_t N, typename T>
+                inline typename std::enable_if<I == N, void>::type
+                Deserialize(NodeType &node, T &object)
+                {
+                    Common::Unused(node);
+                    Common::Unused(object);
+                }
+
+                template <typename ... T>
+                inline void Deserialize(NodeType const &node, std::tuple<T ... > &object, std::string const &name)
+                {
+                    if (auto item = node.child(name.c_str()))
+                    {
+                        Deserialize<0, sizeof ... (T)>(item, object);
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse tuple. No node \"" + name + "\"."};
+                    }
+                }
+
+                template <typename T, std::size_t N>
+                inline void Deserialize(NodeType const &node, std::array<T, N> &object, std::string const &name)
+                {
+                    if (auto item = node.child(name.c_str()))
+                    {
+                        Deserialize<0, N>(item, object);
+                    }
+                    else
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
+                                "Failed to parse array. No node \"" + name + "\"."};
+                    }
+                }
+
             }   // namespace Detail
 
-            template <typename T, typename TStream>
-            inline void Serialize(T const &object, TStream &stream, std::string const &root = {})
+            template <typename T>
+            inline void Serialize(T const &object, std::ostream &stream, std::string const &root = {})
             {
                 Detail::Serialize(stream, object, root);
             }
@@ -280,11 +619,29 @@ namespace Mif
 
                 {
                     boost::iostreams::filtering_ostream stream{boost::iostreams::back_inserter(buffer)};
-                    Serialize(object, stream);
+                    Serialize(object, stream, root);
                     stream.flush();
                 }
 
                 return buffer;
+            }
+
+            template <typename T>
+            inline T Deserialize(std::istream &stream, std::string const &root = {})
+            {
+                T object;
+                Detail::Deserialize(stream, object, root);
+                return object;
+            }
+
+            template <typename T>
+            inline T Deserialize(Common::Buffer const &buffer, std::string const &root = {})
+            {
+                using SourceType = boost::iostreams::basic_array_source<char>;
+                SourceType source{!buffer.empty() ? buffer.data() : nullptr, buffer.size()};
+                boost::iostreams::stream<SourceType> stream{source};
+
+                return Deserialize<T>(stream, root);
             }
 
         }   // namespace Xml
