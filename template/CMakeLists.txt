@@ -29,7 +29,7 @@ list (APPEND LIBRARIES "mif")
 set (ZLIB_URL "https://github.com/madler/zlib.git")
 set (ZLIB_TAG "v1.2.8")
 
-set (BOOST_URL "https://sourceforge.net/projects/boost/files/boost/1.65.0/boost_1_65_0.tar.gz")
+set (BOOST_URL "https://sourceforge.net/projects/boost/files/boost/1.65.1/boost_1_65_1.tar.gz")
 
 set (JSONCPP_URL "https://github.com/open-source-parsers/jsoncpp.git")
 set (JSONCPP_TAG "1.8.0")
