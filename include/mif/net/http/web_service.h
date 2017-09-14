@@ -32,11 +32,13 @@
 
 // MIF
 #include "mif/common/crc32.h"
+#include "mif/common/static_string.h"
 #include "mif/net/http/constants.h"
 #include "mif/net/http/iweb_service.h"
 #include "mif/net/http/request_handler.h"
 #include "mif/serialization/traits.h"
 #include "mif/serialization/json.h"
+#include "mif/serialization/xml.h"
 #include "mif/service/make.h"
 
 namespace Mif
@@ -45,6 +47,15 @@ namespace Mif
     {
         namespace Http
         {
+            namespace Detail
+            {
+                namespace Tag
+                {
+
+                    MIF_DECLARE_SRTING_PROVIDER(Document, "document")
+
+                }   // namespace Tag
+            }   // namespace Detail
 
             struct UrlParamConverter final
             {
@@ -140,6 +151,25 @@ namespace Mif
                 }
             };
 
+            struct XmlContentParamConverter final
+            {
+                template <typename T>
+                static typename std::enable_if<Reflection::IsReflectable<T>(), T>::type Convert(Common::Buffer const &buffer)
+                {
+                    if (buffer.empty())
+                        throw std::invalid_argument{"[Mif::Net::Http::XmlContentParamConverter] No content."};
+                    return Serialization::Xml::Deserialize<T>(buffer);
+                }
+
+                template <typename T>
+                static typename std::enable_if<!Reflection::IsReflectable<T>(), T>::type Convert(Common::Buffer const &buffer)
+                {
+                    if (buffer.empty())
+                        throw std::invalid_argument{"[Mif::Net::Http::XmlContentParamConverter] No content."};
+                    return Serialization::Xml::Deserialize<T>(buffer, Detail::Tag::Document::GetString());
+                }
+            };
+
             struct PlainTextSerializer
             {
                 static constexpr char const* GetContentType()
@@ -173,6 +203,26 @@ namespace Mif
                 static Common::Buffer Serialize(T const &data)
                 {
                     return Serialization::Json::Serialize(data);
+                }
+            };
+
+            struct XmlSerializer
+            {
+                static constexpr char const* GetContentType()
+                {
+                    return "text/xml; charset=UTF-8";
+                }
+
+                template <typename T>
+                static typename std::enable_if<Reflection::IsReflectable<T>(), Common::Buffer>::type Serialize(T const &data)
+                {
+                    return Serialization::Xml::Serialize(data);
+                }
+
+                template <typename T>
+                static typename std::enable_if<!Reflection::IsReflectable<T>(), Common::Buffer>::type Serialize(T const &data)
+                {
+                    return Serialization::Xml::Serialize(data, Detail::Tag::Document::GetString());
                 }
             };
 
