@@ -22,6 +22,7 @@ namespace Mif
                 namespace Tag
                 {
 
+                    MIF_DECLARE_SRTING_PROVIDER(Pack, "package")
                     MIF_DECLARE_SRTING_PROVIDER(Uuid, "uuid")
                     MIF_DECLARE_SRTING_PROVIDER(Type, "type")
                     MIF_DECLARE_SRTING_PROVIDER(Request, "request")
