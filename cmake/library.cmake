@@ -59,6 +59,9 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/statement.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/recordset.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/transaction.cpp
+
+    # ORM
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/orm/postgresql/detail/utility.cpp
 )
 
 set (MIF_DEPENDENCIES_LIBRARIES
