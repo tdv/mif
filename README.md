@@ -1,7 +1,9 @@
 # MIF - C++11 MetaInfo Framework
 MIF is a с++11 web-application framework designed for the backend micro-service development. The framework makes use of additional type meta-information.
 
-[![Build Status](https://travis-ci.org/tdv/mif.svg?branch=master)](https://travis-ci.org/tdv/mif)
+**[ru] Post about MIF** [Microservices - MIF on C++](https://habrahabr.ru/post/239571/)  
+
+[![Build Status](https://travis-ci.org/tdv/mif.svg?branch=master)](https://travis-ci.org/tdv/mif)  
 
 # Version
 1.2.0  
@@ -12,7 +14,7 @@ MIF is a с++11 web-application framework designed for the backend micro-service
 - libevent wrapper classes for the easy creation of simple web services
 - Interface-based RPC marshalling with the callback support
 - Reflection for c++ data structures with the inheritance support
-- Json-serialization and the ability to use boost archives
+- Json, Xml serialization and the ability to use boost archives
 - Database support (Implemented for PostgreSQL and SQLite)
 
 # Compiler
@@ -25,6 +27,7 @@ Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 - Boost
 - zlib
 - jsoncpp
+- pugixml
 - libevent
 - libpq
 - sqlite
