@@ -17,6 +17,7 @@
 #include <event2/buffer.h>
 #include <event2/event.h>
 #include <event2/http.h>
+#include <event2/http_struct.h>
 
 // MIF
 #include "mif/common/log.h"
@@ -25,6 +26,7 @@
 
 // THIS
 #include "detail/input_pack.h"
+#include "detail/lib_event_initializer.h"
 #include "detail/output_pack.h"
 #include "detail/utility.h"
 
@@ -50,9 +52,12 @@ namespace Mif
                     , m_host{params.host}
                     , m_port{params.port}
                     , m_base{Detail::Utility::CreateEventBase()}
-                    , m_connection{evhttp_connection_base_new(m_base.get(), nullptr, params.host.c_str(),
-                        static_cast<ev_uint16_t>(std::stoi(params.port))), &evhttp_connection_free}
                 {
+                    Detail::LibEventInitializer::Init();
+
+                    m_connection.reset(evhttp_connection_base_new(m_base.get(), nullptr, params.host.c_str(),
+                        static_cast<ev_uint16_t>(std::stoi(params.port))));
+
                     if (!m_connection)
                     {
                         throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] "
@@ -155,7 +160,7 @@ namespace Mif
                 using EventPtr = std::unique_ptr<event, decltype(&event_free)>;
                 EventPtr m_timer{nullptr, &event_free};
 
-                ConnectionPtr m_connection;
+                ConnectionPtr m_connection{nullptr, &evhttp_connection_free};
 
                 std::atomic<bool> m_isClosed{false};
                 using ThreadPtr = std::unique_ptr<std::thread, std::function<void (std::thread *)>>;
@@ -240,7 +245,7 @@ namespace Mif
 
                     auto *self = reinterpret_cast<Impl *>(arg);
 
-                    if (!request || !evhttp_request_get_response_code(request))
+                    if (!request || !evhttp_request_get_response_code(request) || !request->response_code)
                     {
                         self->OnClose();
 

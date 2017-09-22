@@ -262,7 +262,7 @@ namespace Mif
 
             DeserializerPtr Send(std::string const &requestId, Serializer &serializer)
             {
-                if (!Post(std::move(std::move(serializer.GetBuffer()))))
+                if (!Post(std::move(serializer.GetBuffer())))
                 {
                     if (!CloseMe())
                     {
