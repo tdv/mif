@@ -20,6 +20,18 @@
 #include "mif/common/unused.h"
 #include "mif/reflection/reflect_type.h"
 
+#define MIF_FIELD_META(field_ptr_) \
+    ::Mif::Reflection::Reflect \
+    < \
+        typename ::Mif::Reflection::Detail::FieldOwnerType \
+        < \
+            decltype(field_ptr_) \
+        >::Type \
+        >::Fields::Field \
+        < \
+            ::Mif::Reflection::Detail::FieldIndex<decltype(field_ptr_), field_ptr_>::Get() \
+        >
+
 namespace Mif
 {
     namespace Reflection
@@ -36,7 +48,7 @@ namespace Mif
             {
                 using Name = Common::MakeStaticString<typename T::TypeNameProvider>;
                 using Type = typename T::FieldType;
-                static auto Access() -> decltype(T::Access())
+                static constexpr auto Access() -> decltype(T::Access())
                 {
                     return T::Access();
                 }
