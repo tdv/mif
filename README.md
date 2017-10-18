@@ -3,8 +3,6 @@ MIF is a с++11 web-application framework designed for the backend micro-service
 
 **[ru] Post about MIF** [Microservices - MIF on C++](https://habrahabr.ru/post/239571/)  
 
-[![Build Status](https://travis-ci.org/tdv/mif.svg?branch=master)](https://travis-ci.org/tdv/mif)  
-
 # Version
 1.2.0  
 
