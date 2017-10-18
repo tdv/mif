@@ -56,6 +56,8 @@ namespace Mif
 #define MIF_REFLECT_BEGIN(type_, ... ) \
     class type_ ## _MetaInfo final \
     { \
+    public: \
+        using ClassType = type_; \
     private: \
         template <typename> \
         friend class ::Mif::Reflection::Detail::Class; \
@@ -63,8 +65,9 @@ namespace Mif
         friend class ::Mif::Reflection::Detail::FieldsList; \
         template <typename T, T> \
         friend class ::Mif::Reflection::Detail::FieldIndex; \
+        template <typename> \
+        friend class ::Mif::Reflection::Detail::Registry::Registry; \
         using TypeNameProvider = MIF_STATIC_STR( #type_ ); \
-        using ClassType = type_; \
         static_assert(std::is_class<ClassType>::value || std::is_enum<ClassType>::value, \
                 "The type to reflect must be a class or an enum."); \
         using BaseTypes = std::tuple<__VA_ARGS__>; \

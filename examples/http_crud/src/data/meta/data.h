@@ -21,8 +21,6 @@ namespace Service
         namespace Meta
         {
 
-            using namespace ::Service::Data;
-
             MIF_REFLECT_BEGIN(Position)
                 MIF_REFLECT_FIELD(Unknown)
                 MIF_REFLECT_FIELD(Developer)
@@ -44,8 +42,6 @@ namespace Service
         {
             namespace Meta
             {
-
-                using namespace ::Service::Data::Response;
 
                 MIF_REFLECT_BEGIN(Status)
                     MIF_REFLECT_FIELD(code)

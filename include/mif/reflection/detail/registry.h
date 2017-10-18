@@ -130,33 +130,33 @@ namespace Mif
                 namespace Registry \
                 { \
                     template <> \
-                    struct Registry<type_> \
+                    struct Registry<type_ ## _MetaInfo :: ClassType> \
                     { \
                         static constexpr auto Id = Counter::GetLast(Common::Detail::FakeHierarchy{}) + 1; \
                         using Type = type_ ## _MetaInfo; \
-                        using Key = type_; \
+                        using Key = type_ ## _MetaInfo :: ClassType; \
                         using TypeFullNameProvider = MIF_STATIC_STR( #type_ ); \
                     }; \
                     template <> \
-                    struct Item<Registry<type_>::Id> \
+                    struct Item<Registry<type_ ## _MetaInfo :: ClassType>::Id> \
                     { \
-                        using Index = std::integral_constant<std::size_t, Registry<type_>::Id>; \
-                        using Type = Registry<type_>; \
+                        using Index = std::integral_constant<std::size_t, Registry<type_ ## _MetaInfo :: ClassType>::Id>; \
+                        using Type = Registry<type_ ## _MetaInfo :: ClassType>; \
                     }; \
                     namespace Counter \
                     { \
                         inline constexpr std::size_t GetLast(Common::Detail::MakeHierarchy \
                             < \
-                                Registry<type_>::Id \
+                                Registry<type_ ## _MetaInfo :: ClassType>::Id \
                             >) \
                         { \
-                            return Registry<type_> ::Id; \
+                            return Registry<type_ ## _MetaInfo :: ClassType>::Id; \
                         } \
                     } \
                 } \
             } \
         } \
     } \
-    MIF_BOOST_TYPE_SERIALIZER(type_)
+    MIF_BOOST_TYPE_SERIALIZER(type_ ## _MetaInfo :: ClassType)
 
 #endif  // !__MIF_REFLECTION_DETAIL_REGISTRY_H__

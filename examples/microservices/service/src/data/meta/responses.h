@@ -26,8 +26,6 @@ namespace Service
             namespace Meta
             {
 
-                using namespace ::Service::Data::Response;
-
                 MIF_REFLECT_BEGIN(Status)
                     MIF_REFLECT_FIELD(code)
                     MIF_REFLECT_FIELD(message)

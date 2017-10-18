@@ -21,8 +21,6 @@ namespace Common
         namespace Meta
         {
 
-            using namespace ::Common::Data;
-
             MIF_REFLECT_BEGIN(Position)
                 MIF_REFLECT_FIELD(Unknown)
                 MIF_REFLECT_FIELD(Developer)

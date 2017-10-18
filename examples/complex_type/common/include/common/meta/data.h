@@ -21,8 +21,6 @@ namespace Service
         namespace Meta
         {
 
-            using namespace ::Service::Data;
-
             MIF_REFLECT_BEGIN(Human)
                 MIF_REFLECT_FIELD(name)
                 MIF_REFLECT_FIELD(lastName)
