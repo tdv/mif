@@ -11,7 +11,6 @@
 // MIF
 #include "mif/remote/serialization/json.h"
 #include "mif/remote/serialization/serialization.h"
-#include "mif/remote/serialization/boost.h"
 
 namespace Mif
 {

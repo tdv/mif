@@ -22,9 +22,9 @@ namespace Mif
                 namespace Header
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(Connection, "Connection")
-                    MIF_DECLARE_SRTING_PROVIDER(ContentType, "Content-Type")
-                    MIF_DECLARE_SRTING_PROVIDER(Session, "X-Mif-Session")
+                    using Connection = MIF_STATIC_STR("Connection");
+                    using ContentType = MIF_STATIC_STR("Content-Type");
+                    using Session = MIF_STATIC_STR("X-Mif-Session");
 
                 }   // namespace Header
 
@@ -33,8 +33,8 @@ namespace Mif
                     namespace Connection
                     {
 
-                        MIF_DECLARE_SRTING_PROVIDER(KeepAlive, "keep-alive")
-                        MIF_DECLARE_SRTING_PROVIDER(Close, "close")
+                        using KeepAlive = MIF_STATIC_STR("keep-alive");
+                        using Close = MIF_STATIC_STR("close");
 
                     }   // namespace Connection
                 }   // namespace Value

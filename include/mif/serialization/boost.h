@@ -57,7 +57,7 @@ namespace Mif
                     {
                         BasesSerializer<TBases, I - 1>::Serialize(archive, object);
                         using BaseType = typename std::tuple_element<I - 1, TBases>::type;
-                        archive & boost::serialization::make_nvp(Reflection::Reflect<BaseType>::Name::GetString().c_str(),
+                        archive & boost::serialization::make_nvp(Reflection::Reflect<BaseType>::Name::Value,
                             boost::serialization::base_object<BaseType>(object));
                     }
                 };
@@ -79,7 +79,7 @@ namespace Mif
                     {
                         Serializer<I - 1>::Serialize(archive, object);
                         using FieldType = typename Reflection::Reflect<T>::Fields::template Field<I - 1>;
-                        archive & boost::serialization::make_nvp(FieldType::Name::GetString().c_str(),
+                        archive & boost::serialization::make_nvp(FieldType::Name::Value,
                             object.*FieldType::Access());
                     }
                 };

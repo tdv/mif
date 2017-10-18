@@ -18,7 +18,7 @@
     template <> \
     struct Holder<type_> \
     { \
-        MIF_DECLARE_SRTING_PROVIDER(Name, name_) \
+        using Name = MIF_STATIC_STR(name_); \
         using Type = type_; \
     }; \
 
@@ -36,7 +36,7 @@ namespace Mif
                     template <typename T>
                     struct Holder
                     {
-                        MIF_DECLARE_SRTING_PROVIDER(Name, "")
+                        using Name = MIF_STATIC_STR("");
                         using Type = T;
                     };
 

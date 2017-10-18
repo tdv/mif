@@ -21,7 +21,7 @@ namespace Mif
             namespace StringProviders
             {
 
-                MIF_DECLARE_SRTING_PROVIDER(DefailtSchemaName, "")
+                using DefailtSchemaName = MIF_STATIC_STR("");
 
             }   // namespace StringProviders
 
@@ -32,7 +32,7 @@ namespace Mif
 
         }   // namespace Detail
 
-        using DefailtSchemaName = Common::MakeStaticString<Detail::StringProviders::DefailtSchemaName>;
+        using DefailtSchemaName = Detail::StringProviders::DefailtSchemaName;
 
         template <typename TName, typename ... TItems>
         struct Schema

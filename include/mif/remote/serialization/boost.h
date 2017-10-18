@@ -59,7 +59,7 @@ namespace Mif
                 namespace Tag
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(HasException, "has_exception")
+                    using HasException = MIF_STATIC_STR("has_exception");
 
                 }   // namespace Tag
             }   // namespace Detail
@@ -75,7 +75,7 @@ namespace Mif
                     Serializer(bool isReques, std::string const &uuid,
                         std::string const &instanceId, std::string const &interfaceId,
                         std::string const &methodId, TParams && ... params)
-                        : m_type{isReques ? Detail::Tag::Request::GetString() : Detail::Tag::Response::GetString()}
+                        : m_type{isReques ? Detail::Tag::Request::Value : Detail::Tag::Response::Value}
                         , m_uuid{uuid}
                         , m_instanceId{instanceId}
                         , m_interfaceId{interfaceId}
@@ -103,14 +103,14 @@ namespace Mif
                             boost::iostreams::filtering_ostream stream(boost::iostreams::back_inserter(result));
                             TArchive archive{stream};
 
-                            archive << boost::serialization::make_nvp(Detail::Tag::Uuid::GetString(), m_uuid);
-                            archive << boost::serialization::make_nvp(Detail::Tag::Type::GetString(), m_type);
-                            archive << boost::serialization::make_nvp(Detail::Tag::Instsnce::GetString(), m_instanceId);
-                            archive << boost::serialization::make_nvp(Detail::Tag::Interface::GetString(), m_interfaceId);
-                            archive << boost::serialization::make_nvp(Detail::Tag::Method::GetString(), m_methodId);
+                            archive << boost::serialization::make_nvp(Detail::Tag::Uuid::Value, m_uuid);
+                            archive << boost::serialization::make_nvp(Detail::Tag::Type::Value, m_type);
+                            archive << boost::serialization::make_nvp(Detail::Tag::Instsnce::Value, m_instanceId);
+                            archive << boost::serialization::make_nvp(Detail::Tag::Interface::Value, m_interfaceId);
+                            archive << boost::serialization::make_nvp(Detail::Tag::Method::Value, m_methodId);
 
                             bool hasException = !!m_exception;
-                            archive << boost::serialization::make_nvp(Detail::Tag::HasException::GetString(), hasException);
+                            archive << boost::serialization::make_nvp(Detail::Tag::HasException::Value, hasException);
 
                             if (hasException)
                             {
@@ -127,7 +127,7 @@ namespace Mif
                                 {
                                     message = "Unknown exception.";
                                 }
-                                archive << boost::serialization::make_nvp(Detail::Tag::Exception::GetString(), message);
+                                archive << boost::serialization::make_nvp(Detail::Tag::Exception::Value, message);
                             }
 
                             m_params->Save(archive);
@@ -175,7 +175,7 @@ namespace Mif
                         template <typename T, std::size_t ... Indexes>
                         void SaveTupleParams(T &params, TArchive &archive, Common::IndexSequence<Indexes ... > const *) const
                         {
-                            Common::Unused(archive << boost::serialization::make_nvp((Detail::Tag::Param::GetString() +
+                            Common::Unused(archive << boost::serialization::make_nvp((Detail::Tag::Param::Value +
                                 std::to_string(Indexes)).c_str(), std::get<Indexes>(params)) ... );
                         }
 
@@ -207,18 +207,18 @@ namespace Mif
                     {
                         if (m_buffer.empty())
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Boost::Deserializer] Empty buffer."};
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Uuid::GetString(), m_uuid);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Type::GetString(), m_type);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Instsnce::GetString(), m_instance);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Interface::GetString(), m_interface);
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Method::GetString(), m_method);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Uuid::Value, m_uuid);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Type::Value, m_type);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Instsnce::Value, m_instance);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Interface::Value, m_interface);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::Method::Value, m_method);
 
                         bool hasException = false;
-                        m_archive >> boost::serialization::make_nvp(Detail::Tag::HasException::GetString(), hasException);
+                        m_archive >> boost::serialization::make_nvp(Detail::Tag::HasException::Value, hasException);
                         if (hasException)
                         {
                             std::string message;
-                            m_archive >> boost::serialization::make_nvp(Detail::Tag::Exception::GetString(), message);
+                            m_archive >> boost::serialization::make_nvp(Detail::Tag::Exception::Value, message);
                             try
                             {
                                 throw std::runtime_error{message};
@@ -237,12 +237,12 @@ namespace Mif
 
                     bool IsRequest() const
                     {
-                        return GetType() == Detail::Tag::Request::GetString();
+                        return GetType() == Detail::Tag::Request::Value;
                     }
 
                     bool IsResponse() const
                     {
-                        return GetType() == Detail::Tag::Response::GetString();
+                        return GetType() == Detail::Tag::Response::Value;
                     }
 
                     std::string const& GetType() const
@@ -309,7 +309,7 @@ namespace Mif
                                    TParams &params) const
                     {
                         auto &param = std::get<Index - 1>(params);
-                        m_archive >> boost::serialization::make_nvp((Detail::Tag::Param::GetString() + std::to_string(Index)).c_str(), param);
+                        m_archive >> boost::serialization::make_nvp((Detail::Tag::Param::Value + std::to_string(Index)).c_str(), param);
                         LoadParams(reinterpret_cast
                                     <
                                         std::integral_constant

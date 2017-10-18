@@ -63,7 +63,7 @@ namespace Mif
                 static typename std::enable_if<!std::is_same<T, DefailtSchemaName>::value, std::string>::type
                 CreateSchema(std::string &name)
                 {
-                    name = T::GetString();
+                    name = T::Value;
                     auto const sql = "CREATE SCHEMA " + name + ";\n";
                     name += ".";
                     return sql;
@@ -107,7 +107,7 @@ namespace Mif
                 {
                     using Type = typename T::Type;
                     using Meta = Reflection::Reflect<Type>;
-                    std::string table = Meta::Name::GetString();
+                    std::string table = Meta::Name::Value;
                     auto sql = "CREATE TABLE " + schema + table + "\n";
                     sql += "(\n";
                     AppendField<Type, 0, Meta::Fields::Count>(sql);
@@ -121,8 +121,8 @@ namespace Mif
                 {
                     using Field = typename Reflection::Reflect<T>::Fields::template Field<I>;
 
-                    sql += Indent::GetString();
-                    sql += Detail::Utility::QuoteReserved(Field::Name::GetString());
+                    sql += Indent::Value;
+                    sql += Detail::Utility::QuoteReserved(Field::Name::Value);
                     sql += " ";
                     sql += GetTypeName<typename Field::Type>();
                     if (N - I > 1)
@@ -143,14 +143,14 @@ namespace Mif
                 static typename std::enable_if<std::is_arithmetic<T>::value || std::is_same<T, std::string>::value, std::string>::type
                 GetTypeName()
                 {
-                    return Detail::Type::Holder<T>::Name::GetString();
+                    return Detail::Type::Holder<T>::Name::Value;
                 }
 
                 template <typename T>
                 static typename std::enable_if<std::is_enum<T>::value && Reflection::IsReflectable<T>(), std::string>::type
                 GetTypeName()
                 {
-                    return Reflection::Reflect<T>::Name::GetString();
+                    return Reflection::Reflect<T>::Name::Value;
                 }
 
                 template <typename T>

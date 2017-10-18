@@ -75,7 +75,7 @@ public:
         using Meta = Mif::Reflection::Reflect<T>;
         using Base = typename Meta::Base;
         PrintBase<0, std::tuple_size<Base>::value, Base>(data);
-        std::cout << "Struct name: " << Meta::Name::GetString() << std::endl;
+        std::cout << "Struct name: " << Meta::Name::Value << std::endl;
         Print<0, Meta::Fields::Count>(data);
     }
 
@@ -112,7 +112,7 @@ private:
     {
         using Meta = Mif::Reflection::Reflect<T>;
         using Field = typename Meta::Fields::template Field<I>;
-        std::cout << Field::Name::GetString() << " = ";
+        std::cout << Field::Name::Value << " = ";
         Print(data.*Field::Access());
         Print<I + 1, N>(data);
     }

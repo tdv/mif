@@ -135,7 +135,7 @@ namespace Mif
                         static constexpr auto Id = Counter::GetLast(Common::Detail::FakeHierarchy{}) + 1; \
                         using Type = type_ ## _MetaInfo; \
                         using Key = type_; \
-                        MIF_DECLARE_SRTING_PROVIDER(TypeFullNameProvider, #type_ ) \
+                        using TypeFullNameProvider = MIF_STATIC_STR( #type_ ); \
                     }; \
                     template <> \
                     struct Item<Registry<type_>::Id> \

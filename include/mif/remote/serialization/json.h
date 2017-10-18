@@ -40,13 +40,13 @@ namespace Mif
                         std::string const &instanceId, std::string const &interfaceId,
                         std::string const &methodId, TParams && ... params)
                     {
-                        m_value[Detail::Tag::Uuid::GetString()] = uuid;
-                        m_value[Detail::Tag::Type::GetString()] = isReques ?
-                            Detail::Tag::Request::GetString() :
-                            Detail::Tag::Response::GetString();
-                        m_value[Detail::Tag::Instsnce::GetString()] = instanceId;
-                        m_value[Detail::Tag::Interface::GetString()] = interfaceId;
-                        m_value[Detail::Tag::Method::GetString()] = methodId;
+                        m_value[Detail::Tag::Uuid::Value] = uuid;
+                        m_value[Detail::Tag::Type::Value] = isReques ?
+                            Detail::Tag::Request::Value :
+                            Detail::Tag::Response::Value;
+                        m_value[Detail::Tag::Instsnce::Value] = instanceId;
+                        m_value[Detail::Tag::Interface::Value] = interfaceId;
+                        m_value[Detail::Tag::Method::Value] = methodId;
 
                         PutParamsIfExists(std::forward<TParams>(params) ... );
                     }
@@ -54,17 +54,17 @@ namespace Mif
                     template <typename ... TParams>
                     void PutParams(TParams && ... params)
                     {
-                        if (m_value.isMember(Detail::Tag::Param::GetString()))
-                            m_value.removeMember(Detail::Tag::Param::GetString());
+                        if (m_value.isMember(Detail::Tag::Param::Value))
+                            m_value.removeMember(Detail::Tag::Param::Value);
 
                         auto const tuple = std::make_tuple(std::forward<TParams>(params) ... );
-                        m_value[Detail::Tag::Param::GetString()] = ::Mif::Serialization::Json::Detail::ValueToJson(tuple);
+                        m_value[Detail::Tag::Param::Value] = ::Mif::Serialization::Json::Detail::ValueToJson(tuple);
                     }
 
                     void PutException(std::exception_ptr ex)
                     {
-                        if (m_value.isMember(Detail::Tag::Exception::GetString()))
-                            m_value.removeMember(Detail::Tag::Exception::GetString());
+                        if (m_value.isMember(Detail::Tag::Exception::Value))
+                            m_value.removeMember(Detail::Tag::Exception::Value);
 
                         try
                         {
@@ -72,11 +72,11 @@ namespace Mif
                         }
                         catch (std::exception const &e)
                         {
-                            m_value[Detail::Tag::Exception::GetString()] = e.what();
+                            m_value[Detail::Tag::Exception::Value] = e.what();
                         }
                         catch (...)
                         {
-                            m_value[Detail::Tag::Exception::GetString()] = "Unknown exception.";
+                            m_value[Detail::Tag::Exception::Value] = "Unknown exception.";
                         }
                     }
 
@@ -125,37 +125,37 @@ namespace Mif
 
                     std::string const GetUuid() const
                     {
-                        return m_value.get(Detail::Tag::Uuid::GetString(), "").asString();
+                        return m_value.get(Detail::Tag::Uuid::Value, "").asString();
                     }
 
                     bool IsRequest() const
                     {
-                        return GetType() == Detail::Tag::Request::GetString();
+                        return GetType() == Detail::Tag::Request::Value;
                     }
 
                     bool IsResponse() const
                     {
-                        return GetType() == Detail::Tag::Response::GetString();
+                        return GetType() == Detail::Tag::Response::Value;
                     }
 
                     std::string const GetType() const
                     {
-                        return m_value.get(Detail::Tag::Type::GetString(), "").asString();
+                        return m_value.get(Detail::Tag::Type::Value, "").asString();
                     }
 
                     std::string const GetInstance() const
                     {
-                        return m_value.get(Detail::Tag::Instsnce::GetString(), "").asString();
+                        return m_value.get(Detail::Tag::Instsnce::Value, "").asString();
                     }
 
                     std::string const GetInterface() const
                     {
-                        return m_value.get(Detail::Tag::Interface::GetString(), "").asString();
+                        return m_value.get(Detail::Tag::Interface::Value, "").asString();
                     }
 
                     std::string const GetMethod() const
                     {
-                        return m_value.get(Detail::Tag::Method::GetString(), "").asString();
+                        return m_value.get(Detail::Tag::Method::Value, "").asString();
                     }
 
                     template <typename ... TParams>
@@ -166,7 +166,7 @@ namespace Mif
 
                     bool HasException() const
                     {
-                        return m_value.isMember(Detail::Tag::Exception::GetString());
+                        return m_value.isMember(Detail::Tag::Exception::Value);
                     }
 
                     std::exception_ptr GetException() const
@@ -177,7 +177,7 @@ namespace Mif
                         {
                             try
                             {
-                                auto message = m_value.get(Detail::Tag::Exception::GetString(), "").asString();
+                                auto message = m_value.get(Detail::Tag::Exception::Value, "").asString();
                                 throw std::runtime_error{std::move(message)};
                             }
                             catch (...)
@@ -198,7 +198,7 @@ namespace Mif
                     {
                         using TResult = std::tuple<typename std::decay<TParams>::type ... >;
                         TResult res;
-                        ::Mif::Serialization::Json::Detail::JsonToValue(m_value.get(Detail::Tag::Param::GetString(), ::Json::Value{}), res);
+                        ::Mif::Serialization::Json::Detail::JsonToValue(m_value.get(Detail::Tag::Param::Value, ::Json::Value{}), res);
                         return res;
                     }
 

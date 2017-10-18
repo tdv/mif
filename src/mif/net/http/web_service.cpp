@@ -39,16 +39,16 @@ namespace Mif
                             iter->second->OnRequest(request, response);
                             {
                                 auto const headers = request.GetHeaders();
-                                auto const keepAlive = headers.find(Constants::Header::Connection::GetString());
+                                auto const keepAlive = headers.find(Constants::Header::Connection::Value);
                                 if (keepAlive != std::end(headers))
                                 {
                                     auto const &value = keepAlive->second;
-                                    auto const *keepAliveValue = Constants::Value::Connection::KeepAlive::GetString();
+                                    auto const *keepAliveValue = Constants::Value::Connection::KeepAlive::Value;
                                     auto const len = strlen(keepAliveValue);
                                     if (value.length() == len && !strncasecmp(value.c_str(),  keepAliveValue, len))
                                     {
-                                        response.SetHeader(Constants::Header::Connection::GetString(),
-                                                Constants::Value::Connection::KeepAlive::GetString());
+                                        response.SetHeader(Constants::Header::Connection::Value,
+                                                Constants::Value::Connection::KeepAlive::Value);
                                     }
                                 }
                             }
@@ -92,8 +92,8 @@ namespace Mif
 
             void WebService::OnExceptionResponse(IOutputPack &pack, Code code, std::string const &message)
             {
-                pack.SetHeader(Constants::Header::Connection::GetString(),
-                    Constants::Value::Connection::Close::GetString());
+                pack.SetHeader(Constants::Header::Connection::Value,
+                    Constants::Value::Connection::Close::Value);
                 pack.SetCode(code);
                 auto const formatedMessage = FormatExceptionMessage(pack, code, message);
                 pack.SetData({std::begin(formatedMessage), std::end(formatedMessage)});

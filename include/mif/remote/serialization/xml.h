@@ -52,25 +52,25 @@ namespace Mif
                             decl.append_attribute("encoding") = "UTF-8";
                         }
 
-                        m_root = m_doc.append_child(Detail::Tag::Pack::GetString());
+                        m_root = m_doc.append_child(Detail::Tag::Pack::Value);
 
-                        m_root.append_child(Detail::Tag::Uuid::GetString())
+                        m_root.append_child(Detail::Tag::Uuid::Value)
                                 .append_child(pugi::xml_node_type::node_pcdata)
                                 .set_value(uuid.c_str());
 
-                        m_root.append_child(Detail::Tag::Type::GetString())
+                        m_root.append_child(Detail::Tag::Type::Value)
                                 .append_child(pugi::xml_node_type::node_pcdata)
-                                .set_value(isReques ? Detail::Tag::Request::GetString() : Detail::Tag::Response::GetString());
+                                .set_value(isReques ? Detail::Tag::Request::Value : Detail::Tag::Response::Value);
 
-                        m_root.append_child(Detail::Tag::Instsnce::GetString())
+                        m_root.append_child(Detail::Tag::Instsnce::Value)
                                 .append_child(pugi::xml_node_type::node_pcdata)
                                 .set_value(instanceId.c_str());
 
-                        m_root.append_child(Detail::Tag::Interface::GetString())
+                        m_root.append_child(Detail::Tag::Interface::Value)
                                 .append_child(pugi::xml_node_type::node_pcdata)
                                 .set_value(interfaceId.c_str());
 
-                        m_root.append_child(Detail::Tag::Method::GetString())
+                        m_root.append_child(Detail::Tag::Method::Value)
                                 .append_child(pugi::xml_node_type::node_pcdata)
                                 .set_value(methodId.c_str());
 
@@ -80,15 +80,15 @@ namespace Mif
                     template <typename ... TParams>
                     void PutParams(TParams && ... params)
                     {
-                        m_root.remove_child(Detail::Tag::Param::GetString());
+                        m_root.remove_child(Detail::Tag::Param::Value);
 
                         auto const tuple = std::make_tuple(std::forward<TParams>(params) ... );
-                        ::Mif::Serialization::Xml::Detail::Serialize(m_root, tuple, Detail::Tag::Param::GetString());
+                        ::Mif::Serialization::Xml::Detail::Serialize(m_root, tuple, Detail::Tag::Param::Value);
                     }
 
                     void PutException(std::exception_ptr ex)
                     {
-                        m_root.remove_child(Detail::Tag::Exception::GetString());
+                        m_root.remove_child(Detail::Tag::Exception::Value);
 
                         try
                         {
@@ -96,13 +96,13 @@ namespace Mif
                         }
                         catch (std::exception const &e)
                         {
-                            m_root.append_child(Detail::Tag::Exception::GetString())
+                            m_root.append_child(Detail::Tag::Exception::Value)
                                     .append_child(pugi::xml_node_type::node_pcdata)
                                     .set_value(e.what());
                         }
                         catch (...)
                         {
-                            m_root.append_child(Detail::Tag::Exception::GetString())
+                            m_root.append_child(Detail::Tag::Exception::Value)
                                     .append_child(pugi::xml_node_type::node_pcdata)
                                     .set_value("Unknown exception.");
                         }
@@ -158,43 +158,43 @@ namespace Mif
                                         "Error" + std::string{result.description()}};
                             }
 
-                            m_root = m_doc.child(Detail::Tag::Pack::GetString());
+                            m_root = m_doc.child(Detail::Tag::Pack::Value);
                         }
                     }
 
                     std::string const GetUuid() const
                     {
-                        return m_root.child(Detail::Tag::Uuid::GetString()).child_value();
+                        return m_root.child(Detail::Tag::Uuid::Value).child_value();
                     }
 
                     bool IsRequest() const
                     {
-                        return GetType() == Detail::Tag::Request::GetString();
+                        return GetType() == Detail::Tag::Request::Value;
                     }
 
                     bool IsResponse() const
                     {
-                        return GetType() == Detail::Tag::Response::GetString();
+                        return GetType() == Detail::Tag::Response::Value;
                     }
 
                     std::string const GetType() const
                     {
-                        return m_root.child(Detail::Tag::Type::GetString()).child_value();
+                        return m_root.child(Detail::Tag::Type::Value).child_value();
                     }
 
                     std::string const GetInstance() const
                     {
-                        return m_root.child(Detail::Tag::Instsnce::GetString()).child_value();
+                        return m_root.child(Detail::Tag::Instsnce::Value).child_value();
                     }
 
                     std::string const GetInterface() const
                     {
-                        return m_root.child(Detail::Tag::Interface::GetString()).child_value();
+                        return m_root.child(Detail::Tag::Interface::Value).child_value();
                     }
 
                     std::string const GetMethod() const
                     {
-                        return m_root.child(Detail::Tag::Method::GetString()).child_value();
+                        return m_root.child(Detail::Tag::Method::Value).child_value();
                     }
 
                     template <typename ... TParams>
@@ -205,7 +205,7 @@ namespace Mif
 
                     bool HasException() const
                     {
-                        return m_root.child(Detail::Tag::Exception::GetString());
+                        return m_root.child(Detail::Tag::Exception::Value);
                     }
 
                     std::exception_ptr GetException() const
@@ -216,7 +216,7 @@ namespace Mif
                         {
                             try
                             {
-                                auto const *message = m_root.child(Detail::Tag::Exception::GetString()).child_value();
+                                auto const *message = m_root.child(Detail::Tag::Exception::Value).child_value();
                                 throw std::runtime_error{message};
                             }
                             catch (...)
@@ -238,7 +238,7 @@ namespace Mif
                     {
                         using TResult = std::tuple<typename std::decay<TParams>::type ... >;
                         TResult res;
-                        ::Mif::Serialization::Xml::Detail::Deserialize(m_root, res, Detail::Tag::Param::GetString());
+                        ::Mif::Serialization::Xml::Detail::Deserialize(m_root, res, Detail::Tag::Param::Value);
                         return res;
                     }
 

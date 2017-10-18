@@ -1,4 +1,4 @@
-project (Mif LANGUAGES CXX)
+project (Mif)
 set (PROJECT ${PROJECT_NAME})
 string (TOLOWER "${PROJECT}" PROJECT_LC)
 

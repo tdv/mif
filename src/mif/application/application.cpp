@@ -47,21 +47,21 @@ namespace Mif
         namespace Option
         {
 
-            MIF_DECLARE_SRTING_PROVIDER(Help, "help")
-            MIF_DECLARE_SRTING_PROVIDER(Version, "version")
-            MIF_DECLARE_SRTING_PROVIDER(Daemon, "daemon")
-            MIF_DECLARE_SRTING_PROVIDER(Config, "config")
-            MIF_DECLARE_SRTING_PROVIDER(ConfigFormat, "configformat")
-            MIF_DECLARE_SRTING_PROVIDER(LogDir, "logdir")
-            MIF_DECLARE_SRTING_PROVIDER(LogPattern, "logpattern")
-            MIF_DECLARE_SRTING_PROVIDER(LogLevel, "loglevel")
+            using Help = MIF_STATIC_STR("help");
+            using Version = MIF_STATIC_STR("version");
+            using Daemon = MIF_STATIC_STR("daemon");
+            using Config = MIF_STATIC_STR("config");
+            using ConfigFormat = MIF_STATIC_STR("configformat");
+            using LogDir = MIF_STATIC_STR("logdir");
+            using LogPattern = MIF_STATIC_STR("logpattern");
+            using LogLevel = MIF_STATIC_STR("loglevel");
 
         }   // namespace Option
 
         namespace
         {
 
-            MIF_DECLARE_SRTING_PROVIDER(ProjectPageLink, "https://github.com/tdv/mif")
+            using ProjectPageLink = MIF_STATIC_STR("https://github.com/tdv/mif");
 
         }   // namespace
 
@@ -153,17 +153,17 @@ namespace Mif
             , m_description{"MIF application"}
         {
             m_optionsDescr.add_options()
-                    (Option::Help::GetString(), "Show help.")
-                    (Option::Version::GetString(), "Show program version.")
+                    (Option::Help::Value, "Show help.")
+                    (Option::Version::Value, "Show program version.")
             #if defined(__linux__) || defined(__unix__)
-                    (Option::Daemon::GetString(), "Run as daemon.")
+                    (Option::Daemon::Value, "Run as daemon.")
             #endif
-                    (Option::Config::GetString(), boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
-                    (Option::ConfigFormat::GetString(), boost::program_options::value<std::string>(&m_configFileFormat)->default_value(
+                    (Option::Config::Value, boost::program_options::value<std::string>(&m_configFileName), "Config file name (full path).")
+                    (Option::ConfigFormat::Value, boost::program_options::value<std::string>(&m_configFileFormat)->default_value(
                             "xml"), "Config file format (available formats: json, xml).")
-                    (Option::LogDir::GetString(), boost::program_options::value<std::string>(&m_logDirName), "Log directory name.")
-                    (Option::LogPattern::GetString(), boost::program_options::value<std::string>(&m_logPattern), "Log file pattern.")
-                    (Option::LogLevel::GetString(), boost::program_options::value<std::uint32_t>(&m_logLevel), "Log level.");
+                    (Option::LogDir::Value, boost::program_options::value<std::string>(&m_logDirName), "Log directory name.")
+                    (Option::LogPattern::Value, boost::program_options::value<std::string>(&m_logPattern), "Log file pattern.")
+                    (Option::LogLevel::Value, boost::program_options::value<std::uint32_t>(&m_logLevel), "Log level.");
         }
 
         Application::~Application()
@@ -244,25 +244,25 @@ namespace Mif
 
                 boost::program_options::notify(m_options);
 
-                if (m_options.count(Option::Help::GetString()))
+                if (m_options.count(Option::Help::Value))
                 {
                     std::cout << m_optionsDescr << std::endl;
                     return EXIT_SUCCESS;
                 }
 
-                if (m_options.count(Option::Version::GetString()))
+                if (m_options.count(Option::Version::Value))
                 {
                     std::cout << "Application: " << m_name << std::endl
                               << "Veraion: " << m_version << std::endl
                               << "Description: " << m_description << std::endl
-                              << "MIF " << Common::Version::GetAsString() << " " << ProjectPageLink::GetString() << std::endl;
+                              << "MIF " << Common::Version::GetAsString() << " " << ProjectPageLink::Value << std::endl;
                     return EXIT_SUCCESS;
                 }
 
                 bool pathFromConfig = false;
                 bool levelFromConfig = false;
 
-                if (m_options.count(Option::Config::GetString()))
+                if (m_options.count(Option::Config::Value))
                 {
                     auto config = LoadConfig();
                     if (config)
@@ -274,23 +274,23 @@ namespace Mif
                         {
                             auto common = config->GetConfig("common");
 
-                            if (!m_options.count(Option::Daemon::GetString()) && common->Exists("daemon"))
+                            if (!m_options.count(Option::Daemon::Value) && common->Exists("daemon"))
                                 m_runAsDaemon = common->GetValue<bool>("daemon");
 
                             if (common->Exists("log"))
                             {
                                 auto log = common->GetConfig("log");
-                                if (!m_options.count(Option::LogDir::GetString()) && log->Exists("dir"))
+                                if (!m_options.count(Option::LogDir::Value) && log->Exists("dir"))
                                 {
                                     m_logDirName = log->GetValue("dir");
                                     pathFromConfig = true;
                                 }
-                                if (!m_options.count(Option::LogPattern::GetString()) && log->Exists("pattern"))
+                                if (!m_options.count(Option::LogPattern::Value) && log->Exists("pattern"))
                                 {
                                     m_logPattern = log->GetValue("pattern");
                                     pathFromConfig = true;
                                 }
-                                if (!m_options.count(Option::LogLevel::GetString()) && log->Exists("level"))
+                                if (!m_options.count(Option::LogLevel::Value) && log->Exists("level"))
                                 {
                                     m_logLevel = static_cast<Common::Log::Level>(log->GetValue<std::uint32_t>("level"));
                                     levelFromConfig = true;
@@ -313,7 +313,7 @@ namespace Mif
 
         void Application::InitLog(bool pathFromConfig, bool levelFromConfig)
         {
-            if (m_options.count(Option::LogLevel::GetString()) || levelFromConfig)
+            if (m_options.count(Option::LogLevel::Value) || levelFromConfig)
             {
                 if (m_logLevel > Common::Log::Level::Trace)
                 {
@@ -323,13 +323,13 @@ namespace Mif
                 }
             }
 
-            if (m_options.count(Option::LogDir::GetString()) || m_options.count(Option::LogPattern::GetString()) || pathFromConfig)
+            if (m_options.count(Option::LogDir::Value) || m_options.count(Option::LogPattern::Value) || pathFromConfig)
             {
-                if (!m_options.count(Option::LogDir::GetString()))
+                if (!m_options.count(Option::LogDir::Value))
                     m_logDirName = boost::filesystem::canonical(boost::filesystem::system_complete(m_argv[0])).parent_path().string();
-                if (!m_options.count(Option::LogPattern::GetString()))
+                if (!m_options.count(Option::LogPattern::Value))
                     m_logPattern = boost::filesystem::canonical(boost::filesystem::system_complete(m_argv[0])).filename().string() + "_%5N.log";
-                if (!m_options.count(Option::LogLevel::GetString()))
+                if (!m_options.count(Option::LogLevel::Value))
                     m_logLevel = Common::Log::Level::Trace;
 
                 if (!boost::filesystem::exists(m_logDirName))
@@ -343,7 +343,7 @@ namespace Mif
 
                 Common::InitFileLog(static_cast<Common::Log::Level>(m_logLevel), m_logDirName, m_logPattern);
             }
-            else if (m_options.count(Option::LogLevel::GetString()) || levelFromConfig)
+            else if (m_options.count(Option::LogLevel::Value) || levelFromConfig)
             {
                 Common::InitConsoleLog(static_cast<Common::Log::Level>(m_logLevel));
             }
@@ -356,7 +356,7 @@ namespace Mif
             try
             {
             #if defined(__linux__) || defined(__unix__)
-                if (m_options.count(Option::Daemon::GetString()))
+                if (m_options.count(Option::Daemon::Value))
                     m_runAsDaemon = true;
             #endif
             }

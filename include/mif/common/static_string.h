@@ -10,23 +10,36 @@
 
 // STD
 #include <cstdint>
-#include <string>
 
 // MIF
 #include "mif/common/index_sequence.h"
 
-#define MIF_DECLARE_SRTING_PROVIDER(name_, value_) \
-    struct name_ \
-    { \
-        static constexpr char const* GetString() \
-        { \
-            return value_; \
-        } \
-        static constexpr char GetSize() \
-        { \
-            return sizeof(value_); \
-        } \
-    };
+#define MIF_STR_IMPL_1(str_, i_) \
+    (sizeof(str_) > (i_) ? str_[(i_)] : 0)
+
+#define MIF_STR_IMPL_4(str_, i_) \
+    MIF_STR_IMPL_1(str_, i_ + 0), \
+    MIF_STR_IMPL_1(str_, i_ + 1), \
+    MIF_STR_IMPL_1(str_, i_ + 2), \
+    MIF_STR_IMPL_1(str_, i_ + 3)
+
+#define MIF_STR_IMPL_16(str_, i_) \
+    MIF_STR_IMPL_4(str_, i_ + 0), \
+    MIF_STR_IMPL_4(str_, i_ + 4), \
+    MIF_STR_IMPL_4(str_, i_ + 8), \
+    MIF_STR_IMPL_4(str_, i_ + 12)
+
+#define MIF_STR_IMPL_64(str_, i_) \
+    MIF_STR_IMPL_16(str_, i_ + 0), \
+    MIF_STR_IMPL_16(str_, i_ + 16), \
+    MIF_STR_IMPL_16(str_, i_ + 32), \
+    MIF_STR_IMPL_16(str_, i_ + 48)
+
+#define MIF_STR(str_) \
+    MIF_STR_IMPL_64(str_, 0), 0
+
+#define MIF_STATIC_STR(str_) \
+    ::Mif::Common::MakeStaticString<MIF_STR(str_)>
 
 namespace Mif
 {
@@ -36,23 +49,37 @@ namespace Mif
         template <char ... Str>
         struct StaticString
         {
-            static std::string const GetString()
-            {
-                return std::string{ Str ... }.c_str();
-            }
+            static constexpr char Value[sizeof ... (Str)] = { Str ... };
+            static constexpr std::size_t Size = sizeof ... (Str);
         };
+
+        template <char ... Str>
+        extern constexpr char StaticString<Str ... >::Value[sizeof ... (Str)];
 
         namespace Detail
         {
 
-            template <typename TStringProvider, std::size_t ... Indexes>
-            constexpr StaticString<TStringProvider::GetString()[Indexes] ... > MakeStaticString(IndexSequence<Indexes ... > const *);
+            template <char Ch, char ... Str>
+            struct CharArraySize
+            {
+                static constexpr std::size_t Size = CharArraySize<Str ... >::Size + 1;
+            };
+
+            template <char ... Str>
+            struct CharArraySize<0, Str ... >
+            {
+                static constexpr std::size_t Size = 1;
+            };
+
+            template <char ... Str, std::size_t ... Indexes>
+            constexpr StaticString<StaticString<Str ... >::Value[Indexes] ... >
+            MakeStaticString(IndexSequence<Indexes ... > const *);
 
         }   // namespace Detail
 
-        template <typename TStringProvider>
-        using MakeStaticString = decltype(Detail::MakeStaticString<TStringProvider>(
-            static_cast<MakeIndexSequence<TStringProvider::GetSize()> const *>(nullptr)));
+        template <char ... Str>
+        using MakeStaticString = decltype(Detail::MakeStaticString<Str ... >(
+            static_cast<MakeIndexSequence<Detail::CharArraySize<Str ... , 0>::Size> const *>(nullptr)));
 
     }   // namespace Common
 }   // namespace Mif

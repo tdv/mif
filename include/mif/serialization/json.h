@@ -46,8 +46,8 @@ namespace Mif
                 namespace Tag
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(Id, "id")
-                    MIF_DECLARE_SRTING_PROVIDER(Value, "val")
+                    using Id = MIF_STATIC_STR("id");
+                    using Value = MIF_STATIC_STR("val");
 
                 }   // namespace Tag
 
@@ -211,8 +211,8 @@ namespace Mif
                 {
                     ::Json::Value root{::Json::objectValue};
 
-                    root[Tag::Id::GetString()] = ValueToJson(pair.first);
-                    root[Tag::Value::GetString()] = ValueToJson(pair.second);
+                    root[Tag::Id::Value] = ValueToJson(pair.first);
+                    root[Tag::Value::Value] = ValueToJson(pair.second);
 
                     return root;
                 }
@@ -225,7 +225,7 @@ namespace Mif
                     {
                         BasesSerializer<TBases, I - 1>::Serialize(root, object);
                         using BaseType = typename std::tuple_element<I - 1, TBases>::type;
-                        root[Reflection::Reflect<BaseType>::Name::GetString()] = ValueToJson(static_cast<BaseType const &>(object));
+                        root[Reflection::Reflect<BaseType>::Name::Value] = ValueToJson(static_cast<BaseType const &>(object));
                     }
                 };
 
@@ -246,7 +246,7 @@ namespace Mif
                     {
                         Serializer<I - 1>::Serialize(root, object);
                         using FieldType = typename Reflection::Reflect<T>::Fields::template Field<I - 1>;
-                        root[FieldType::Name::GetString()] = ValueToJson(object.*FieldType::Access());
+                        root[FieldType::Name::Value] = ValueToJson(object.*FieldType::Access());
                     }
                 };
 
@@ -440,16 +440,16 @@ namespace Mif
                 inline std::pair<TFirst, TSecond>&
                 JsonToValue(::Json::Value const &root, std::pair<TFirst, TSecond> &pair)
                 {
-                    if ((root.isNull() || !root.isMember(Tag::Id::GetString()) || !root.isMember(Tag::Value::GetString())) ||
+                    if ((root.isNull() || !root.isMember(Tag::Id::Value) || !root.isMember(Tag::Value::Value)) ||
                         (root.type() != ::Json::objectValue && !root.isConvertibleTo(::Json::objectValue)))
                     {
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
                             "Value is null or json has no pair type object."};
                     }
 
-                    JsonToValue(root.get(Tag::Id::GetString(), ::Json::Value{}),
+                    JsonToValue(root.get(Tag::Id::Value, ::Json::Value{}),
                         const_cast<typename std::remove_const<TFirst>::type &>(pair.first));
-                    JsonToValue(root.get(Tag::Value::GetString(), ::Json::Value{}), pair.second);
+                    JsonToValue(root.get(Tag::Value::Value, ::Json::Value{}), pair.second);
 
                     return pair;
                 }
@@ -534,7 +534,7 @@ namespace Mif
                     {
                         BasesDeserializer<TBases, I - 1>::Deserialize(root, object);
                         using BaseType = typename std::tuple_element<I - 1, TBases>::type;
-                        JsonToValue(root.get(Reflection::Reflect<BaseType>::Name::GetString(), ::Json::Value{}), static_cast<BaseType &>(object));
+                        JsonToValue(root.get(Reflection::Reflect<BaseType>::Name::Value, ::Json::Value{}), static_cast<BaseType &>(object));
                     }
                 };
 
@@ -556,7 +556,7 @@ namespace Mif
                     {
                         Deserializer<I - 1>::Deserialize(root, object);
                         using FieldType = typename Reflection::Reflect<T>::Fields::template Field<I - 1>;
-                        JsonToValue(root.get(FieldType::Name::GetString(), ::Json::Value{}), object.*FieldType::Access());
+                        JsonToValue(root.get(FieldType::Name::Value, ::Json::Value{}), object.*FieldType::Access());
                     }
                 };
 

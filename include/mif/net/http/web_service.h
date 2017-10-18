@@ -52,7 +52,7 @@ namespace Mif
                 namespace Tag
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(Document, "document")
+                    using Document = MIF_STATIC_STR("document");
 
                 }   // namespace Tag
             }   // namespace Detail
@@ -166,7 +166,7 @@ namespace Mif
                 {
                     if (buffer.empty())
                         throw std::invalid_argument{"[Mif::Net::Http::XmlContentParamConverter] No content."};
-                    return Serialization::Xml::Deserialize<T>(buffer, Detail::Tag::Document::GetString());
+                    return Serialization::Xml::Deserialize<T>(buffer, Detail::Tag::Document::Value);
                 }
             };
 
@@ -222,7 +222,7 @@ namespace Mif
                 template <typename T>
                 static typename std::enable_if<!Reflection::IsReflectable<T>(), Common::Buffer>::type Serialize(T const &data)
                 {
-                    return Serialization::Xml::Serialize(data, Detail::Tag::Document::GetString());
+                    return Serialization::Xml::Serialize(data, Detail::Tag::Document::Value);
                 }
             };
 
@@ -498,7 +498,7 @@ namespace Mif
                         Result<> res{(m_object->*m_method)(GetPrm<Args>(params, headers, content) ... )};
                         auto const &contentType = res.GetContetntType();
                         if (!contentType.empty())
-                            response.SetHeader(Constants::Header::ContentType::GetString(), contentType);
+                            response.SetHeader(Constants::Header::ContentType::Value, contentType);
                         response.SetData(std::move(res.GetValue()));
                     }
                 };

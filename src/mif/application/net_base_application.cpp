@@ -22,11 +22,11 @@ namespace Mif
                 namespace Config
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(ServerBranch, "server")
-                    MIF_DECLARE_SRTING_PROVIDER(ServerHost, "host")
-                    MIF_DECLARE_SRTING_PROVIDER(ServerPort, "port")
-                    MIF_DECLARE_SRTING_PROVIDER(ServerWprkers, "workers")
-                    MIF_DECLARE_SRTING_PROVIDER(ServerTimeout, "timeout")
+                    using ServerBranch = MIF_STATIC_STR("server");
+                    using ServerHost = MIF_STATIC_STR("host");
+                    using ServerPort = MIF_STATIC_STR("port");
+                    using ServerWprkers = MIF_STATIC_STR("workers");
+                    using ServerTimeout = MIF_STATIC_STR("timeout");
 
                 }   // namespace Config
             }   // namespace Detail
@@ -37,10 +37,10 @@ namespace Mif
         {
             boost::program_options::options_description options{"Network options"};
             options.add_options()
-                    (Detail::Config::ServerHost::GetString(), boost::program_options::value<std::string>(&m_host)->default_value("0.0.0.0"), "Server host")
-                    (Detail::Config::ServerPort::GetString(), boost::program_options::value<std::string>(&m_port)->default_value("55555"), "Server port")
-                    (Detail::Config::ServerWprkers::GetString(), boost::program_options::value<std::uint16_t>(&m_workers)->default_value(8), "Workers thread count")
-                    (Detail::Config::ServerTimeout::GetString(), boost::program_options::value<std::uint64_t>(&m_timeout)->default_value(10 * 1000 * 1000), "Time of request processing (microseconds)");
+                    (Detail::Config::ServerHost::Value, boost::program_options::value<std::string>(&m_host)->default_value("0.0.0.0"), "Server host")
+                    (Detail::Config::ServerPort::Value, boost::program_options::value<std::string>(&m_port)->default_value("55555"), "Server port")
+                    (Detail::Config::ServerWprkers::Value, boost::program_options::value<std::uint16_t>(&m_workers)->default_value(8), "Workers thread count")
+                    (Detail::Config::ServerTimeout::Value, boost::program_options::value<std::uint64_t>(&m_timeout)->default_value(10 * 1000 * 1000), "Time of request processing (microseconds)");
 
             AddCustomOptions(options);
         }
@@ -77,18 +77,18 @@ namespace Mif
         {
             if (auto config = GetConfig())
             {
-                if (config->Exists(Detail::Config::ServerBranch::GetString()))
+                if (config->Exists(Detail::Config::ServerBranch::Value))
                 {
-                    auto serverConfig = config->GetConfig(Detail::Config::ServerBranch::GetString());
-                    m_host = serverConfig->GetValue(Detail::Config::ServerHost::GetString());
-                    m_port = serverConfig->GetValue(Detail::Config::ServerPort::GetString());
-                    m_workers = serverConfig->GetValue<std::uint16_t>(Detail::Config::ServerWprkers::GetString());
-                    m_timeout = serverConfig->GetValue<std::uint64_t>(Detail::Config::ServerTimeout::GetString());
+                    auto serverConfig = config->GetConfig(Detail::Config::ServerBranch::Value);
+                    m_host = serverConfig->GetValue(Detail::Config::ServerHost::Value);
+                    m_port = serverConfig->GetValue(Detail::Config::ServerPort::Value);
+                    m_workers = serverConfig->GetValue<std::uint16_t>(Detail::Config::ServerWprkers::Value);
+                    m_timeout = serverConfig->GetValue<std::uint64_t>(Detail::Config::ServerTimeout::Value);
                 }
                 else
                 {
                     MIF_LOG(Warning) << "[Mif::Application::NetBaseApplication::OnStart] "
-                            << "Config branch \"" << Detail::Config::ServerBranch::GetString() << "\" not found. "
+                            << "Config branch \"" << Detail::Config::ServerBranch::Value << "\" not found. "
                             << "All network parameters will be taken from the command line arguments or default parameters will be used.";
                 }
             }

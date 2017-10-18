@@ -29,8 +29,8 @@ private:
                     << (data.empty() ? std::string{"null"} : std::string{std::begin(data), std::end(data)});
 
             response.SetCode(Mif::Net::Http::Code::Ok);
-            response.SetHeader(Mif::Net::Http::Constants::Header::Connection::GetString(),
-                               Mif::Net::Http::Constants::Value::Connection::Close::GetString());
+            response.SetHeader(Mif::Net::Http::Constants::Header::Connection::Value,
+                               Mif::Net::Http::Constants::Value::Connection::Close::Value);
 
             response.SetData(std::move(data));
         };

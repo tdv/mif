@@ -15,7 +15,6 @@
 #include <type_traits>
 
 // MIF
-#include "mif/common/static_string.h"
 #include "mif/common/detail/hierarchy.h"
 #include "mif/common/unused.h"
 #include "mif/reflection/reflect_type.h"
@@ -46,7 +45,7 @@ namespace Mif
             template <typename T>
             struct FieldItem
             {
-                using Name = Common::MakeStaticString<typename T::TypeNameProvider>;
+                using Name = typename T::TypeNameProvider;
                 using Type = typename T::FieldType;
                 static constexpr auto Access() -> decltype(T::Access())
                 {
@@ -75,8 +74,8 @@ namespace Mif
                 using MetaType = typename RegItemType::Type;
 
             public:
-                using FullName = Common::MakeStaticString<typename RegItemType::TypeFullNameProvider>;
-                using Name = Common::MakeStaticString<typename MetaType::TypeNameProvider>;
+                using FullName = typename RegItemType::TypeFullNameProvider;
+                using Name = typename MetaType::TypeNameProvider;
                 using Base = typename MetaType::BaseTypes;
                 using Type = typename MetaType::ClassType;
                 using Fields = FieldsList<T>;
@@ -97,7 +96,7 @@ namespace Mif
             {
                 using Item = typename TItems::template Field<Index - 1>;
                 if (Item::Access() == value)
-                    return Item::Name::GetString();
+                    return Item::Name::Value;
                 return EnumValueToString<T, TItems, Index - 1>(value);
             }
 
@@ -114,7 +113,7 @@ namespace Mif
             StringToEnumValue(std::string const &str)
             {
                 using Item = typename TItems::template Field<Index - 1>;
-                if (str == Item::Name::GetString())
+                if (str == Item::Name::Value)
                     return Item::Access();
                 return StringToEnumValue<T, TItems, Index - 1>(str);
             }

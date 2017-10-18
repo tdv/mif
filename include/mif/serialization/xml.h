@@ -48,9 +48,9 @@ namespace Mif
                 namespace Tag
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(Item, "item")
-                    MIF_DECLARE_SRTING_PROVIDER(Id, "id")
-                    MIF_DECLARE_SRTING_PROVIDER(Value, "val")
+                    using Item = MIF_STATIC_STR("item");
+                    using Id = MIF_STATIC_STR("id");
+                    using Value = MIF_STATIC_STR("val");
 
                 }   // namespace Tag
 
@@ -208,7 +208,7 @@ namespace Mif
                 {
                     using Base = typename std::tuple_element<I, TBases>::type;
                     Serialize(node, static_cast<Base const &>(object),
-                            Reflection::Reflect<Base>::FullName::GetString());
+                            Reflection::Reflect<Base>::FullName::Value);
                     SerializeBase<TBases, I + 1>(node, object);
                 }
 
@@ -226,7 +226,7 @@ namespace Mif
                 {
                     using Meta = Reflection::Reflect<T>;
                     using Bases = typename Meta::Base;
-                    auto const itemName = !name.empty() ? name : Meta::Name::GetString();
+                    auto const itemName = !name.empty() ? name : Meta::Name::Value;
                     auto item = node.append_child(itemName.c_str());
                     SerializeBase<Bases, 0>(item, object);
                     Serialize<0, Meta::Fields::Count>(item, object);
@@ -257,7 +257,7 @@ namespace Mif
                 {
                     auto item = node.append_child(name.c_str());
                     for (auto const &i : object)
-                        Serialize(item, i, Tag::Item::GetString());
+                        Serialize(item, i, Tag::Item::Value);
                 }
 
                 template <typename T>
@@ -282,8 +282,8 @@ namespace Mif
                 inline void Serialize(NodeType &node, std::pair<TFirst, TSecond> const &object, std::string const &name)
                 {
                     auto item = node.append_child(name.c_str());
-                    Serialize(item, object.first, Tag::Id::GetString());
-                    Serialize(item, object.second, Tag::Value::GetString());
+                    Serialize(item, object.first, Tag::Id::Value);
+                    Serialize(item, object.second, Tag::Value::Value);
                 }
 
                 template <typename T>
@@ -307,7 +307,7 @@ namespace Mif
                 inline typename std::enable_if<I != N, void>::type
                 Serialize(NodeType &node, std::tuple<T ... > const &object)
                 {
-                    Serialize(node, std::get<I>(object), Tag::Item::GetString());
+                    Serialize(node, std::get<I>(object), Tag::Item::Value);
                     Serialize<I + 1, N>(node, object);
                 }
 
@@ -324,7 +324,7 @@ namespace Mif
                 Serialize(NodeType &node, T const &object)
                 {
                     using Field = typename Reflection::Reflect<T>::Fields::template Field<I>;
-                    Serialize(node, object.*Field::Access(), Field::Name::GetString());
+                    Serialize(node, object.*Field::Access(), Field::Name::Value);
                     Serialize<I + 1, N>(node, object);
                 }
 
@@ -359,7 +359,7 @@ namespace Mif
                 {
                     using Base = typename std::tuple_element<I, TBases>::type;
                     Deserialize(node, static_cast<Base &>(object),
-                            Reflection::Reflect<Base>::FullName::GetString());
+                            Reflection::Reflect<Base>::FullName::Value);
                     DeserializeBase<TBases, I + 1>(node, object);
                 }
 
@@ -377,7 +377,7 @@ namespace Mif
                 {
                     using Meta = Reflection::Reflect<T>;
                     using Bases = typename Meta::Base;
-                    auto const item = node.child((!name.empty() ? name : Meta::Name::GetString()).c_str());
+                    auto const item = node.child((!name.empty() ? name : Meta::Name::Value).c_str());
                     DeserializeBase<Bases, 0>(item, object);
                     Deserialize<0, Meta::Fields::Count>(item, object);
                 }
@@ -454,7 +454,7 @@ namespace Mif
                 {
                     using Meta = typename Reflection::Reflect<T>;
                     using Field = typename Meta::Fields::template Field<I>;
-                    Deserialize(node, object.*Field::Access(), Field::Name::GetString());
+                    Deserialize(node, object.*Field::Access(), Field::Name::Value);
                     Deserialize<I + 1, N>(node, object);
                 }
 
@@ -474,7 +474,7 @@ namespace Mif
                     {
                         for (auto const &i : item.children())
                         {
-                            if (i.name() != std::string{Tag::Item::GetString()})
+                            if (i.name() != std::string{Tag::Item::Value})
                                 continue;
                             using Type = typename T::value_type;
                             Type data;
@@ -524,8 +524,8 @@ namespace Mif
                 {
                     if (node)
                     {
-                        Deserialize(node, const_cast<typename std::remove_const<TFirst>::type &>(object.first), Tag::Id::GetString());
-                        Deserialize(node, object.second, Tag::Value::GetString());
+                        Deserialize(node, const_cast<typename std::remove_const<TFirst>::type &>(object.first), Tag::Id::Value);
+                        Deserialize(node, object.second, Tag::Value::Value);
                     }
                     else
                     {
@@ -561,9 +561,9 @@ namespace Mif
                                 "Failed to parse tuple item."};
                     }
 
-                    Deserialize(node, std::get<I>(object), Tag::Item::GetString());
+                    Deserialize(node, std::get<I>(object), Tag::Item::Value);
 
-                    node.remove_child(Tag::Item::GetString());
+                    node.remove_child(Tag::Item::Value);
 
                     Deserialize<I + 1, N>(node, object);
                 }

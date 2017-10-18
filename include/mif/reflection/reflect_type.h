@@ -63,7 +63,7 @@ namespace Mif
         friend class ::Mif::Reflection::Detail::FieldsList; \
         template <typename T, T> \
         friend class ::Mif::Reflection::Detail::FieldIndex; \
-        MIF_DECLARE_SRTING_PROVIDER(TypeNameProvider, #type_) \
+        using TypeNameProvider = MIF_STATIC_STR( #type_ ); \
         using ClassType = type_; \
         static_assert(std::is_class<ClassType>::value || std::is_enum<ClassType>::value, \
                 "The type to reflect must be a class or an enum."); \
@@ -77,7 +77,7 @@ namespace Mif
     template <typename TClass> \
     struct field_ ## _FieldTypeMetaInfo final \
     { \
-        MIF_DECLARE_SRTING_PROVIDER(TypeNameProvider, #field_) \
+        using TypeNameProvider = MIF_STATIC_STR( #field_ ); \
         using FieldType = decltype(TClass::field_); \
         template<typename U = TClass, class = typename std::enable_if<!std::is_enum<U>::value, U>::type> \
         static constexpr FieldType U ::* Access() \
@@ -91,7 +91,7 @@ namespace Mif
     template <typename TClass> \
     struct field_ ## _ItemTypeMetaInfo final \
     { \
-        MIF_DECLARE_SRTING_PROVIDER(TypeNameProvider, #field_) \
+        using TypeNameProvider = MIF_STATIC_STR( #field_ ); \
         using FieldType = ClassType; \
         template<typename U = TClass, class = typename std::enable_if<std::is_enum<U>::value, U>::type> \
         static constexpr FieldType Access() \

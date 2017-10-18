@@ -22,16 +22,16 @@ namespace Mif
                 namespace Tag
                 {
 
-                    MIF_DECLARE_SRTING_PROVIDER(Pack, "package")
-                    MIF_DECLARE_SRTING_PROVIDER(Uuid, "uuid")
-                    MIF_DECLARE_SRTING_PROVIDER(Type, "type")
-                    MIF_DECLARE_SRTING_PROVIDER(Request, "request")
-                    MIF_DECLARE_SRTING_PROVIDER(Response, "response")
-                    MIF_DECLARE_SRTING_PROVIDER(Instsnce, "instance")
-                    MIF_DECLARE_SRTING_PROVIDER(Interface, "interface")
-                    MIF_DECLARE_SRTING_PROVIDER(Method, "method")
-                    MIF_DECLARE_SRTING_PROVIDER(Param, "prm")
-                    MIF_DECLARE_SRTING_PROVIDER(Exception, "exception")
+                    using Pack = MIF_STATIC_STR("package");
+                    using Uuid = MIF_STATIC_STR("uuid");
+                    using Type = MIF_STATIC_STR("type");
+                    using Request = MIF_STATIC_STR("request");
+                    using Response = MIF_STATIC_STR("response");
+                    using Instsnce = MIF_STATIC_STR("instance");
+                    using Interface = MIF_STATIC_STR("interface");
+                    using Method = MIF_STATIC_STR("method");
+                    using Param = MIF_STATIC_STR("prm");
+                    using Exception = MIF_STATIC_STR("exception");
 
                 }   // namespace Tag
             }   // namespace Detail
