@@ -30,6 +30,39 @@ namespace Mif
             {
             };
 
+            template <typename TEntity, typename ... TTraits>
+            struct TableInfo
+            {
+                using Type = TEntity;
+            };
+
+            struct FieldTraits
+            {
+                struct Counter;
+                struct NotNull;
+                struct Nullable;
+                template <typename ... TCoFields>
+                struct PrimaryKey;
+                struct Unique;
+            };
+
+            template <typename TTable, typename TField, typename ... TTraits>
+            struct FieldInfo
+            {
+                template <typename TNextField>
+                using Field = FieldInfo<TTable, TNextField, TTraits ... >;
+
+                using Create = typename TTable::template CreateTable<TTraits ... >;
+
+                using Counter = FieldInfo<TTable, TField, FieldTraits::Counter, TTraits ... >;
+                using NotNull = FieldInfo<TTable, TField, FieldTraits::NotNull, TTraits ... >;
+                using Nullable = FieldInfo<TTable, TField, FieldTraits::Nullable, TTraits ... >;
+                template <typename ... TCoFields>
+                using MultiPrimaryKey = FieldInfo<TTable, TField, FieldTraits::PrimaryKey<TCoFields ... >, TTraits ... >;
+                using PrimaryKey = MultiPrimaryKey<>;
+                using Unique = FieldInfo<TTable, TField, FieldTraits::Unique, TTraits ... >;
+            };
+
         }   // namespace Detail
 
         using DefailtSchemaName = Detail::StringProviders::DefailtSchemaName;
@@ -47,12 +80,25 @@ namespace Mif
             }
         };
 
-        template <typename T, typename ... TOptions>
-        struct Table
+        template <typename TEntity>
+        class Table
         {
-            static_assert(Reflection::IsReflectable<T>(), "[Mif::Orm::Table] The type must be a reflectable type.");
+        public:
+            static_assert(Reflection::IsReflectable<TEntity>(), "[Mif::Orm::Table] The type must be a reflectable type.");
 
-            using Type = T;
+            using ThisType = Table<TEntity>;
+
+            using Create = Detail::TableInfo<TEntity>;
+
+            template <typename TField, typename ... TTraits>
+            using Field = Detail::FieldInfo<ThisType, TField, TTraits ... >;
+
+        private:
+            template <typename, typename, typename ... >
+            friend struct Detail::FieldInfo;
+
+            template <typename ... TTraits>
+            using CreateTable = Detail::TableInfo<TEntity, TTraits ... >;
         };
 
     }   // namespace Orm
