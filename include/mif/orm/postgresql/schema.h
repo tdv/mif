@@ -10,6 +10,7 @@
 
 // STD
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 // MIF
@@ -30,7 +31,7 @@ namespace Mif
             class Schema;
 
             template <typename TName, typename ... TItems>
-            class Schema<Orm::Schema<TName, TItems ... >> final
+            class Schema<Orm::Schema<TName, std::tuple<TItems ... >>> final
             {
             public:
                 static std::string Dump()
@@ -42,13 +43,14 @@ namespace Mif
                     if (!sql.empty())
                         sql += "\n";
 
-                    sql += CreateTable(schema, static_cast<typename SourceSchema::Items const *>(nullptr));
+                    sql += CreateItem<Items, std::tuple_size<Items>::value>(schema);
 
                     return sql;
                 }
 
             private:
                 using SourceSchema = Orm::Schema<TName, TItems ... >;
+                using Items = typename SourceSchema::Items;
                 using Indent = Common::StaticString<32, 32, 32, 32, 0>;
 
                 template <typename T>
@@ -69,48 +71,35 @@ namespace Mif
                     return sql;
                 }
 
-                template <typename ... T>
-                static typename std::enable_if<sizeof ... (T) == 0, std::string>::type
-                CreateTable(std::string const &schema, Orm::Detail::Items<T ... > const *)
+                template <typename T, std::size_t I>
+                static typename std::enable_if<I == 0, std::string>::type
+                CreateItem(std::string const &schema)
                 {
                     Common::Unused(schema);
                     return {};
                 }
 
-                template <typename T, typename ... Items>
-                static typename std::enable_if<sizeof ... (Items) == 0, std::string>::type
-                CreateTable(std::string const &schema, Orm::Detail::Items<T, Items ... > const *)
+                template <typename T, std::size_t I>
+                static typename std::enable_if<I != 0, std::string>::type
+                CreateItem(std::string const &schema)
                 {
-                    return CreateTable<T>(schema);
-                }
-
-                template <typename T, typename ... Items>
-                static typename std::enable_if<sizeof ... (Items) != 0, std::string>::type
-                CreateTable(std::string const &schema, Orm::Detail::Items<T, Items ... > const *)
-                {
-                    auto sql = CreateTable(schema, static_cast<Orm::Detail::Items<T> const *>(nullptr));
+                    auto sql = CreateItem<typename std::tuple_element<std::tuple_size<T>::value - I, Items>::type>(schema);
                     if (!sql.empty())
                         sql += "\n";
-                    sql += CreateTable(schema, static_cast<Orm::Detail::Items<Items ... > const *>(nullptr));
+                    sql += CreateItem<T, I - 1>(schema);
                     return sql;
                 }
 
                 template <typename T>
-                static constexpr bool IsTable()
-                {
-                    return true;
-                }
-
-                template <typename T>
-                static typename std::enable_if<IsTable<T>(), std::string>::type
-                CreateTable(std::string const &schema)
+                static typename std::enable_if<Orm::Detail::Traits::IsTable<T>(), std::string>::type
+                CreateItem(std::string const &schema)
                 {
                     using Type = typename T::Type;
                     using Meta = Reflection::Reflect<Type>;
                     std::string table = Meta::Name::Value;
                     auto sql = "CREATE TABLE " + schema + table + "\n";
                     sql += "(\n";
-                    AppendField<Type, 0, Meta::Fields::Count>(sql);
+                    AppendField<T, 0, Meta::Fields::Count>(sql);
                     sql += ");\n";
                     return sql;
                 }
@@ -119,7 +108,9 @@ namespace Mif
                 static typename std::enable_if<I != N, void>::type
                 AppendField(std::string &sql)
                 {
-                    using Field = typename Reflection::Reflect<T>::Fields::template Field<I>;
+                    using Entity = typename T::Type;
+                    using Traits = typename T::Traits;
+                    using Field = typename Reflection::Reflect<Entity>::Fields::template Field<I>;
 
                     sql += Indent::Value;
                     sql += Detail::Utility::QuoteReserved(Field::Name::Value);
