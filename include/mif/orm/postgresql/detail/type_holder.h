@@ -58,6 +58,9 @@ namespace Mif
 
                     MIF_ORM_POSTGRESQL_IMPL(std::string, "varchar")
 
+                    using Serial = MIF_STATIC_STR("serial");
+                    using BigSerial = MIF_STATIC_STR("bigserial");
+
                 }   //namespace Type
             }   // namespace Detail
         }   // namespace PostgreSql

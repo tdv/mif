@@ -16,6 +16,7 @@
 // MIF
 #include "mif/common/detail/tuple_utility.h"
 #include "mif/common/unused.h"
+#include "mif/orm/detail/field_traits.h"
 #include "mif/orm/postgresql/detail/type_holder.h"
 #include "mif/orm/postgresql/detail/utility.h"
 #include "mif/orm/schema.h"
@@ -95,6 +96,7 @@ namespace Mif
                 static typename std::enable_if<Orm::Detail::Traits::IsTable<T>(), std::string>::type
                 CreateItem(std::string const &schema)
                 {
+                    // TODO: append checking unique primary key (only one primary key must be in table)
                     using Type = typename T::Type;
                     using Meta = Reflection::Reflect<Type>;
                     std::string table = Meta::Name::Value;
@@ -116,7 +118,10 @@ namespace Mif
                     sql += Indent::Value;
                     sql += Detail::Utility::QuoteReserved(Field::Name::Value);
                     sql += " ";
-                    sql += GetTypeName<typename Field::Type>();
+                    sql += ExpandFieldInfo<typename Field::Type, Traits>();
+                    sql += NullableField<Traits>();
+                    sql += UniqueField<Traits>();
+                    sql += PrimaryKeyField<Traits>();
                     if (N - I > 1)
                         sql += ",";
                     sql += "\n";
@@ -131,43 +136,53 @@ namespace Mif
                     Common::Unused(sql);
                 }
 
-                template <typename T>
+                template <typename T, typename TTraits>
                 static typename std::enable_if<std::is_arithmetic<T>::value || std::is_same<T, std::string>::value, std::string>::type
-                GetTypeName()
+                ExpandFieldInfo()
                 {
-                    return Detail::Type::Holder<T>::Name::Value;
+                    constexpr auto counter = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Counter, TTraits>::value;
+                    constexpr auto isUInt32 = std::is_same<T, std::uint32_t>::value;
+                    constexpr auto isUInt64 = std::is_same<T, std::uint64_t>::value;
+                    static_assert(!counter || (isUInt32 || isUInt64), "[Mif::Orm::PostgreSql::Schema::ExpandFieldInfo] "
+                            "The counter field must be uint32 or uint64.");
+                    return std::conditional
+                            <
+                                counter,
+                                typename std::conditional<isUInt32, Detail::Type::Serial, Detail::Type::BigSerial>::type,
+                                typename Detail::Type::Holder<T>::Name
+                            >::type::Value;
                 }
 
-                template <typename T>
+                template <typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && Reflection::IsReflectable<T>(), std::string>::type
-                GetTypeName()
+                ExpandFieldInfo()
                 {
                     return Reflection::Reflect<T>::Name::Value;
                 }
 
-                template <typename T>
+                template <typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && !Reflection::IsReflectable<T>(), std::string>::type
-                GetTypeName()
+                ExpandFieldInfo()
                 {
-                    return GetTypeName<typename std::underlying_type<T>::type>();
+                    return ExpandFieldInfo<typename std::underlying_type<T>::type>();
                 }
 
-                template <typename T>
+                template <typename T, typename TTraits>
                 static typename std::enable_if<Serialization::Traits::IsSmartPointer<T>(), std::string>::type
-                GetTypeName()
+                ExpandFieldInfo()
                 {
-                    return GetTypeName<typename T::element_type>();
+                    return ExpandFieldInfo<typename T::element_type>();
                 }
 
-                template <typename T>
+                template <typename T, typename TTraits>
                 static typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, std::string>::type
-                GetTypeName()
+                ExpandFieldInfo()
                 {
                     // TODO: nested entity
                     return {};
                 }
 
-                template <typename T>
+                template <typename T, typename TTraits>
                 static typename std::enable_if
                     <
                         Serialization::Traits::IsIterable<T>() &&
@@ -175,10 +190,35 @@ namespace Mif
                         Reflection::IsReflectable<typename T::value_type>(),
                         std::string
                     >::type
-                GetTypeName()
+                ExpandFieldInfo()
                 {
                     // TODO: collection with reflectable struct (nested struct collection)
                     return {};
+                }
+
+                template <typename TTraits>
+                static std::string NullableField()
+                {
+                    constexpr auto null = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Nullable, TTraits>::value;
+                    constexpr auto notNull = Common::Detail::TupleContains<Orm::Detail::FieldTraits::NotNull, TTraits>::value;
+                    static_assert(!null || !notNull, "[Mif::Orm::PostgreSql::Schema;:NullableField] "
+                            "Conflicting NULL/NOT NULL declarations for column.");
+                    return null ? " NULL" : notNull ? " NOT NULL" : "";
+                }
+
+                template <typename TTraits>
+                static std::string UniqueField()
+                {
+                    constexpr auto unique = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Unique, TTraits>::value;
+                    return unique ? " UNIQUE" : "";
+                }
+
+                template <typename TTraits>
+                static std::string PrimaryKeyField()
+                {
+                    // TODO: support multi primary key
+                    constexpr auto pk = Common::Detail::TupleContains<Orm::Detail::FieldTraits::PrimaryKey<>, TTraits>::value;
+                    return pk ? " PRIMARY KEY" : "";
                 }
             };
 

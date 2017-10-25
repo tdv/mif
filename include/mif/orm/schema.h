@@ -15,6 +15,7 @@
 // MIF
 #include "mif/common/detail/tuple_utility.h"
 #include "mif/common/static_string.h"
+#include "mif/orm/detail/field_traits.h"
 #include "mif/reflection/reflection.h"
 
 namespace Mif
@@ -37,19 +38,6 @@ namespace Mif
                 using Traits = std::tuple<TTraits ... >;
             };
 
-            struct FieldTraits
-            {
-                struct No;
-
-                struct Counter;
-                struct JsonObject;
-                struct NotNull;
-                struct Nullable;
-                template <typename ... TCoFields>
-                struct PrimaryKey;
-                struct Unique;
-            };
-
             template <typename TTable, typename TField, typename TTrait, typename ... TNext>
             class FieldInfo
             {
@@ -63,16 +51,12 @@ namespace Mif
                 using Create = typename TTable::template CreateTable<ThisType>;
 
                 using Counter = FieldInfo<TTable, TField, FieldTraits::Counter, ThisType, TNext ... >;
-                using JsonObject = FieldInfo<TTable, TField, FieldTraits::JsonObject, ThisType, TNext ... >;
                 using NotNull = FieldInfo<TTable, TField, FieldTraits::NotNull, ThisType, TNext ... >;
                 using Nullable = FieldInfo<TTable, TField, FieldTraits::Nullable, ThisType, TNext ... >;
                 template <typename ... TCoFields>
                 using MultiPrimaryKey = FieldInfo<TTable, TField, FieldTraits::PrimaryKey<TCoFields ... >, ThisType, TNext ... >;
                 using PrimaryKey = MultiPrimaryKey<>;
                 using Unique = FieldInfo<TTable, TField, FieldTraits::Unique, ThisType, TNext ... >;
-
-                // TODO:
-                // Add AsJsonObject
             };
 
             namespace Traits
