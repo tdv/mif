@@ -85,7 +85,13 @@ namespace Mif
                     constexpr std::false_type IsTable(...);
 
                     template <typename TField, typename TTraits>
-                    struct FieldTraigsList;
+                    struct FieldTraitsList;
+
+                    template <typename TField>
+                    struct FieldTraitsList<TField, std::tuple<>>
+                    {
+                        using Traits = std::tuple<FieldTraits::No>;
+                    };
 
                     template
                     <
@@ -96,9 +102,9 @@ namespace Mif
                         typename TNext,
                         typename ... TTail
                     >
-                    struct FieldTraigsList<TField, FieldInfo<TTable, TFieldMeta, TTrait, TNext, TTail ... >>
+                    struct FieldTraitsList<TField, FieldInfo<TTable, TFieldMeta, TTrait, TNext, TTail ... >>
                     {
-                        using Traits = typename FieldTraigsList<TField, TNext>::Traits;
+                        using Traits = typename FieldTraitsList<TField, TNext>::Traits;
                     };
 
                     template
@@ -109,14 +115,14 @@ namespace Mif
                         typename TNext,
                         typename ... TTail
                     >
-                    struct FieldTraigsList<TField, FieldInfo<TTable, TField, TTrait, TNext, TTail ... >>
+                    struct FieldTraitsList<TField, FieldInfo<TTable, TField, TTrait, TNext, TTail ... >>
                     {
                         using Traits = Common::Detail::MakeUniqueTuple
                             <
                                 typename Common::Detail::TupleCat
                                 <
                                     std::tuple<TTrait>,
-                                    typename FieldTraigsList<TField, TNext>::Traits
+                                    typename FieldTraitsList<TField, TNext>::Traits
                                 >::Tuple
                             >;
                     };
@@ -129,9 +135,41 @@ namespace Mif
                         typename TFieldMeta,
                         typename TTrait
                     >
-                    struct FieldTraigsList<TField, FieldInfo<TTable, TFieldMeta, TTrait>>
+                    struct FieldTraitsList<TField, FieldInfo<TTable, TFieldMeta, TTrait>>
                     {
                         using Traits = std::tuple<TTrait>;
+                    };
+
+                    template <typename TTable, typename TField, typename TTrait, typename ... TNext>
+                    constexpr std::true_type IsFieldInfo(FieldInfo<TTable, TField, TTrait, TNext ... > const *);
+                    constexpr std::false_type IsFieldInfo(...);
+
+                    template <typename TTraits, std::size_t I, typename TFieldTraits>
+                    struct FindFieldsTraits
+                    {
+                        using Traits = typename std::conditional
+                            <
+                                std::is_same
+                                    <
+                                        std::true_type,
+                                        decltype(IsFieldInfo(
+                                                static_cast<typename std::tuple_element<I - 1, TTraits>::type const *>(nullptr)
+                                            ))
+                                    >::value,
+                                typename std::tuple_element<I - 1, TTraits>::type,
+                                typename FindFieldsTraits
+                                    <
+                                        TTraits,
+                                        I - 1,
+                                        typename std::tuple_element<I - 1, TTraits>::type
+                                    >::Traits
+                            >::type;
+                    };
+
+                    template <typename TTraits, typename TFieldTraits>
+                    struct FindFieldsTraits<TTraits, 0, TFieldTraits>
+                    {
+                        using Traits = std::tuple<>;
                     };
 
                 }   // namespace Detail
@@ -142,8 +180,23 @@ namespace Mif
                     return std::is_same<decltype(Detail::IsTable(static_cast<T const *>(nullptr))), std::true_type>::value;
                 }
 
+                template <typename T>
+                inline constexpr bool IsFieldInfo()
+                {
+                    return std::is_same<decltype(Detail::IsFieldInfo(static_cast<T const *>(nullptr))), std::true_type>::value;
+                }
+
                 template <typename TField, typename TTraits>
-                using FieldTraigsList = typename Detail::FieldTraigsList<TField, TTraits>::Traits;
+                using MakeFieldTraitsList = typename Detail::FieldTraitsList
+                    <
+                        TField,
+                        typename Detail::FindFieldsTraits
+                            <
+                                TTraits,
+                                std::tuple_size<TTraits>::value,
+                                std::tuple<>
+                            >::Traits
+                    >::Traits;
 
             }   // namespace Traits
         }   // namespace Detail

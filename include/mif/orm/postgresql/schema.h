@@ -14,6 +14,7 @@
 #include <type_traits>
 
 // MIF
+#include "mif/common/detail/tuple_utility.h"
 #include "mif/common/unused.h"
 #include "mif/orm/postgresql/detail/type_holder.h"
 #include "mif/orm/postgresql/detail/utility.h"
@@ -51,7 +52,7 @@ namespace Mif
             private:
                 using SourceSchema = Orm::Schema<TName, TItems ... >;
                 using Items = typename SourceSchema::Items;
-                using Indent = Common::StaticString<32, 32, 32, 32, 0>;
+                using Indent = MIF_STATIC_STR("    ");
 
                 template <typename T>
                 static typename std::enable_if<std::is_same<T, DefailtSchemaName>::value, std::string>::type
@@ -109,8 +110,8 @@ namespace Mif
                 AppendField(std::string &sql)
                 {
                     using Entity = typename T::Type;
-                    using Traits = typename T::Traits;
                     using Field = typename Reflection::Reflect<Entity>::Fields::template Field<I>;
+                    using Traits = Orm::Detail::Traits::MakeFieldTraitsList<Field, typename T::Traits>;
 
                     sql += Indent::Value;
                     sql += Detail::Utility::QuoteReserved(Field::Name::Value);
