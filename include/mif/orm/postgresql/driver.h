@@ -108,7 +108,7 @@ namespace Mif
                     std::string name = Meta::Name::Value;
                     auto sql = "CREATE TABLE " + Detail::Utility::QuoteReserved(GetSchemaName() + name) + "\n";
                     sql += "(\n";
-                    AppendField<T, 0, Meta::Fields::Count>(sql);
+                    AppendField<T, Meta::Fields::Count>(sql);
                     sql += ");\n";
                     return sql;
                 }
@@ -150,30 +150,35 @@ namespace Mif
                     Common::Unused(sql);
                 }
 
-                template <typename T, std::size_t I, std::size_t N>
-                static typename std::enable_if<I != N, void>::type
+                template <typename T, std::size_t I>
+                static typename std::enable_if<I != 0, void>::type
                 AppendField(std::string &sql)
                 {
+                    AppendField<T, I - 1>(sql);
+
                     using Entity = typename T::Type;
-                    using Field = typename Reflection::Reflect<Entity>::Fields::template Field<I>;
+                    using Fields = typename Reflection::Reflect<Entity>::Fields;
+                    using Field = typename Fields::template Field<I - 1>;
+                    using FieldType = typename Field::Type;
                     using Traits = Orm::Detail::Traits::MakeFieldTraitsList<Field, typename T::Traits>;
+
+                    CheckFieldTraits<FieldType, Traits>();
 
                     sql += Indent::Value;
                     sql += Detail::Utility::QuoteReserved(Field::Name::Value);
                     sql += " ";
-                    sql += ExpandFieldInfo<typename Field::Type, Traits>();
+                    sql += ExpandFieldInfo<FieldType, Traits>();
+                    sql += WithTimezoneField<FieldType, Traits>();
                     sql += NullableField<Traits>();
                     sql += UniqueField<Traits>();
                     sql += PrimaryKeyField<Traits>();
-                    if (N - I > 1)
+                    if (Fields::Count - I > 1)
                         sql += ",";
                     sql += "\n";
-
-                    AppendField<T, I + 1, N>(sql);
                 }
 
-                template <typename T, std::size_t I, std::size_t N>
-                static typename std::enable_if<I == N, void>::type
+                template <typename T, std::size_t I>
+                static typename std::enable_if<I == 0, void>::type
                 AppendField(std::string &sql)
                 {
                     Common::Unused(sql);
@@ -192,33 +197,29 @@ namespace Mif
                     constexpr auto counter = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Counter, TTraits>::value;
                     constexpr auto isUInt32 = std::is_same<T, std::uint32_t>::value;
                     constexpr auto isUInt64 = std::is_same<T, std::uint64_t>::value;
-                    static_assert(!counter || (isUInt32 || isUInt64), "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] "
-                            "The counter field must be uint32 or uint64.");
 
-                    constexpr auto isTimestamp = std::is_same<T, boost::posix_time::ptime>::value;
-                    constexpr auto timezone = Common::Detail::TupleContains<Orm::Detail::FieldTraits::WithTimezone, TTraits>::value;
-
-                    static_assert(!timezone || isTimestamp, "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] "
-                            "The 'WITH TIMEZONE' attribute should only be used for date or timestamp types.");
-
-                    std::string type = std::conditional
+                    return std::conditional
                             <
                                 counter,
-                                typename std::conditional<isUInt32, Detail::Type::Serial, Detail::Type::BigSerial>::type,
+                                typename std::conditional
+                                    <
+                                        isUInt32,
+                                        Detail::Type::Serial,
+                                        typename std::conditional
+                                            <
+                                                isUInt64,
+                                                Detail::Type::BigSerial,
+                                                typename Detail::Type::Holder<T>::Name
+                                            >::type
+                                    >::type,
                                 typename Detail::Type::Holder<T>::Name
                             >::type::Value;
-
-                    if (timezone)
-                        type += (timezone) ? " WITH TIME ZONE" : " WITHOUT TIME ZONE";
-
-                    return type;
                 }
 
                 template <typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && Reflection::IsReflectable<T>(), std::string>::type
                 ExpandFieldInfo()
                 {
-                    // TODO: not a counter, no TZ
                     return Detail::Utility::QuoteReserved(GetSchemaName() + Reflection::Reflect<T>::Name::Value);
                 }
 
@@ -226,7 +227,6 @@ namespace Mif
                 static typename std::enable_if<std::is_enum<T>::value && !Reflection::IsReflectable<T>(), std::string>::type
                 ExpandFieldInfo()
                 {
-                    // TODO: not a counter, no TZ
                     return ExpandFieldInfo<typename std::underlying_type<T>::type>();
                 }
 
@@ -234,9 +234,6 @@ namespace Mif
                 static typename std::enable_if<Serialization::Traits::IsSmartPointer<T>(), std::string>::type
                 ExpandFieldInfo()
                 {
-                    constexpr auto notNull = Common::Detail::TupleContains<Orm::Detail::FieldTraits::NotNull, TTraits>::value;
-                    static_assert(!notNull, "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] "
-                            "The pointer field must not be NOT NULL.");
                     return ExpandFieldInfo<typename T::element_type, TTraits>();
                 }
 
@@ -267,8 +264,7 @@ namespace Mif
                 {
                     constexpr auto null = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Nullable, TTraits>::value;
                     constexpr auto notNull = Common::Detail::TupleContains<Orm::Detail::FieldTraits::NotNull, TTraits>::value;
-                    static_assert(!null || !notNull, "[Mif::Orm::PostgreSql::Schema;:NullableField] "
-                            "Conflicting NULL/NOT NULL declarations for column.");
+
                     return null ? " NULL" : notNull ? " NOT NULL" : "";
                 }
 
@@ -279,12 +275,63 @@ namespace Mif
                     return unique ? " UNIQUE" : "";
                 }
 
+                template <typename TField, typename TTraits>
+                static std::string WithTimezoneField()
+                {
+                    constexpr auto timestamp = std::is_same<TField, boost::posix_time::ptime>::value;
+                    if (!timestamp)
+                        return {};
+                    constexpr auto timezone = Common::Detail::TupleContains<Orm::Detail::FieldTraits::WithTimezone, TTraits>::value;
+                    return (timezone) ? " WITH TIME ZONE" : " WITHOUT TIME ZONE";
+                }
+
                 template <typename TTraits>
                 static std::string PrimaryKeyField()
                 {
                     // TODO: support multi primary key
                     constexpr auto pk = Common::Detail::TupleContains<Orm::Detail::FieldTraits::PrimaryKey<>, TTraits>::value;
                     return pk ? " PRIMARY KEY" : "";
+                }
+
+                template <typename TField, typename TTraits>
+                static void CheckFieldTraits()
+                {
+                    // The counter field must be a unsigned integer of 32 or 64 bits
+                    {
+                        constexpr auto counter = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Counter, TTraits>::value;
+                        constexpr auto isUInt32 = std::is_same<TField, std::uint32_t>::value;
+                        constexpr auto isUInt64 = std::is_same<TField, std::uint64_t>::value;
+
+                        static_assert(!counter || (counter && (isUInt32 || isUInt64)), "[Mif::Orm::PostgreSql::Driver::CheckFieldTraits] "
+                                "The counter field must be uint32 or uint64.");
+                    }
+
+                    // The TIMEZONE trait must be set only for DATE or TIMESTAMP field type
+                    {
+                        constexpr auto timestamp = std::is_same<TField, boost::posix_time::ptime>::value;
+                        constexpr auto timezone = Common::Detail::TupleContains<Orm::Detail::FieldTraits::WithTimezone, TTraits>::value;
+
+                        static_assert(!timezone || timestamp, "[Mif::Orm::PostgreSql::Driver::CheckFieldTraits] "
+                                "The 'WITH TIMEZONE' attribute should only be used for date or timestamp types.");
+                    }
+
+                    // The smart pointer field must not be NOT NULL
+                    {
+                        constexpr auto smartPointer = Serialization::Traits::IsSmartPointer<TField>();
+                        constexpr auto notNull = Common::Detail::TupleContains<Orm::Detail::FieldTraits::NotNull, TTraits>::value;
+
+                        static_assert(!smartPointer || !notNull, "[Mif::Orm::PostgreSql::Driver::CheckFieldTraits] "
+                                "The pointer field must not be NOT NULL.");
+                    }
+
+                    // NULL and NOT NULL must not be together set
+                    {
+                        constexpr auto null = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Nullable, TTraits>::value;
+                        constexpr auto notNull = Common::Detail::TupleContains<Orm::Detail::FieldTraits::NotNull, TTraits>::value;
+
+                        static_assert(!null || !notNull, "[Mif::Orm::PostgreSql::Schema;:CheckFieldTraits] "
+                                "Conflicting NULL/NOT NULL declarations for column.");
+                    }
                 }
             };
 
