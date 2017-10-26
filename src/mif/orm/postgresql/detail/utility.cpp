@@ -128,6 +128,13 @@ namespace Mif
                         return ReservedWordChecher::IsReserved(str) ? "\"" + str + "\"" : str;
                     }
 
+                    std::string QuoteValue(std::string const &str)
+                    {
+                        std::string tmp = str;
+                        boost::replace_all(tmp, "'", "''");
+                        return "'" + tmp + "'";
+                    }
+
                 }   // namespace Utility
             }   // namespace Detail
         }   // namespace PostgreSql

@@ -25,6 +25,7 @@ namespace Mif
                 template <typename ... TCoFields>
                 struct PrimaryKey;
                 struct Unique;
+                struct WithTimezone;
             };
 
         }   // namespace Detail

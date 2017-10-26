@@ -14,6 +14,7 @@
 
 // MIF
 #include "mif/db/iconnection.h"
+#include "mif/db/transaction.h"
 #include "mif/orm/schema.h"
 #include "mif/reflection/reflection.h"
 #include "mif/serialization/traits.h"
@@ -23,21 +24,23 @@ namespace Mif
     namespace Orm
     {
 
-        template <typename TSqlDriver, typename ... TSchemas>
+        template <typename TSchema, template <typename ... > class TSqlDriver>
         class Storage final
         {
         public:
-            Storage(Db::IConnectionPtr connection)
-                : m_connection{connection}
+            Storage(/*Db::IConnectionPtr connection*/)
+                //: m_connection{connection}
             {
-                // TODO: remove comments
-                /*if (!m_connection)
-                    throw std::invalid_argument{"[Mif::Orm::Storage] Empty connection ptr."};*/
+                if (!m_connection)
+                    throw std::invalid_argument{"[Mif::Orm::Storage] Empty connection ptr."};
             }
 
             void Create()
             {
-                // TODO: apply schema
+                Db::Transaction tr{m_connection};
+                auto const sql = SqlDriver::CreateSchema();
+                m_connection->ExecuteDirect(sql);
+                tr.Commit();
             }
 
             template <typename T>
@@ -55,6 +58,7 @@ namespace Mif
             }
 
         private:
+            using SqlDriver = TSqlDriver<TSchema>;
             Db::IConnectionPtr m_connection;
         };
 

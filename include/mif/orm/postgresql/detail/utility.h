@@ -23,6 +23,7 @@ namespace Mif
                 {
 
                     std::string QuoteReserved(std::string const &str);
+                    std::string QuoteValue(std::string const &str);
 
                 }   // namespace Utility
             }   // namespace Detail

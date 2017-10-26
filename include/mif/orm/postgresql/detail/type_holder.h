@@ -11,6 +11,9 @@
 // STD
 #include <string>
 
+// BOOST
+#include <boost/date_time/posix_time/ptime.hpp>
+
 // MIF
 #include "mif/common/static_string.h"
 
@@ -40,26 +43,29 @@ namespace Mif
                         using Type = T;
                     };
 
-                    MIF_ORM_POSTGRESQL_IMPL(bool, "integer")
-                    MIF_ORM_POSTGRESQL_IMPL(char, "integer")
-                    MIF_ORM_POSTGRESQL_IMPL(unsigned char, "integer")
-                    MIF_ORM_POSTGRESQL_IMPL(short, "integer")
-                    MIF_ORM_POSTGRESQL_IMPL(unsigned short, "integer")
-                    MIF_ORM_POSTGRESQL_IMPL(int, "integer")
-                    MIF_ORM_POSTGRESQL_IMPL(unsigned int, "integer")
+                    MIF_ORM_POSTGRESQL_IMPL(bool, "INTEGERU")
+                    MIF_ORM_POSTGRESQL_IMPL(char, "INTEGER")
+                    MIF_ORM_POSTGRESQL_IMPL(unsigned char, "INTEGER")
+                    MIF_ORM_POSTGRESQL_IMPL(short, "INTEGER")
+                    MIF_ORM_POSTGRESQL_IMPL(unsigned short, "INTEGER")
+                    MIF_ORM_POSTGRESQL_IMPL(int, "INTEGER")
+                    MIF_ORM_POSTGRESQL_IMPL(unsigned int, "INTEGER")
 
-                    MIF_ORM_POSTGRESQL_IMPL(long, "bigint")
-                    MIF_ORM_POSTGRESQL_IMPL(unsigned long, "bigint")
-                    MIF_ORM_POSTGRESQL_IMPL(long long, "bigint")
-                    MIF_ORM_POSTGRESQL_IMPL(unsigned long long, "bigint")
+                    MIF_ORM_POSTGRESQL_IMPL(long, "BIGINT")
+                    MIF_ORM_POSTGRESQL_IMPL(unsigned long, "BIGINT")
+                    MIF_ORM_POSTGRESQL_IMPL(long long, "BIGINT")
+                    MIF_ORM_POSTGRESQL_IMPL(unsigned long long, "BIGINT")
 
-                    MIF_ORM_POSTGRESQL_IMPL(float, "real")
-                    MIF_ORM_POSTGRESQL_IMPL(double, "double precision")
+                    MIF_ORM_POSTGRESQL_IMPL(float, "REAL")
+                    MIF_ORM_POSTGRESQL_IMPL(double, "DOUBLE PRECISION")
 
-                    MIF_ORM_POSTGRESQL_IMPL(std::string, "varchar")
+                    MIF_ORM_POSTGRESQL_IMPL(std::string, "VARCHAR")
 
-                    using Serial = MIF_STATIC_STR("serial");
-                    using BigSerial = MIF_STATIC_STR("bigserial");
+                    MIF_ORM_POSTGRESQL_IMPL(boost::posix_time::ptime::date_type, "DATE")
+                    MIF_ORM_POSTGRESQL_IMPL(boost::posix_time::ptime, "TIMESTAMP")
+
+                    using Serial = MIF_STATIC_STR("SERIAL");
+                    using BigSerial = MIF_STATIC_STR("BIGSERIAL");
 
                 }   //namespace Type
             }   // namespace Detail

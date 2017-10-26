@@ -31,6 +31,12 @@ namespace Mif
 
             }   // namespace StringProviders
 
+            template <typename T>
+            struct EnumInfo
+            {
+                using Type = T;
+            };
+
             template <typename TEntity, typename ... TTraits>
             struct TableInfo
             {
@@ -57,12 +63,17 @@ namespace Mif
                 using MultiPrimaryKey = FieldInfo<TTable, TField, FieldTraits::PrimaryKey<TCoFields ... >, ThisType, TNext ... >;
                 using PrimaryKey = MultiPrimaryKey<>;
                 using Unique = FieldInfo<TTable, TField, FieldTraits::Unique, ThisType, TNext ... >;
+                using WithTimezone = FieldInfo<TTable, TField, FieldTraits::WithTimezone, ThisType, TNext ... >;
             };
 
             namespace Traits
             {
                 namespace Detail
                 {
+
+                    template <typename T>
+                    constexpr std::true_type IsEnum(EnumInfo<T> const *);
+                    constexpr std::false_type IsEnum(...);
 
                     template <typename TEntity, typename ... TTraits>
                     constexpr std::true_type IsTable(TableInfo<TEntity, TTraits ... > const *);
@@ -159,6 +170,12 @@ namespace Mif
                 }   // namespace Detail
 
                 template <typename T>
+                inline constexpr bool IsEnum()
+                {
+                    return std::is_same<decltype(Detail::IsEnum(static_cast<T const *>(nullptr))), std::true_type>::value;
+                }
+
+                template <typename T>
                 inline constexpr bool IsTable()
                 {
                     return std::is_same<decltype(Detail::IsTable(static_cast<T const *>(nullptr))), std::true_type>::value;
@@ -186,6 +203,16 @@ namespace Mif
         }   // namespace Detail
 
         using DefailtSchemaName = Detail::StringProviders::DefailtSchemaName;
+
+        template <typename T>
+        class Enum
+        {
+        public:
+            static_assert(std::is_enum<T>::value && Reflection::IsReflectable<T>(),
+                    "[Mif::Orm::Table] The type must be a enum type and a reflectable type.");
+
+            using Create = Detail::EnumInfo<T>;
+        };
 
         template <typename TEntity>
         class Table
@@ -219,9 +246,9 @@ namespace Mif
             using Items = std::tuple<TItems ... >;
 
             template <template <typename ... > class T>
-            static std::string Dump()
+            static std::string CreateSchema()
             {
-                return T<Schema<Name, Items>>::Dump();
+                return T<Schema<Name, TItems ... >>::CreateSchema();
             }
         };
 
