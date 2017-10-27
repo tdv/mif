@@ -81,6 +81,7 @@ namespace Mif
     struct field_ ## _FieldTypeMetaInfo final \
     { \
         using TypeNameProvider = MIF_STATIC_STR( #field_ ); \
+        using ClassType = TClass; \
         using FieldType = decltype(TClass::field_); \
         template<typename U = TClass, class = typename std::enable_if<!std::is_enum<U>::value, U>::type> \
         static constexpr FieldType U ::* Access() \
@@ -95,6 +96,7 @@ namespace Mif
     struct field_ ## _ItemTypeMetaInfo final \
     { \
         using TypeNameProvider = MIF_STATIC_STR( #field_ ); \
+        using ClassType = TClass; \
         using FieldType = ClassType; \
         template<typename U = TClass, class = typename std::enable_if<std::is_enum<U>::value, U>::type> \
         static constexpr FieldType Access() \

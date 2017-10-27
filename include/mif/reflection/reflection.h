@@ -46,6 +46,7 @@ namespace Mif
             struct FieldItem
             {
                 using Name = typename T::TypeNameProvider;
+                using Class = typename T::ClassType;
                 using Type = typename T::FieldType;
                 static constexpr auto Access() -> decltype(T::Access())
                 {

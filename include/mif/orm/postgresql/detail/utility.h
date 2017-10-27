@@ -9,6 +9,7 @@
 #define __MIF_ORM_POSTGRESQL_DETAIL_UTILITY_H__
 
 // STD
+#include <set>
 #include <string>
 
 namespace Mif

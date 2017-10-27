@@ -9,17 +9,24 @@
 #define __MIF_ORM_POSTGRESQL_DRIVER_H__
 
 // STD
+#include <algorithm>
+#include <iterator>
+#include <set>
 #include <string>
 #include <tuple>
 #include <type_traits>
 
+// BOOST
+#include <boost/algorithm/string.hpp>
+
 // MIF
 #include "mif/common/detail/tuple_utility.h"
 #include "mif/common/unused.h"
-#include "mif/orm/detail/field_traits.h"
+#include "mif/orm/detail/utility.h"
 #include "mif/orm/postgresql/detail/type_holder.h"
 #include "mif/orm/postgresql/detail/utility.h"
 #include "mif/orm/schema.h"
+#include "mif/reflection/reflection.h"
 #include "mif/serialization/traits.h"
 
 namespace Mif
@@ -43,7 +50,7 @@ namespace Mif
                     if (!sql.empty())
                         sql += "\n";
 
-                    sql += CreateItem<Items, std::tuple_size<Items>::value>();
+                    sql += CreateItem<Items, std::tuple_size<Items>::value, std::tuple<>>();
 
                     return sql;
                 }
@@ -79,21 +86,28 @@ namespace Mif
                     return sql;
                 }
 
-                template <typename T, std::size_t I>
+                template <typename T, std::size_t I, typename TRes>
                 static typename std::enable_if<I == 0, std::string>::type
                 CreateItem()
                 {
                     return {};
                 }
 
-                template <typename T, std::size_t I>
+                template <typename T, std::size_t I, typename TRes>
                 static typename std::enable_if<I != 0, std::string>::type
                 CreateItem()
                 {
-                    auto sql = CreateItem<typename std::tuple_element<std::tuple_size<T>::value - I, Items>::type>();
+                    using Item = typename std::tuple_element<std::tuple_size<T>::value - I, Items>::type;
+
+                    static_assert(!Common::Detail::TupleContains<Item, TRes>::value,
+                            "[Mif::Orm::PostgreSql::Driver::CreateItem] In the schema all elements must be unique."
+                        );
+
+                    auto sql = CreateItem<Item>();
                     if (!sql.empty())
                         sql += "\n";
-                    sql += CreateItem<T, I - 1>();
+                    sql += CreateItem<T, I - 1, typename Common::Detail::TupleCat<std::tuple<Item>, TRes>::Tuple>();
+
                     return sql;
                 }
 
@@ -101,14 +115,24 @@ namespace Mif
                 static typename std::enable_if<Orm::Detail::Traits::IsTable<T>(), std::string>::type
                 CreateItem()
                 {
-                    // TODO: append checking unique tables
-                    // TODO: append checking unique primary key (only one primary key must be in table)
                     using Type = typename T::Type;
                     using Meta = Reflection::Reflect<Type>;
                     std::string name = Meta::Name::Value;
                     auto sql = "CREATE TABLE " + Detail::Utility::QuoteReserved(GetSchemaName() + name) + "\n";
                     sql += "(\n";
                     AppendField<T, Meta::Fields::Count>(sql);
+
+                    auto const pkMulti = MultiPrimaryKey<typename Meta::Fields, typename T::Traits>();
+                    if (!pkMulti.empty())
+                    {
+                        auto pos = sql.find_last_not_of('\n');
+                        if (pos != std::string::npos)
+                            sql.erase(pos + 1);
+                        sql += ",\n";
+                        sql += pkMulti;
+                        sql += "\n";
+                    }
+
                     sql += ");\n";
                     return sql;
                 }
@@ -117,7 +141,6 @@ namespace Mif
                 static typename std::enable_if<Orm::Detail::Traits::IsEnum<T>(), std::string>::type
                 CreateItem()
                 {
-                    // TODO: append checking unique enums
                     using Type = typename T::Type;
                     using Meta = Reflection::Reflect<Type>;
                     std::string name = Detail::Utility::QuoteReserved(GetSchemaName() + Meta::Name::Value);
@@ -138,7 +161,7 @@ namespace Mif
                     using Field = typename Fields::template Field<I - 1>;
                     sql += Indent::Value;
                     sql += Detail::Utility::QuoteValue(Field::Name::Value);
-                    if (Fields::Count - I > 1)
+                    if (Fields::Count - I > 0)
                         sql += ",";
                     sql += "\n";
                 }
@@ -172,8 +195,10 @@ namespace Mif
                     sql += NullableField<Traits>();
                     sql += UniqueField<Traits>();
                     sql += PrimaryKeyField<Traits>();
-                    if (Fields::Count - I > 1)
+
+                    if (Fields::Count - I > 0)
                         sql += ",";
+
                     sql += "\n";
                 }
 
@@ -241,7 +266,18 @@ namespace Mif
                 static typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, std::string>::type
                 ExpandFieldInfo()
                 {
-                    // TODO: nested entity
+                    // TODO: add implementation for reflectable type
+
+                    using Item = Orm::Detail::Utility::SelectTableItem<T, Items>;
+                    using Entity = typename Item::Type;
+                    using Traits = typename Item::Traits;
+                    using Meta = typename Reflection::Reflect<Entity>;
+                    using PrimaryKeyFields = Orm::Detail::Traits::PrimaryKeyFields<typename Meta::Fields, Traits>;
+                    constexpr auto hasPrimaryKey = std::tuple_size<PrimaryKeyFields>::value;
+                    static_assert(hasPrimaryKey, "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] "
+                            "Can not create a relationship for tables. There is no primary key in the owner table."
+                        );
+
                     return {};
                 }
 
@@ -249,13 +285,25 @@ namespace Mif
                 static typename std::enable_if
                     <
                         Serialization::Traits::IsIterable<T>() &&
-                        !std::is_same<T, std::string>::value &&
                         Reflection::IsReflectable<typename T::value_type>(),
                         std::string
                     >::type
                 ExpandFieldInfo()
                 {
-                    // TODO: collection with reflectable struct (nested struct collection)
+                    // TODO: add implementation for collections of reflectable types
+                    return {};
+                }
+
+                template <typename T, typename TTraits>
+                static typename std::enable_if
+                    <
+                        Serialization::Traits::IsIterable<T>() &&
+                        !Reflection::IsReflectable<typename T::value_type>(),
+                        std::string
+                    >::type
+                ExpandFieldInfo()
+                {
+                    // TODO: add implementation for collections of not reflectable types
                     return {};
                 }
 
@@ -288,9 +336,29 @@ namespace Mif
                 template <typename TTraits>
                 static std::string PrimaryKeyField()
                 {
-                    // TODO: support multi primary key
-                    constexpr auto pk = Common::Detail::TupleContains<Orm::Detail::FieldTraits::PrimaryKey<>, TTraits>::value;
-                    return pk ? " PRIMARY KEY" : "";
+                    using PrimaryKey = Orm::Detail::Traits::PrimaryKeyTrait<TTraits>;
+                    if (!PrimaryKey::value)
+                        return {};
+                    return !std::tuple_size<typename PrimaryKey::CoFields>::value ? " PRIMARY KEY" : "";
+                }
+
+                template <typename TFields, typename TTraits>
+                static std::string MultiPrimaryKey()
+                {
+                    using PkFields = Orm::Detail::Traits::PrimaryKeyFields<TFields, TTraits>;
+                    if (std::tuple_size<PkFields>::value < 2)
+                        return {};
+                    std::string sql = Indent::Value;
+                    sql += "PRIMARY KEY (";
+                    auto const names = Orm::Detail::Utility::CreateNameSet<PkFields>();
+                    std::set<std::string> quotedNames;
+                    std::transform(std::begin(names), std::end(names),
+                            std::inserter(quotedNames, std::begin(quotedNames)),
+                            [] (std::string const &str) { return Detail::Utility::QuoteReserved(str); }
+                        );
+                    sql += boost::algorithm::join(quotedNames, ", ");
+                    sql += ")";
+                    return sql;
                 }
 
                 template <typename TField, typename TTraits>
