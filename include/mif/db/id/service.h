@@ -23,7 +23,9 @@ namespace Mif
                 enum
                 {
                     PostgreSQL = Common::Crc32("Mif.Db.Service.Connection.PostgreSQL"),
-                    SQLite = Common::Crc32("Mif.Db.Service.Connection.SQLite")
+                    SQLite = Common::Crc32("Mif.Db.Service.Connection.SQLite"),
+
+                    PostgresPerThreadPool = Common::Crc32("Mif.Db.Service.PostgresPerThreadPool")
                 };
 
             }   // namespace Service

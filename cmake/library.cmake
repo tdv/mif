@@ -55,6 +55,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/statement.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/recordset.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/per_thread_connection_pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/statement.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/recordset.cpp

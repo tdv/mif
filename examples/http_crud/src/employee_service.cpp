@@ -14,14 +14,10 @@
 
 // MIF
 #include <mif/common/log.h>
-#include <mif/db/iconnection.h>
 #include <mif/db/id/service.h>
 #include <mif/db/transaction.h>
 #include <mif/reflection/reflection.h>
-#include <mif/service/id/service.h>
 #include <mif/service/create.h>
-#include <mif/service/factory.h>
-#include <mif/service/make.h>
 
 // THIS
 #include "employee_service.h"
@@ -40,20 +36,8 @@ namespace Service
 
         AddHandler(pathPrefix + "/list", this, &EmployeeService::List);
 
-        // Create and fill service factory
-        auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
-        factory->AddClass<Mif::Db::Id::Service::PostgreSQL>(
-                dbConfig->GetValue("host"),
-                dbConfig->GetValue<std::uint16_t>("port"),
-                dbConfig->GetValue("user"),
-                dbConfig->GetValue("password"),
-                dbConfig->GetValue("dbname"),
-                dbConfig->GetValue<std::uint32_t>("connectiontimeout")
-            );
-
-        m_connectionPool = Mif::Service::Create<Mif::Service::Id::PerThreadPool, Mif::Service::IPool>(
-                Mif::Service::IFactoryPtr{factory},
-                Mif::Service::ServiceId{Mif::Db::Id::Service::PostgreSQL}
+        m_connections = Mif::Service::Create<Mif::Db::Id::Service::PostgresPerThreadPool, Mif::Db::IConnectionPool>(
+                dbConfig
             );
     }
 
@@ -92,7 +76,7 @@ namespace Service
 
         auto const &data = employee.Get();
 
-        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+        auto connection = m_connections->GetConnection();
         Mif::Db::Transaction tr{connection};
 
         auto statement = connection->CreateStatement(
@@ -123,7 +107,7 @@ namespace Service
         if (!id || id.Get().empty())
             throw std::invalid_argument{"Id must not be empty."};
 
-        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+        auto connection = m_connections->GetConnection();
         Mif::Db::Transaction tr{connection};
 
         auto statement = connection->CreateStatement(
@@ -165,7 +149,7 @@ namespace Service
 
         auto const &data = employee.Get();
 
-        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+        auto connection = m_connections->GetConnection();
         Mif::Db::Transaction tr{connection};
 
         auto statement = connection->CreateStatement(
@@ -197,7 +181,7 @@ namespace Service
         if (!id || id.Get().empty())
             throw std::invalid_argument{"Id must not be empty."};
 
-        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+        auto connection = m_connections->GetConnection();
         Mif::Db::Transaction tr{connection};
 
         auto statement = connection->CreateStatement(
@@ -224,7 +208,7 @@ namespace Service
     EmployeeService::List(Prm<std::size_t, Name("offset")> const &offset,
                           Prm<std::size_t, Name("limit")> const &limit)
     {
-        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+        auto connection = m_connections->GetConnection();
         Mif::Db::Transaction tr{connection};
 
         std::string sql = "SELECT name, last_name, age, email, position, rate, employee_id "

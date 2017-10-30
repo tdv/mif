@@ -10,6 +10,7 @@
 
 // MIF
 #include <mif/application/iconfig.h>
+#include <mif/db/iconnection_pool.h>
 #include <mif/net/http/web_service.h>
 #include <mif/service/ipool.h>
 
@@ -30,7 +31,7 @@ namespace Service
         template <typename T>
         using InputContent = Content<T, Mif::Net::Http::JsonContentParamConverter>;
 
-        Mif::Service::IPoolPtr m_connectionPool;
+        Mif::Db::IConnectionPoolPtr m_connections;
 
         Data::Response::Info CreateMeta(std::uint32_t code = 0, std::string const &message = {}) const;
         std::string FormatExceptionMessage(std::string const &message) const;

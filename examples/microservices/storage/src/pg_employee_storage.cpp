@@ -11,15 +11,11 @@
 // MIF
 #include <mif/application/iconfig.h>
 #include <mif/common/log.h>
-#include <mif/db/iconnection.h>
+#include <mif/db/iconnection_pool.h>
 #include <mif/db/id/service.h>
 #include <mif/db/transaction.h>
 #include <mif/reflection/reflection.h>
 #include <mif/service/creator.h>
-#include <mif/service/factory.h>
-#include <mif/service/id/service.h>
-#include <mif/service/ipool.h>
-#include <mif/service/make.h>
 
 // COMMON
 #include "common/id/service.h"
@@ -42,24 +38,13 @@ namespace Storage
                     if (!config)
                         throw std::invalid_argument{"[Storage::Detail::PGEmployeeStorage] Empty config ptr."};
 
-                    auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
-                    factory->AddClass<Mif::Db::Id::Service::PostgreSQL>(
-                            config->GetValue("host"),
-                            config->GetValue<std::uint16_t>("port"),
-                            config->GetValue("user"),
-                            config->GetValue("password"),
-                            config->GetValue("dbname"),
-                            config->GetValue<std::uint32_t>("connectiontimeout")
-                        );
-
-                    m_connectionPool = Mif::Service::Create<Mif::Service::Id::PerThreadPool, Mif::Service::IPool>(
-                            Mif::Service::IFactoryPtr{factory},
-                            Mif::Service::ServiceId{Mif::Db::Id::Service::PostgreSQL}
+                    m_connections = Mif::Service::Create<Mif::Db::Id::Service::PostgresPerThreadPool, Mif::Db::IConnectionPool>(
+                            config
                         );
                 }
 
             private:
-                Mif::Service::IPoolPtr m_connectionPool;
+                Mif::Db::IConnectionPoolPtr m_connections;
 
                 // IEmployeeStorage
                 virtual Common::Data::ID Create(Common::Data::Employee const &employee) override final
@@ -68,7 +53,7 @@ namespace Storage
 
                     try
                     {
-                        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+                        auto connection = m_connections->GetConnection();
                         Mif::Db::Transaction tr{connection};
 
                         auto statement = connection->CreateStatement(
@@ -105,7 +90,7 @@ namespace Storage
 
                     try
                     {
-                        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+                        auto connection = m_connections->GetConnection();
                         Mif::Db::Transaction tr{connection};
 
                         auto statement = connection->CreateStatement(
@@ -144,7 +129,7 @@ namespace Storage
                 {
                     try
                     {
-                        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+                        auto connection = m_connections->GetConnection();
                         Mif::Db::Transaction tr{connection};
 
                         auto statement = connection->CreateStatement(
@@ -178,7 +163,7 @@ namespace Storage
                 {
                     try
                     {
-                        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+                        auto connection = m_connections->GetConnection();
                         Mif::Db::Transaction tr{connection};
 
                         auto statement = connection->CreateStatement(
@@ -211,7 +196,7 @@ namespace Storage
 
                     try
                     {
-                        auto connection = m_connectionPool->GetService<Mif::Db::IConnection>();
+                        auto connection = m_connections->GetConnection();
                         Mif::Db::Transaction tr{connection};
 
                         std::string sql = "SELECT name, last_name, age, email, position, rate, employee_id "

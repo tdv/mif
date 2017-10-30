@@ -12,7 +12,7 @@
 #include <string>
 
 // MIF
-#include <mif/db/istatement.h>
+#include "mif/db/istatement.h"
 #include "mif/service/iservice.h"
 
 namespace Mif
