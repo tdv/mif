@@ -8,6 +8,10 @@
 #ifndef __MIF_ORM_POSTGRESQL_DETAIL_TYPE_HOLDER_H__
 #define __MIF_ORM_POSTGRESQL_DETAIL_TYPE_HOLDER_H__
 
+// MIF
+#include "mif/common/config.h"
+#ifdef MIF_WITH_POSTGRESQL
+
 // STD
 #include <string>
 
@@ -75,4 +79,5 @@ namespace Mif
 
 #undef MIF_ORM_POSTGRESQL_IMPL
 
+#endif  // !MIF_WITH_POSTGRESQL
 #endif  // !__MIF_ORM_POSTGRESQL_DETAIL_TYPE_HOLDER_H__

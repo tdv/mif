@@ -8,6 +8,10 @@
 #ifndef __MIF_ORM_POSTGRESQL_DRIVER_H__
 #define __MIF_ORM_POSTGRESQL_DRIVER_H__
 
+// MIF
+#include "mif/common/config.h"
+#ifdef MIF_WITH_POSTGRESQL
+
 // STD
 #include <algorithm>
 #include <iterator>
@@ -182,22 +186,24 @@ namespace Mif
                     using Entity = typename T::Type;
                     using Fields = typename Reflection::Reflect<Entity>::Fields;
                     using Field = typename Fields::template Field<I - 1>;
+                    using Name = typename Field::Name;
                     using FieldType = typename Field::Type;
                     using Traits = Orm::Detail::Traits::MakeFieldTraitsList<Field, typename T::Traits>;
 
                     CheckFieldTraits<FieldType, Traits>();
 
                     sql += Indent::Value;
-                    sql += Detail::Utility::QuoteReserved(Field::Name::Value);
-                    sql += " ";
-                    sql += ExpandFieldInfo<FieldType, Traits>();
+
+                    std::string linkedTable;
+                    sql += ExpandFieldInfo<Name, FieldType, Traits>(linkedTable);
+
                     sql += WithTimezoneField<FieldType, Traits>();
                     sql += NullableField<Traits>();
                     sql += UniqueField<Traits>();
                     sql += PrimaryKeyField<Traits>();
 
                     if (Fields::Count - I > 0)
-                        sql += ",";
+                        sql +=  "," ;
 
                     sql += "\n";
                 }
@@ -209,7 +215,7 @@ namespace Mif
                     Common::Unused(sql);
                 }
 
-                template <typename T, typename TTraits>
+                template <typename TFName, typename T, typename TTraits>
                 static typename std::enable_if
                     <
                         std::is_arithmetic<T>::value || std::is_same<T, std::string>::value ||
@@ -217,13 +223,17 @@ namespace Mif
                         std::is_same<T, boost::posix_time::ptime>::value,
                         std::string
                     >::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
+                    Common::Unused(linkedTable);
+
                     constexpr auto counter = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Counter, TTraits>::value;
                     constexpr auto isUInt32 = std::is_same<T, std::uint32_t>::value;
                     constexpr auto isUInt64 = std::is_same<T, std::uint64_t>::value;
 
-                    return std::conditional
+                    auto const name = Detail::Utility::QuoteReserved(TFName::Value) + " ";
+
+                    return name + std::conditional
                             <
                                 counter,
                                 typename std::conditional
@@ -241,30 +251,33 @@ namespace Mif
                             >::type::Value;
                 }
 
-                template <typename T, typename TTraits>
+                template <typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && Reflection::IsReflectable<T>(), std::string>::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
-                    return Detail::Utility::QuoteReserved(GetSchemaName() + Reflection::Reflect<T>::Name::Value);
+                    Common::Unused(linkedTable);
+
+                    auto const name = Detail::Utility::QuoteReserved(TFName::Value) + " ";
+                    return name + Detail::Utility::QuoteReserved(GetSchemaName() + Reflection::Reflect<T>::Name::Value);
                 }
 
-                template <typename T, typename TTraits>
+                template <typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && !Reflection::IsReflectable<T>(), std::string>::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
-                    return ExpandFieldInfo<typename std::underlying_type<T>::type>();
+                    return ExpandFieldInfo<TFName, typename std::underlying_type<T>::type, TTraits>(linkedTable);
                 }
 
-                template <typename T, typename TTraits>
+                template <typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<Serialization::Traits::IsSmartPointer<T>(), std::string>::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
-                    return ExpandFieldInfo<typename T::element_type, TTraits>();
+                    return ExpandFieldInfo<TFName, typename T::element_type, TTraits>(linkedTable);
                 }
 
-                template <typename T, typename TTraits>
+                template <typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, std::string>::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
                     // TODO: add implementation for reflectable type
 
@@ -278,6 +291,11 @@ namespace Mif
                             "Can not create a relationship for tables. There is no primary key in the owner table."
                         );
 
+                    linkedTable = "CREATE TABLE " + Detail::Utility::QuoteReserved(GetSchemaName() + TFName::Value) + "\n";
+                    linkedTable += "(\n";
+
+                    linkedTable += ");\n";
+
                     return {};
                 }
 
@@ -288,20 +306,20 @@ namespace Mif
                         Reflection::IsReflectable<typename T::value_type>(),
                         std::string
                     >::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
                     // TODO: add implementation for collections of reflectable types
                     return {};
                 }
 
-                template <typename T, typename TTraits>
+                template <typename TFName, typename T, typename TTraits>
                 static typename std::enable_if
                     <
                         Serialization::Traits::IsIterable<T>() &&
                         !Reflection::IsReflectable<typename T::value_type>(),
                         std::string
                     >::type
-                ExpandFieldInfo()
+                ExpandFieldInfo(std::string &linkedTable)
                 {
                     // TODO: add implementation for collections of not reflectable types
                     return {};
@@ -339,7 +357,7 @@ namespace Mif
                     using PrimaryKey = Orm::Detail::Traits::PrimaryKeyTrait<TTraits>;
                     if (!PrimaryKey::value)
                         return {};
-                    return !std::tuple_size<typename PrimaryKey::CoFields>::value ? " PRIMARY KEY" : "";
+                    return !std::tuple_size<typename PrimaryKey::CoFields>::value ? "PRIMARY KEY" : "";
                 }
 
                 template <typename TFields, typename TTraits>
@@ -349,7 +367,7 @@ namespace Mif
                     if (std::tuple_size<PkFields>::value < 2)
                         return {};
                     std::string sql = Indent::Value;
-                    sql += "PRIMARY KEY (";
+                    sql += " PRIMARY KEY (";
                     auto const names = Orm::Detail::Utility::CreateNameSet<PkFields>();
                     std::set<std::string> quotedNames;
                     std::transform(std::begin(names), std::end(names),
@@ -400,6 +418,8 @@ namespace Mif
                         static_assert(!null || !notNull, "[Mif::Orm::PostgreSql::Schema;:CheckFieldTraits] "
                                 "Conflicting NULL/NOT NULL declarations for column.");
                     }
+
+                    // TODO: all of the primary key fields must be a simple type
                 }
             };
 
@@ -407,4 +427,5 @@ namespace Mif
     }   // namespace Orm
 }   // namespace Mif
 
+#endif  // !MIF_WITH_POSTGRESQL
 #endif  // !__MIF_ORM_POSTGRESQL_DRIVER_H__

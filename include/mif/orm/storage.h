@@ -28,8 +28,8 @@ namespace Mif
         class Storage final
         {
         public:
-            Storage(/*Db::IConnectionPtr connection*/)
-                //: m_connection{connection}
+            Storage(Db::IConnectionPtr connection)
+                : m_connection{connection}
             {
                 if (!m_connection)
                     throw std::invalid_argument{"[Mif::Orm::Storage] Empty connection ptr."};
