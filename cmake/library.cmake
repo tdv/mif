@@ -2,6 +2,18 @@ include (cmake/version.cmake)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/mif/common/version.h)
 
+set (MIF_COMPILER_DEFINES )
+
+if (MIF_WITH_SQLITE)
+    set (MIF_COMPILER_DEFINES "${MIF_COMPILER_DEFINES}\n#define MIF_WITH_SQLITE")
+endif()
+
+if (MIF_WITH_POSTGRESQL)
+    set (MIF_COMPILER_DEFINES "${MIF_COMPILER_DEFINES}\n#define MIF_WITH_POSTGRESQL")
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/mif/common/config.h)
+
 set(MIF_SOURCES
     ${MIF_SOURCES}
     
@@ -51,19 +63,32 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/application/config/xml.cpp
 
-    # Db
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/connection.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/statement.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/recordset.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/per_thread_connection_pool.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/connection.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/statement.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/recordset.cpp
+    # DB
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/transaction.cpp
-
-    # ORM
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/orm/postgresql/detail/utility.cpp
 )
+
+if (MIF_WITH_SQLITE)
+    set(MIF_SOURCES
+        ${MIF_SOURCES}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/connection.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/statement.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/recordset.cpp
+        )
+endif()
+
+if (MIF_WITH_POSTGRESQL)
+    set(MIF_SOURCES
+        ${MIF_SOURCES}
+            # DB
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/connection.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/statement.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/recordset.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/connection_pool.cpp
+            
+            # ORM
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/orm/postgresql/detail/utility.cpp
+        )
+endif()
 
 set (MIF_DEPENDENCIES_LIBRARIES
     ${MIF_DEPENDENCIES_LIBRARIES}
@@ -72,9 +97,19 @@ set (MIF_DEPENDENCIES_LIBRARIES
     ${ZLIB_LIBRARIES}
     ${EVENT_LIBRARIES}
     ${PUGIXML_LIBRARIES}
-    ${LIBPQ_LIBRARIES}
-    ${SQLITE_LIBRARIES}
 )
+
+if (MIF_WITH_SQLITE)
+    set (MIF_DEPENDENCIES_LIBRARIES
+         ${SQLITE_LIBRARIES}
+    )
+endif()
+
+if (MIF_WITH_POSTGRESQL)
+    set (MIF_DEPENDENCIES_LIBRARIES
+        ${LIBPQ_LIBRARIES}
+    )
+endif()
 
 include_directories (include)
 include_directories (MIF_SOURCES)

@@ -9,6 +9,7 @@
 #define __MIF_DB_ID_SERVICE_H__
 
 // MIF
+#include "mif/common/config.h"
 #include "mif/common/crc32.h"
 
 namespace Mif
@@ -22,10 +23,16 @@ namespace Mif
 
                 enum
                 {
+#ifdef MIF_WITH_POSTGRESQL
                     PostgreSQL = Common::Crc32("Mif.Db.Service.Connection.PostgreSQL"),
-                    SQLite = Common::Crc32("Mif.Db.Service.Connection.SQLite"),
-
-                    PostgresPerThreadPool = Common::Crc32("Mif.Db.Service.PostgresPerThreadPool")
+                    PostgresConnectionPool = Common::Crc32("Mif.Db.Service.PostgresConnectionPool")
+#endif  // !MIF_WITH_POSTGRESQL
+#ifdef MIF_WITH_SQLITE
+#ifdef MIF_WITH_POSTGRESQL
+                    ,
+#endif  // !MIF_WITH_POSTGRESQL
+                    SQLite = Common::Crc32("Mif.Db.Service.Connection.SQLite")
+#endif  // !MIF_WITH_SQLITE
                 };
 
             }   // namespace Service

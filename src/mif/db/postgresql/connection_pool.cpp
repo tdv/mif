@@ -29,26 +29,26 @@ namespace Mif
             namespace
             {
 
-                class PerThreadConnectionPool
+                class ConnectionPool
                     : public Service::Inherit<IConnectionPool>
                 {
                 public:
-                    PerThreadConnectionPool(std::string const &host, std::uint16_t port, std::string const &user, std::string const &password,
+                    ConnectionPool(std::string const &host, std::uint16_t port, std::string const &user, std::string const &password,
                             std::string const &db, std::uint32_t connectionTimeout)
                     {
                         Init(host, port, user, password, db, connectionTimeout);
                     }
 
-                    PerThreadConnectionPool(Application::IConfigPtr config)
+                    ConnectionPool(Application::IConfigPtr config)
                     {
                         if (!config)
                         {
-                            throw std::invalid_argument{"[Mif::Db::PostgreSql::PerThreadConnectionPool] "
+                            throw std::invalid_argument{"[Mif::Db::PostgreSql::ConnectionPool] "
                                     "Empty config ptr."};
                         }
 
                         Init(config->GetValue("host"),
-                             config->GetValue<std::uint8_t>("port"),
+                             config->GetValue<std::uint16_t>("port"),
                              config->GetValue("user"),
                              config->GetValue("password"),
                              config->GetValue("dbname"),
@@ -94,8 +94,8 @@ namespace Mif
 
 MIF_SERVICE_CREATOR
 (
-    Mif::Db::Id::Service::PostgresPerThreadPool,
-    Mif::Db::PostgreSql::PerThreadConnectionPool,
+    Mif::Db::Id::Service::PostgresConnectionPool,
+    Mif::Db::PostgreSql::ConnectionPool,
     std::string,
     std::uint16_t,
     std::string,
@@ -106,7 +106,7 @@ MIF_SERVICE_CREATOR
 
 MIF_SERVICE_CREATOR
 (
-    Mif::Db::Id::Service::PostgresPerThreadPool,
-    Mif::Db::PostgreSql::PerThreadConnectionPool,
+    Mif::Db::Id::Service::PostgresConnectionPool,
+    Mif::Db::PostgreSql::ConnectionPool,
     Mif::Application::IConfigPtr
 )

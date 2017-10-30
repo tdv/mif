@@ -13,6 +13,7 @@ set (CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(LIBRARIES
+    ${LIBRARIES}
     mif
     boost_iostreams
     boost_date_time
@@ -26,8 +27,20 @@ set(LIBRARIES
     event
     pugixml
     pthread
-    pq.a
-    sqlite3
     z
     rt
 )
+
+if (MIF_WITH_SQLITE)
+    set(LIBRARIES
+        ${LIBRARIES}
+        sqlite3
+    )
+endif()
+
+if (MIF_WITH_POSTGRESQL)
+    set(LIBRARIES
+        ${LIBRARIES}
+        pq.a
+    )
+endif()

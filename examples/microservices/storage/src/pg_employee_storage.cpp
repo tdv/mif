@@ -38,9 +38,9 @@ namespace Storage
                     if (!config)
                         throw std::invalid_argument{"[Storage::Detail::PGEmployeeStorage] Empty config ptr."};
 
-                    m_connections = Mif::Service::Create<Mif::Db::Id::Service::PostgresPerThreadPool, Mif::Db::IConnectionPool>(
-                            config
-                        );
+                    m_connections = Mif::Service::Create
+                            <Mif::Db::Id::Service::PostgresConnectionPool, Mif::Db::IConnectionPool>
+                            (config);
                 }
 
             private:

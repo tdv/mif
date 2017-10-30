@@ -1,3 +1,4 @@
+include (../../cmake/options.cmake)
 include (../common/cmake/settings.cmake)
 
 set (THITD_PARTY_PATH "${CMAKE_SOURCE_DIR}/../../third_party")
@@ -15,11 +16,15 @@ link_directories (${THITD_PARTY_PATH}/jsoncpp/lib)
 include_directories (SYSTEM ${THITD_PARTY_PATH}/event/include)
 link_directories (${THITD_PARTY_PATH}/event/lib)
 
-include_directories (SYSTEM ${THITD_PARTY_PATH}/libpq/include)
-link_directories (${THITD_PARTY_PATH}/libpq/lib)
+if (MIF_WITH_POSTGRESQL)
+    include_directories (SYSTEM ${THITD_PARTY_PATH}/libpq/include)
+    link_directories (${THITD_PARTY_PATH}/libpq/lib)
+endif()
 
-include_directories (SYSTEM ${THITD_PARTY_PATH}/sqlite/include)
-link_directories (${THITD_PARTY_PATH}/sqlite/lib)
+if (MIF_WITH_SQLITE)
+    include_directories (SYSTEM ${THITD_PARTY_PATH}/sqlite/include)
+    link_directories (${THITD_PARTY_PATH}/sqlite/lib)
+endif()
 
 include_directories (SYSTEM ${THITD_PARTY_PATH}/pugixml/include)
 link_directories (${THITD_PARTY_PATH}/pugixml/lib)

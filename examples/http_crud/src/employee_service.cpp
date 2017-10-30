@@ -36,9 +36,9 @@ namespace Service
 
         AddHandler(pathPrefix + "/list", this, &EmployeeService::List);
 
-        m_connections = Mif::Service::Create<Mif::Db::Id::Service::PostgresPerThreadPool, Mif::Db::IConnectionPool>(
-                dbConfig
-            );
+        m_connections = Mif::Service::Create
+                <Mif::Db::Id::Service::PostgresConnectionPool, Mif::Db::IConnectionPool>
+                (dbConfig);
     }
 
     Data::Response::Info EmployeeService::CreateMeta(std::uint32_t code, std::string const &message) const
