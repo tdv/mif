@@ -198,7 +198,7 @@ namespace Mif
 
                         using PrimaryKey = PrimaryKeyTrait<Traits>;
 
-                        static_assert(std::tuple_size<TRes>::value == 0,
+                        static_assert(!PrimaryKey::value || std::tuple_size<TRes>::value == 0,
                                 "Mif::Orm::Detail::Traits::Detail::PrimaryKeyFields "
                                 "Each table must have only one primary key."
                             );

@@ -56,8 +56,8 @@ namespace Mif
                         using Item = typename SelectTableItem<T, TItems, I - 1, typename std::tuple_element<I - 1, TItems>::type>::Item;
                     };
 
-                    template <typename T, typename TItems, std::size_t I, typename TEntity, typename ... TTraits>
-                    struct SelectTableItem<T, TItems, I, TableInfo<TEntity, TTraits ... >>
+                    template <typename TItems, std::size_t I, typename TEntity, typename ... TTraits>
+                    struct SelectTableItem<TEntity, TItems, I, TableInfo<TEntity, TTraits ... >>
                     {
                         using Item = TableInfo<TEntity, TTraits ... >;
                     };
