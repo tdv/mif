@@ -14,7 +14,6 @@
 
 // MIF
 #include "mif/db/iconnection.h"
-#include "mif/db/transaction.h"
 #include "mif/orm/schema.h"
 #include "mif/reflection/reflection.h"
 #include "mif/serialization/traits.h"
@@ -37,10 +36,8 @@ namespace Mif
 
             void Create()
             {
-                Db::Transaction tr{m_connection};
                 auto const sql = SqlDriver::CreateSchema();
                 m_connection->ExecuteDirect(sql);
-                tr.Commit();
             }
 
             template <typename T>

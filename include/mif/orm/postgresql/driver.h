@@ -63,6 +63,13 @@ namespace Mif
             private:
                 using Strings = std::list<std::string>;
 
+                struct Context final
+                {
+                    Strings fields;
+                    Strings additional;
+                    Strings owners;
+                };
+
                 using SourceSchema = Orm::Schema<TName, TItems ... >;
                 using SchemaName = typename std::conditional
                     <
@@ -72,6 +79,7 @@ namespace Mif
                     >::type;
                 using Items = typename SourceSchema::Items;
                 using Indent = MIF_STATIC_STR("    ");
+                using Delimiter = MIF_STATIC_STR("_");
 
                 template <typename T>
                 class PrimaryKeyFields
@@ -142,14 +150,14 @@ namespace Mif
                 {
                     using Type = typename T::Type;
                     using Meta = Reflection::Reflect<Type>;
-                    std::string name = Meta::Name::Value;
+                    std::string const name = Meta::Name::Value;
                     auto sql = "CREATE TABLE " + Detail::Utility::QuoteReserved(GetSchemaName() + name) + "\n";
                     sql += "(\n";
 
-                    std::string sqlTail;
-                    Strings fields;
-                    AppendField<T, Meta::Fields::Count>(fields, sqlTail);
-                    sql += boost::algorithm::join(fields, ",\n");
+                    Context context;
+                    context.owners.push_back(name);
+                    AppendField<T, Meta::Fields::Count>(context);
+                    sql += boost::algorithm::join(context.fields, ",\n");
 
                     auto const pkMulti = MultiPrimaryKey<typename Meta::Fields, typename T::Traits>();
                     if (!pkMulti.empty())
@@ -160,10 +168,10 @@ namespace Mif
 
                     sql += "\n);\n";
 
-                    if (!sqlTail.empty())
+                    if (!context.additional.empty())
                     {
                         sql += "\n";
-                        sql += sqlTail;
+                        sql += boost::algorithm::join(context.additional, "\n");
                     }
 
                     return sql;
@@ -178,38 +186,39 @@ namespace Mif
                     std::string name = Detail::Utility::QuoteReserved(GetSchemaName() + Meta::Name::Value);
                     auto sql = "CREATE TYPE " + name + " AS ENUM\n";
                     sql += "(\n";
-                    AppendEnumValue<Type, Meta::Fields::Count>(sql);
-                    sql += ");\n";
+                    Strings fields;
+                    AppendEnumValue<Type, Meta::Fields::Count>(fields);
+                    sql += boost::algorithm::join(fields, ",\n");
+                    sql += "\n);\n";
                     return sql;
                 }
 
                 template <typename T, std::size_t I>
                 static typename std::enable_if<I != 0, void>::type
-                AppendEnumValue(std::string &sql)
+                AppendEnumValue(Strings &fields)
                 {
-                    AppendEnumValue<T, I - 1>(sql);
+                    AppendEnumValue<T, I - 1>(fields);
 
                     using Fields = typename Reflection::Reflect<T>::Fields;
                     using Field = typename Fields::template Field<I - 1>;
-                    sql += Indent::Value;
+                    std::string sql = Indent::Value;
                     sql += Detail::Utility::QuoteValue(Field::Name::Value);
-                    if (Fields::Count - I > 0)
-                        sql += ",";
-                    sql += "\n";
+
+                    fields.emplace_back(std::move(sql));
                 }
 
                 template <typename T, std::size_t I>
                 static typename std::enable_if<I == 0, void>::type
-                AppendEnumValue(std::string &sql)
+                AppendEnumValue(Strings &fields)
                 {
-                    Common::Unused(sql);
+                    Common::Unused(fields);
                 }
 
                 template <typename T, std::size_t I>
                 static typename std::enable_if<I != 0, void>::type
-                AppendField(Strings &fields, std::string &sqlTail)
+                AppendField(Context &context)
                 {
-                    AppendField<T, I - 1>(fields, sqlTail);
+                    AppendField<T, I - 1>(context);
 
                     using Entity = typename T::Type;
                     using Fields = typename Reflection::Reflect<Entity>::Fields;
@@ -220,7 +229,7 @@ namespace Mif
 
                     CheckFieldTraits<FieldType, Traits>();
 
-                    auto const fieldInfo = ExpandFieldInfo<Entity, Name, FieldType, Traits>(sqlTail);
+                    auto const fieldInfo = ExpandFieldInfo<Entity, Name, FieldType, Traits>(context);
 
                     if (!fieldInfo.empty())
                     {
@@ -233,16 +242,15 @@ namespace Mif
                         field += UniqueField<Traits>();
                         field += PrimaryKeyField<Traits>();
 
-                        fields.emplace_back(std::move(field));
+                        context.fields.emplace_back(std::move(field));
                     }
                 }
 
                 template <typename T, std::size_t I>
                 static typename std::enable_if<I == 0, void>::type
-                AppendField(Strings &fields, std::string &sqlTail)
+                AppendField(Context &context)
                 {
-                    Common::Unused(fields);
-                    Common::Unused(sqlTail);
+                    Common::Unused(context);
                 }
 
                 template <typename TOwner, typename TFName, typename T, typename TTraits>
@@ -253,9 +261,9 @@ namespace Mif
                         std::is_same<T, boost::posix_time::ptime>::value,
                         std::string
                     >::type
-                ExpandFieldInfo(std::string &sqlTail)
+                ExpandFieldInfo(Context &context)
                 {
-                    Common::Unused(sqlTail);
+                    Common::Unused(context);
 
                     constexpr auto counter = Common::Detail::TupleContains<Orm::Detail::FieldTraits::Counter, TTraits>::value;
                     constexpr auto isUInt32 = std::is_same<T, std::uint32_t>::value;
@@ -283,9 +291,9 @@ namespace Mif
 
                 template <typename TOwner, typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && Reflection::IsReflectable<T>(), std::string>::type
-                ExpandFieldInfo(std::string &sqlTail)
+                ExpandFieldInfo(Context &context)
                 {
-                    Common::Unused(sqlTail);
+                    Common::Unused(context);
 
                     auto const name = Detail::Utility::QuoteReserved(TFName::Value) + " ";
                     return name + Detail::Utility::QuoteReserved(GetSchemaName() + Reflection::Reflect<T>::Name::Value);
@@ -293,106 +301,101 @@ namespace Mif
 
                 template <typename TOwner, typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<std::is_enum<T>::value && !Reflection::IsReflectable<T>(), std::string>::type
-                ExpandFieldInfo(std::string &sqlTail)
+                ExpandFieldInfo(Context &context)
                 {
-                    return ExpandFieldInfo<TOwner, TFName, typename std::underlying_type<T>::type, TTraits>(sqlTail);
+                    return ExpandFieldInfo<TOwner, TFName, typename std::underlying_type<T>::type, TTraits>(context);
                 }
 
                 template <typename TOwner, typename TFName, typename T, typename TTraits>
                 static typename std::enable_if<Serialization::Traits::IsSmartPointer<T>(), std::string>::type
-                ExpandFieldInfo(std::string &sqlTail)
+                ExpandFieldInfo(Context &context)
                 {
-                    return ExpandFieldInfo<TOwner, TFName, typename T::element_type, TTraits>(sqlTail);
+                    static_assert(!Reflection::IsReflectable<typename T::element_type>(),
+                            "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] "
+                            "The pointer on reflectable type is not supported. In the future it will be the relation n-to-n."
+                        );
+
+                    return ExpandFieldInfo<TOwner, TFName, typename T::element_type, TTraits>(context);
                 }
 
                 template <typename TOwner, typename TFName, typename T, typename TTraits>
                 static typename std::enable_if
                     <
-                        Reflection::IsReflectable<T>() && !std::is_enum<T>::value && !Serialization::Traits::IsSmartPointer<T>(),
+                        Reflection::IsReflectable<T>() && !std::is_enum<T>::value,
                         std::string
                     >::type
-                ExpandFieldInfo(std::string &sqlTail)
+                ExpandFieldInfo(Context &context)
                 {
                     using PkOwner = typename PrimaryKeyFields<TOwner>::Fields;
                     using NestedTableItem = Orm::Detail::Utility::SelectTableItem<T, Items>;
                     using NestedTableTraits = typename NestedTableItem::Traits;
                     using NestedEntityFields = typename Reflection::Reflect<T>::Fields;
 
-                    std::string const ownerTableName = Reflection::Reflect<TOwner>::Name::Value;
-                    auto const ownerName = GetSchemaName() + Reflection::Reflect<TOwner>::Name::Value;
-                    auto const tableName = Detail::Utility::QuoteReserved(ownerName + "_" + std::string{TFName::Value});
+                    auto const ownerTableName = boost::algorithm::join(context.owners, Delimiter::Value);
+                    auto const ownerName = GetSchemaName() + ownerTableName;
+                    auto const tableName = Detail::Utility::QuoteReserved(ownerName + Delimiter::Value + std::string{TFName::Value});
 
-                    sqlTail = "CREATE TABLE " + tableName + "\n";
-                    sqlTail += "(\n";
+                    std::string additional = "CREATE TABLE " + tableName + "\n";
+                    additional += "(\n";
+
+                    std::string tail;
 
                     {
-                        std::string tail;
-                        Strings fields;
-                        AppendField<NestedTableItem, NestedEntityFields::Count>(fields, tail);
-                        sqlTail += boost::algorithm::join(fields, ",\n");
-                        if (!fields.empty())
-                            sqlTail += ",\n";
+                        Context cntx;
+                        cntx.owners = context.owners;
+                        cntx.owners.push_back(Reflection::Reflect<T>::Name::Value);
+                        AppendField<NestedTableItem, NestedEntityFields::Count>(cntx);
+                        additional += boost::algorithm::join(cntx.fields, ",\n");
+                        if (!cntx.fields.empty())
+                            additional += ",\n";
+
+                        tail = boost::algorithm::join(cntx.additional, "\n");
                     }
 
                     {
                         Strings fields;
-                        AppendForeignFields<PkOwner, std::tuple_size<PkOwner>::value>(fields, ownerTableName + "_");
-                        sqlTail += boost::algorithm::join(fields, ",\n");
+                        AppendForeignFields<PkOwner, std::tuple_size<PkOwner>::value>(fields, ownerTableName + Delimiter::Value);
+                        additional += boost::algorithm::join(fields, ",\n");
                         if (!fields.empty())
-                            sqlTail += ",\n";
+                            additional += ",\n";
                     }
 
                     {
                         auto const pkMulti = MultiPrimaryKey<NestedEntityFields, NestedTableTraits>();
                         if (!pkMulti.empty())
                         {
-                            sqlTail += pkMulti;
-                            sqlTail += ",\n";
+                            additional += pkMulti;
+                            additional += ",\n";
                         }
                     }
 
-                    sqlTail += Indent::Value;
-                    sqlTail += "FOREIGN KEY (";
+                    additional += Indent::Value;
+                    additional += "FOREIGN KEY (";
+
+                    std::string unique = Indent::Value;
 
                     {
                         auto const names = Orm::Detail::Utility::CreateNameSet<PkOwner>();
                         std::set<std::string> quotedNames;
                         std::transform(std::begin(names), std::end(names),
                                 std::inserter(quotedNames, std::begin(quotedNames)),
-                                [&ownerTableName] (std::string const &str) { return Detail::Utility::QuoteReserved(ownerTableName + "_" + str); }
+                                [&ownerTableName] (std::string const &str) { return Detail::Utility::QuoteReserved(ownerTableName + Delimiter::Value + str); }
                             );
-                        sqlTail += boost::algorithm::join(quotedNames, ", ");
+                        additional += boost::algorithm::join(quotedNames, ", ");
                     }
 
-                    sqlTail += ") REFERENCES " + Detail::Utility::QuoteReserved(ownerName) + " ON DELETE CASCADE\n";
+                    additional += ") REFERENCES " + Detail::Utility::QuoteReserved(ownerName) + " ON DELETE CASCADE\n";
 
-                    sqlTail += ");\n";
+                    additional += ");\n";
 
-                    return {};
-                }
+                    if (!tail.empty())
+                    {
+                        additional += "\n";
+                        additional += tail;
+                    }
 
-                template <typename TOwner, typename TFName, typename T, typename TTraits>
-                static typename std::enable_if
-                    <
-                        Reflection::IsReflectable<T>() && !std::is_enum<T>::value && Serialization::Traits::IsSmartPointer<T>(),
-                        std::string
-                    >::type
-                ExpandFieldInfo(std::string &sqlTail)
-                {
-                    // TODO: add relation for n-to-n
-                    return {};
-                }
+                    context.additional.emplace_back(std::move(additional));
 
-                template <typename TOwner, typename T, typename TTraits>
-                static typename std::enable_if
-                    <
-                        Serialization::Traits::IsIterable<T>() &&
-                        Reflection::IsReflectable<typename T::value_type>(),
-                        std::string
-                    >::type
-                ExpandFieldInfo(std::string &sqlTail)
-                {
-                    // TODO: add implementation for collections of reflectable types
                     return {};
                 }
 
@@ -403,10 +406,83 @@ namespace Mif
                         !Reflection::IsReflectable<typename T::value_type>(),
                         std::string
                     >::type
-                ExpandFieldInfo(std::string &sqlTail)
+                ExpandFieldInfo(Context &context)
                 {
-                    // TODO: add implementation for collections of not reflectable types
+                    static_assert(!Serialization::Traits::IsIterable<typename T::value_type>(),
+                            "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] Nested collections are not supported."
+                        );
+
+                    using PkOwner = typename PrimaryKeyFields<TOwner>::Fields;
+
+                    using Type = typename T::value_type;
+
+                    auto const ownerTableName = Detail::Utility::QuoteReserved(GetSchemaName() +
+                            boost::algorithm::join(context.owners, Delimiter::Value));
+                    auto const tableName = boost::algorithm::join(context.owners, Delimiter::Value) +
+                            Delimiter::Value + std::string{TFName::Value};
+                    auto const fullTableName = Detail::Utility::QuoteReserved(GetSchemaName() + tableName);
+
+                    std::string additional = "CREATE TABLE " + fullTableName + "\n";
+                    additional += "(\n";
+
+                    // Nested table fields
+                    {
+                        additional += Indent::Value;
+                        additional += TFName::Value;
+                        additional += " ";
+                        additional += Detail::Type::Holder<Type>::Name::Value;
+                        additional += WithTimezoneField<Type, TTraits>();
+                        additional += NullableField<TTraits>();
+                        additional += UniqueField<TTraits>();
+                        additional += ",\n";
+                    }
+
+                    // Foreign key fields
+                    {
+                        Strings fields;
+                        AppendForeignFields<PkOwner, std::tuple_size<PkOwner>::value>(fields, tableName + Delimiter::Value);
+                        additional += boost::algorithm::join(fields, ",\n");
+                        if (!fields.empty())
+                            additional += ",\n";
+                    }
+
+                    additional += Indent::Value;
+                    additional += "FOREIGN KEY (";
+
+                    // Foreign key
+                    {
+                        auto const names = Orm::Detail::Utility::CreateNameSet<PkOwner>();
+                        std::set<std::string> quotedNames;
+                        std::transform(std::begin(names), std::end(names),
+                                std::inserter(quotedNames, std::begin(quotedNames)),
+                                [&tableName] (std::string const &str) { return Detail::Utility::QuoteReserved(tableName + Delimiter::Value + str); }
+                            );
+                        additional += boost::algorithm::join(quotedNames, ", ");
+                    }
+
+                    additional += ") REFERENCES " + ownerTableName + " ON DELETE CASCADE\n";
+
+                    additional += ");\n";
+
+                    context.additional.emplace_back(std::move(additional));
+
                     return {};
+                }
+
+                template <typename TOwner, typename TFName, typename T, typename TTraits>
+                static typename std::enable_if
+                    <
+                        Serialization::Traits::IsIterable<T>() &&
+                        Reflection::IsReflectable<typename T::value_type>(),
+                        std::string
+                    >::type
+                ExpandFieldInfo(Context &context)
+                {
+                    static_assert(!Serialization::Traits::IsIterable<typename T::value_type>(),
+                            "[Mif::Orm::PostgreSql::Driver::ExpandFieldInfo] Nested collections are not supported."
+                        );
+
+                    return ExpandFieldInfo<TOwner, TFName, typename T::value_type, TTraits>(context);
                 }
 
                 template <typename T, std::size_t I>
@@ -420,7 +496,9 @@ namespace Mif
 
                     // TODO: Maybe in the future support will be added for enum types ...
 
-                    static_assert(Serialization::Traits::IsSimple<Type>(),
+                    static_assert(Serialization::Traits::IsSimple<Type>() ||
+                            std::is_same<Type, boost::posix_time::ptime::date_type>::value ||
+                            std::is_same<Type, boost::posix_time::ptime>::value,
                             "[Mif::Orm::PostgreSql::Driver::AppendForeignFields] "
                             "The foreign key fields must have a simple type."
                         );
