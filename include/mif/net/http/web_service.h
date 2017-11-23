@@ -231,11 +231,14 @@ namespace Mif
             {
             private:
                 template <typename, typename, typename ... >
-                class WebServiceHandler;;
+                class WebServiceHandler;
 
             protected:
                 WebService() = default;
                 ~WebService() = default;
+
+                template <typename>
+                class Result;
 
                 template
                 <
@@ -322,6 +325,9 @@ namespace Mif
                     template <typename, typename, typename ... >
                     friend class WebServiceHandler;
 
+                    template <typename>
+                    friend class Result;
+
                     Type const &m_headers;
 
                     Headers(Type const &headers)
@@ -378,14 +384,22 @@ namespace Mif
                     template <typename T>
                     Result(T const &data, std::string const &contentType = TSerializer::GetContentType())
                         : m_value{TSerializer::Serialize(data)}
-                        , m_contentType{contentType}
+                        , m_headers{{Constants::Header::Response::ContentType::Value, contentType}}
+                    {
+                    }
+
+                    template <typename T>
+                    Result(T const &data, Headers::Type const &headers,
+                            std::string const &contentType = TSerializer::GetContentType())
+                        : m_value{TSerializer::Serialize(data)}
+                        , m_headers{headers}
                     {
                     }
 
                     template <typename TOther>
                     Result(Result<TOther> const &other)
                         : m_value{other.m_value}
-                        , m_contentType{other.m_contentType}
+                        , m_headers{other.m_headers}
                     {
                     }
 
@@ -394,9 +408,9 @@ namespace Mif
                         return std::move(m_value);
                     }
 
-                    std::string const& GetContetntType() const
+                    Headers const GetHeaders() const
                     {
-                        return m_contentType;
+                        return m_headers;
                     }
 
                 private:
@@ -404,7 +418,7 @@ namespace Mif
                     friend class Result;
 
                     Common::Buffer m_value;
-                    std::string m_contentType;
+                    Headers::Type m_headers;
                 };
 
             private:
@@ -496,9 +510,8 @@ namespace Mif
                         auto const headers = request.GetHeaders();
                         auto const content = request.GetData();
                         Result<> res{(m_object->*m_method)(GetPrm<Args>(params, headers, content) ... )};
-                        auto const &contentType = res.GetContetntType();
-                        if (!contentType.empty())
-                            response.SetHeader(Constants::Header::ContentType::Value, contentType);
+                        for (auto const &header : res.GetHeaders().Get())
+                            response.SetHeader(header.first, header.second);
                         response.SetData(std::move(res.GetValue()));
                     }
                 };

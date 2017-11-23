@@ -192,7 +192,7 @@ namespace Mif
                             {
                                 auto const headers = request.GetHeaders();
                                 {
-                                    auto const iter = headers.find(Constants::Header::Session::Value);
+                                    auto const iter = headers.find(Constants::Header::MifExt::Session::Value);
                                     if (iter != std::end(headers))
                                         sessionId = iter->second;
                                     else
@@ -234,7 +234,7 @@ namespace Mif
                                     response.SetData(std::move(responseData));
                                     if (!session->NeedForClose())
                                     {
-                                        response.SetHeader(Constants::Header::Session::Value, sessionId);
+                                        response.SetHeader(Constants::Header::MifExt::Session::Value, sessionId);
                                         SetKeepAliveFromClient(headers, response);
                                     }
                                     else
@@ -244,7 +244,7 @@ namespace Mif
                                             std::rethrow_exception(ex);
 
                                         response.SetHeader(
-                                            Constants::Header::Connection::Value,
+                                            Constants::Header::Response::Connection::Value,
                                             Constants::Value::Connection::Close::Value);
                                     }
                                 }
@@ -296,12 +296,12 @@ namespace Mif
 
                         void SetKeepAliveFromClient(IInputPack::Headers const &requestHeaders, IOutputPack &response) const
                         {
-                            auto const iter = requestHeaders.find(Constants::Header::Connection::Value);
+                            auto const iter = requestHeaders.find(Constants::Header::Request::Connection::Value);
                             if (iter == std::end(requestHeaders) && !iter->second.empty())
                                 return;
                             if (!iter->second.empty() && !evutil_ascii_strcasecmp(iter->second.c_str(), "keep-alive"))
                             {
-                                response.SetHeader(Constants::Header::Connection::Value,
+                                response.SetHeader(Constants::Header::Response::Connection::Value,
                                         Constants::Value::Connection::KeepAlive::Value);
                             }
                         }
@@ -326,7 +326,7 @@ namespace Mif
 
                         void OnExceptionResponse(Http::IOutputPack &pack, Http::Code code, std::string const &message)
                         {
-                            pack.SetHeader(Constants::Header::Connection::Value,
+                            pack.SetHeader(Constants::Header::Response::Connection::Value,
                                 Constants::Value::Connection::Close::Value);
                             pack.SetCode(code);
                             pack.SetData({std::begin(message), std::end(message)});

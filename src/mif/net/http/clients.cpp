@@ -118,7 +118,7 @@ namespace Mif
 
                                 {
                                     auto const headers = pack.GetHeaders();
-                                    auto const sessionIter = headers.find(Constants::Header::Session::Value);
+                                    auto const sessionIter = headers.find(Constants::Header::MifExt::Session::Value);
                                     if (sessionIter == std::end(headers))
                                         throw std::runtime_error{"No session from server."};
                                     if (sessionIter->second.empty())
@@ -166,9 +166,9 @@ namespace Mif
                                 auto connection = GetConnection();
                                 auto pack = connection->CreateRequest();
 
-                                pack->SetHeader(Constants::Header::Connection::Value,
+                                pack->SetHeader(Constants::Header::Request::Connection::Value,
                                     Constants::Value::Connection::KeepAlive::Value);
-                                pack->SetHeader(Constants::Header::Session::Value, m_sessionId);
+                                pack->SetHeader(Constants::Header::MifExt::Session::Value, m_sessionId);
 
                                 pack->SetData(std::move(buffer));
 

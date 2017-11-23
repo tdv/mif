@@ -39,7 +39,7 @@ namespace Mif
                             iter->second->OnRequest(request, response);
                             {
                                 auto const headers = request.GetHeaders();
-                                auto const keepAlive = headers.find(Constants::Header::Connection::Value);
+                                auto const keepAlive = headers.find(Constants::Header::Request::Connection::Value);
                                 if (keepAlive != std::end(headers))
                                 {
                                     auto const &value = keepAlive->second;
@@ -47,7 +47,7 @@ namespace Mif
                                     auto const len = strlen(keepAliveValue);
                                     if (value.length() == len && !strncasecmp(value.c_str(),  keepAliveValue, len))
                                     {
-                                        response.SetHeader(Constants::Header::Connection::Value,
+                                        response.SetHeader(Constants::Header::Response::Connection::Value,
                                                 Constants::Value::Connection::KeepAlive::Value);
                                     }
                                 }
@@ -92,7 +92,7 @@ namespace Mif
 
             void WebService::OnExceptionResponse(IOutputPack &pack, Code code, std::string const &message)
             {
-                pack.SetHeader(Constants::Header::Connection::Value,
+                pack.SetHeader(Constants::Header::Response::Connection::Value,
                     Constants::Value::Connection::Close::Value);
                 pack.SetCode(code);
                 auto const formatedMessage = FormatExceptionMessage(pack, code, message);
