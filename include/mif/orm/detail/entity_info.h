@@ -13,6 +13,7 @@
 
 // MIF
 #include "mif/orm/detail/field_traits.h"
+#include "mif/orm/detail/table_traits.h"
 
 namespace Mif
 {
@@ -31,6 +32,10 @@ namespace Mif
             {
                 using Type = TEntity;
                 using Traits = std::tuple<TTraits ... >;
+
+                using OnlyInfo = TableInfo<TEntity, TTraits ... , TableTraits::OnlyInfo>;
+                using Temporary = TableInfo<TEntity, TTraits ... , TableTraits::Temporary>;
+                using WithoutLogging = TableInfo<TEntity, TTraits ... , TableTraits::WithoutLogging>;
             };
 
             template <typename TTable, typename TField, typename TTrait, typename ... TNext>
