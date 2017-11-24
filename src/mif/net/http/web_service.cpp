@@ -10,6 +10,7 @@
 
 // MIF
 #include "mif/common/log.h"
+#include "mif/common/unused.h"
 #include "mif/net/http/web_service.h"
 
 namespace Mif
@@ -101,8 +102,8 @@ namespace Mif
 
             std::string WebService::FormatExceptionMessage(IOutputPack &pack, Code code, std::string const &message) const
             {
-                (void)pack;
-                (void)code;
+                Common::Unused(pack);
+                Common::Unused(code);
                 return FormatExceptionMessage(message);
             }
 

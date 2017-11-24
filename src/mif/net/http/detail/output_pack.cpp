@@ -8,6 +8,9 @@
 // STD
 #include <stdexcept>
 
+// MIF
+#include "mif/common/unused.h"
+
 // THIS
 #include "output_pack.h"
 #include "utility.h"
@@ -101,8 +104,8 @@ namespace Mif
 
                 void OutputPack::CleanUpData(void const *data, size_t datalen, void *extra)
                 {
-                    (void)data;
-                    (void)datalen;
+                    Common::Unused(data);
+                    Common::Unused(datalen);
                     delete reinterpret_cast<Common::Buffer *>(extra);
                 }
 

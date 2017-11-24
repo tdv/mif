@@ -19,6 +19,7 @@
 // MIF
 #include "mif/common/index_sequence.h"
 #include "mif/common/creator.h"
+#include "mif/common/unused.h"
 
 namespace Mif
 {
@@ -117,7 +118,7 @@ namespace Mif
                 // IHolder
                 virtual Client* GetClient(std::type_info const &info) override final
                 {
-                    (void)info;
+                    Common::Unused(info);
                     throw std::runtime_error{"[Mif::Net::ClientsChain::ChainClient::GetClient] Client item not found."};
                 }
 
@@ -134,9 +135,9 @@ namespace Mif
                 // IPublisher
                 virtual void Publish(Common::Buffer buffer) override final
                 {
-                    (void)buffer;
-                }
+                    Common::Unused(buffer);
 
+        }
                 // IControl
                 virtual void CloseMe() override final
                 {

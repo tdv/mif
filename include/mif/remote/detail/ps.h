@@ -137,7 +137,7 @@ namespace Mif
                 {
                     // TODO: uncomment it
                     //m_ids.push_back(id);
-                    (void)id;
+                    Common::Unused(id);
                 }
 
             private:
@@ -554,8 +554,8 @@ namespace Mif
                 typename std::enable_if<Traits::IsInterfaceRef<T>(), Traits::ExtractType<T>>::type &
                 PrepareParam(std::string const &param, Services &services)
                 {
-                    (void)param;
-                    (void)services;
+                    Common::Unused(param);
+                    Common::Unused(services);
                     throw std::runtime_error{"Not implemented."};
                 }
                 */

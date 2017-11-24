@@ -394,6 +394,8 @@ namespace Mif
                         : m_value{TSerializer::Serialize(data)}
                         , m_headers{headers}
                     {
+                        if (m_headers.find(Constants::Header::Response::ContentType::Value) == std::end(m_headers))
+                            m_headers.emplace(Constants::Header::Response::ContentType::Value, contentType);
                     }
 
                     template <typename TOther>

@@ -36,6 +36,7 @@
 #include "mif/common/log_init.h"
 #include "mif/common/static_string.h"
 #include "mif/common/version.h"
+#include "mif/common/unused.h"
 #include "mif/service/root_locator.h"
 #include "mif/service/create.h"
 
@@ -397,8 +398,8 @@ namespace Mif
 
         void Application::PrepareConfigData(std::string &data, std::string const &format) const
         {
-            (void)data;
-            (void)format;
+            Common::Unused(data);
+            Common::Unused(format);
         }
 
         std::string const& Application::GetConfigRawData() const

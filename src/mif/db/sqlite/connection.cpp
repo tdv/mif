@@ -19,6 +19,7 @@
 
 // MIF
 #include "mif/common/log.h"
+#include "mif/common/unused.h"
 #include "mif/db/iconnection.h"
 #include "mif/db/id/service.h"
 #include "mif/service/creator.h"
@@ -101,7 +102,7 @@ namespace Mif
                                     "Failed to execute query \"" + query + "\" Error: " + std::string{message ? message : "unknown"}};
                         }
 
-                        (void)query;
+                        Common::Unused(query);
                     }
 
                     virtual IStatementPtr CreateStatement(std::string const &query) override final
