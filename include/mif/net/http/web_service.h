@@ -550,8 +550,9 @@ namespace Mif
                 };
 
                 Statistics const& GetStatistics() const;
-                virtual std::string FormatExceptionMessage(IOutputPack &pack, Code code, std::string const &message) const;
-                virtual std::string FormatExceptionMessage(std::string const &message) const;
+                virtual void OnException(IInputPack const &request, IOutputPack &response, std::exception_ptr exception,
+                        Code &code, std::string &message) const;
+                virtual void OnException(std::exception_ptr exception, Code &code, std::string &message) const;
 
             private:
                 using IWebServiceHandlerPtr = std::unique_ptr<IWebServiceHandler>;
@@ -565,7 +566,8 @@ namespace Mif
                 virtual void OnRequest(IInputPack const &request, IOutputPack &response) override final;
 
                 //--------------------------------------------------------------------------------------------------
-                void OnExceptionResponse(IOutputPack &pack, Code code, std::string const &message);
+                void OnExceptionResponse(IInputPack const &request, IOutputPack &response,
+                        Code code, std::exception_ptr exception);
             };
 
         }   // namespace Http

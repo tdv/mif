@@ -63,13 +63,14 @@ namespace Mif
                     else
                     {
                         ++m_statistics.general.bad;
-                        OnExceptionResponse(response, Code::BadMethod, "Handler not found.");
+                        OnExceptionResponse(request, response, Code::BadMethod,
+                                std::make_exception_ptr(std::runtime_error{"Handler not found."}));
                     }
                 }
                 catch (std::invalid_argument const &e)
                 {
                     ++m_statistics.general.bad;
-                    OnExceptionResponse(response, Code::BadRequest, e.what());
+                    OnExceptionResponse(request, response, Code::BadRequest, std::current_exception());
                 }
                 catch (std::exception const &e)
                 {
@@ -78,7 +79,7 @@ namespace Mif
                     MIF_LOG(Warning) << "[Mif::Net::Http::WebService::OnRequest] "
                         << "Failed to process request. Error: " << e.what();
 
-                    OnExceptionResponse(response, Code::Internal, e.what());
+                    OnExceptionResponse(request, response, Code::Internal, std::current_exception());
                 }
                 catch (...)
                 {
@@ -87,29 +88,47 @@ namespace Mif
                     MIF_LOG(Error) << "[Mif::Net::Http::WebService::OnRequest] "
                         << "Failed to process request. Error: unknown";
 
-                    OnExceptionResponse(response, Code::Internal, "Unknown exception.");
+                    OnExceptionResponse(request, response, Code::Internal,
+                            std::make_exception_ptr(std::runtime_error{"Unknown exception."}));
                 }
             }
 
-            void WebService::OnExceptionResponse(IOutputPack &pack, Code code, std::string const &message)
+            void WebService::OnExceptionResponse(IInputPack const &request, IOutputPack &response,
+                                                 Code code, std::exception_ptr exception)
             {
-                pack.SetHeader(Constants::Header::Response::Connection::Value,
-                    Constants::Value::Connection::Close::Value);
-                pack.SetCode(code);
-                auto const formatedMessage = FormatExceptionMessage(pack, code, message);
-                pack.SetData({std::begin(formatedMessage), std::end(formatedMessage)});
+                response.SetHeader(Constants::Header::Response::Connection::Value,
+                        Constants::Value::Connection::Close::Value);
+
+                std::string message;
+                try
+                {
+                    if (exception)
+                        std::rethrow_exception(exception);
+                }
+                catch (std::exception const &e)
+                {
+                    message = e.what();
+                }
+
+                OnException(request, response, exception, code, message);
+
+                response.SetCode(code);
+                response.SetData({std::begin(message), std::end(message)});
             }
 
-            std::string WebService::FormatExceptionMessage(IOutputPack &pack, Code code, std::string const &message) const
+            void WebService::OnException(IInputPack const &request, IOutputPack &response, std::exception_ptr exception,
+                                         Code &code, std::string &message) const
             {
-                Common::Unused(pack);
+                Common::Unused(request);
+                Common::Unused(response);
+                OnException(exception, code, message);
+            }
+
+            void WebService::OnException(std::exception_ptr exception, Code &code, std::string &message) const
+            {
+                Common::Unused(exception);
                 Common::Unused(code);
-                return FormatExceptionMessage(message);
-            }
-
-            std::string WebService::FormatExceptionMessage(std::string const &message) const
-            {
-                return message;
+                Common::Unused(message);
             }
 
         }   // namespace Http

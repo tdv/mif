@@ -25,6 +25,7 @@ namespace Mif
                 BadRequest,
                 NotFound,
                 BadMethod,
+                Unauthorized,
                 Internal,
                 NotImplemented,
                 Unavaliable

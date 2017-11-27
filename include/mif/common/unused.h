@@ -8,9 +8,6 @@
 #ifndef __MIF_COMMON_UNUSED_H__
 #define __MIF_COMMON_UNUSED_H__
 
-// STD
-#include <vector>
-
 namespace Mif
 {
     namespace Common

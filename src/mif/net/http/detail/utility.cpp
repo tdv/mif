@@ -83,6 +83,8 @@ namespace Mif
                             return "Invalid http request was made";
                         case Code::NotFound :
                             return "Could not find content for uri";
+                        case Code::Unauthorized :
+                            return "Unauthorized";
                         case Code::BadMethod :
                             return "Method not allowed for this uri";
                         case Code::Internal :
@@ -116,6 +118,8 @@ namespace Mif
                             return HTTP_BADREQUEST;
                         case Code::NotFound :
                             return HTTP_NOTFOUND;
+                        case Code::Unauthorized :
+                            return 401;
                         case Code::BadMethod :
                             return HTTP_BADMETHOD;
                         case Code::Internal :
@@ -149,6 +153,8 @@ namespace Mif
                             return Code::BadRequest;
                         case HTTP_NOTFOUND :
                             return Code::NotFound;
+                        case 401 :
+                            return Code::Unauthorized;
                         case HTTP_BADMETHOD :
                             return Code::BadMethod;
                         case HTTP_INTERNAL :
