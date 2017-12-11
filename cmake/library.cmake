@@ -84,9 +84,6 @@ if (MIF_WITH_POSTGRESQL)
             ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/statement.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/detail/recordset.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/postgresql/connection_pool.cpp
-            
-            # ORM
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/orm/postgresql/detail/utility.cpp
         )
 endif()
 
