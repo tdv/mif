@@ -553,6 +553,8 @@ namespace Mif
                 virtual void OnException(IInputPack const &request, IOutputPack &response, std::exception_ptr exception,
                         Code &code, std::string &message) const;
                 virtual void OnException(std::exception_ptr exception, Code &code, std::string &message) const;
+                virtual void PreProcessRequest(IInputPack const &request);
+                virtual void PostProcessResponse(IOutputPack &response);
 
             private:
                 using IWebServiceHandlerPtr = std::unique_ptr<IWebServiceHandler>;

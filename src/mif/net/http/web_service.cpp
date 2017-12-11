@@ -29,6 +29,7 @@ namespace Mif
             {
                 try
                 {
+                    PreProcessRequest(request);
                     ++m_statistics.general.total;
                     auto const path = request.GetPath();
                     auto const iter = m_handlers.find(path);
@@ -66,6 +67,8 @@ namespace Mif
                         OnExceptionResponse(request, response, Code::BadMethod,
                                 std::make_exception_ptr(std::runtime_error{"Handler not found."}));
                     }
+
+                    PostProcessResponse(response);
                 }
                 catch (std::invalid_argument const &e)
                 {
@@ -129,6 +132,16 @@ namespace Mif
                 Common::Unused(exception);
                 Common::Unused(code);
                 Common::Unused(message);
+            }
+
+            void WebService::PreProcessRequest(IInputPack const &request)
+            {
+                Common::Unused(request);
+            }
+
+            void WebService::PostProcessResponse(IOutputPack &response)
+            {
+                Common::Unused(response);
             }
 
         }   // namespace Http
