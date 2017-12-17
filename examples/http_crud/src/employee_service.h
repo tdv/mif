@@ -11,7 +11,9 @@
 // MIF
 #include <mif/application/iconfig.h>
 #include <mif/db/iconnection_pool.h>
+#include <mif/net/http/converter/content/json.h>
 #include <mif/net/http/web_service.h>
+#include "mif/net/http/serializer/json.h"
 #include <mif/service/ipool.h>
 
 // THIS
@@ -27,9 +29,9 @@ namespace Service
         EmployeeService(std::string const &pathPrefix, Mif::Application::IConfigPtr dbConfig);
 
     private:
-        using ResultSerializer = Result<Mif::Net::Http::JsonSerializer>;
+        using ResultSerializer = Result<Mif::Net::Http::Serializer::Json>;
         template <typename T>
-        using InputContent = Content<T, Mif::Net::Http::JsonContentParamConverter>;
+        using InputContent = Content<T, Mif::Net::Http::Converter::Content::Json>;
 
         Mif::Db::IConnectionPoolPtr m_connections;
 

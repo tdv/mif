@@ -12,6 +12,8 @@
 #include <string>
 
 // MIF
+#include "mif/net/http/serializer/json.h"
+#include "mif/net/http/serializer/plain_text.h"
 #include "mif/net/http/web_service.h"
 #include <mif/service/creator.h>
 
@@ -70,7 +72,7 @@ namespace Service
                 }
 
                 // Web hadlers
-                Result<Mif::Net::Http::JsonSerializer> Stat()
+                Result<Mif::Net::Http::Serializer::Json> Stat()
                 {
                     auto const &statisticts = GetStatistics();
 
@@ -88,7 +90,7 @@ namespace Service
                     return resp;
                 }
 
-                Result<Mif::Net::Http::PlainTextSerializer>
+                Result<Mif::Net::Http::Serializer::PlainText>
                 MainPage(Prm<std::string, Name("format")> const &format)
                 {
                     if (!format)

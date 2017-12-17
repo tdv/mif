@@ -15,6 +15,8 @@
 // MIF
 #include <mif/application/iconfig.h>
 #include <mif/common/log.h>
+#include <mif/net/http/converter/content/json.h>
+#include <mif/net/http/serializer/json.h>
 #include <mif/net/http/web_service.h>
 #include <mif/remote/predefined/utility.h>
 #include <mif/service/creator.h>
@@ -64,9 +66,9 @@ namespace Service
                 }
 
             private:
-                using ResultSerializer = Result<Mif::Net::Http::JsonSerializer>;
+                using ResultSerializer = Result<Mif::Net::Http::Serializer::Json>;
                 template <typename T>
-                using InputContent = Content<T, Mif::Net::Http::JsonContentParamConverter>;
+                using InputContent = Content<T, Mif::Net::Http::Converter::Content::Json>;
 
                 Mif::Service::IFactoryPtr m_factory;
 
