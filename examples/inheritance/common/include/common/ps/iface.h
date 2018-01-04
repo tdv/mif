@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     01.2017
-//  Copyright (C) 2016-2017 tdv
+//  Copyright (C) 2016-2018 tdv
 //-------------------------------------------------------------------
 
 #ifndef __INHERITANCE_COMMON_PS_IFACE_H__

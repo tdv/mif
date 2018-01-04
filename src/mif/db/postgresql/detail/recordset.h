@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     03.2017
-//  Copyright (C) 2016-2017 tdv
+//  Copyright (C) 2016-2018 tdv
 //-------------------------------------------------------------------
 
 #ifndef __MIF_DB_POSTGRESQL_DETAIL_RECORDSET_H__
