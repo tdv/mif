@@ -66,7 +66,7 @@ namespace Service
                 }
 
             private:
-                using ResultSerializer = Result<Mif::Net::Http::Serializer::Json>;
+                using Response = Result<Mif::Net::Http::Serializer::Json>;
                 template <typename T>
                 using InputContent = Content<T, Mif::Net::Http::Converter::Content::Json>;
 
@@ -100,8 +100,7 @@ namespace Service
                 }
 
                 // Web hadlers
-                EmployeeService::ResultSerializer
-                Create(InputContent<Common::Data::Employee> const &employee)
+                Response Create(InputContent<Common::Data::Employee> const &employee)
                 {
                     if (!employee)
                         throw std::invalid_argument{"No data."};
@@ -118,8 +117,7 @@ namespace Service
                     return response;
                 }
 
-                EmployeeService::ResultSerializer
-                Read(Prm<Common::Data::ID, Name("id")> const &id)
+                Response Read(Prm<Common::Data::ID, Name("id")> const &id)
                 {
                     if (!id || id.Get().empty())
                         throw std::invalid_argument{"Id must not be empty."};
@@ -136,8 +134,7 @@ namespace Service
                     return response;
                 }
 
-                EmployeeService::ResultSerializer
-                Update(Prm<Common::Data::ID, Name("id")> const &id,
+                Response Update(Prm<Common::Data::ID, Name("id")> const &id,
                         InputContent<Common::Data::Employee> const &employee)
                 {
                     if (!id || id.Get().empty())
@@ -159,8 +156,7 @@ namespace Service
                     return response;
                 }
 
-                EmployeeService::ResultSerializer
-                Delete(Prm<Common::Data::ID, Name("id")> const &id)
+                Response Delete(Prm<Common::Data::ID, Name("id")> const &id)
                 {
                     if (!id || id.Get().empty())
                         throw std::invalid_argument{"Id must not be empty."};
@@ -178,8 +174,7 @@ namespace Service
                     return response;
                 }
 
-                EmployeeService::ResultSerializer
-                List(Prm<std::size_t, Name("offset")> const &offset,
+                Response List(Prm<std::size_t, Name("offset")> const &offset,
                         Prm<std::size_t, Name("limit")> const &limit)
                 {
                     auto storage = m_factory->Create<Common::IEmployeeStorage>(
