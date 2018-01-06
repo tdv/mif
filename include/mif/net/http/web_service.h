@@ -20,13 +20,15 @@
 
 // MIF
 #include "mif/common/crc32.h"
-#include "mif/net/http/constants.h"
 #include "mif/net/http/converter/content/plain_text.h"
 #include "mif/net/http/converter/url/param.h"
+#include "mif/net/http/detail/content.h"
+#include "mif/net/http/detail/params.h"
+#include "mif/net/http/detail/prm.h"
+#include "mif/net/http/detail/result.h"
 #include "mif/net/http/iweb_service.h"
 #include "mif/net/http/request_handler.h"
 #include "mif/net/http/serializer/plain_text.h"
-#include "mif/service/make.h"
 
 namespace Mif
 {
@@ -38,199 +40,59 @@ namespace Mif
             class WebService
                 : public Service::Inherit<IWebService>
             {
-            private:
-                template <typename, typename, typename ... >
-                class WebServiceHandler;
-
             protected:
                 WebService() = default;
                 ~WebService() = default;
 
-                template <typename>
-                class Result;
+                template <typename T, std::uint32_t ID, typename TConverter = Converter::Url::Param>
+                using Prm = Detail::Prm<T, ID, TConverter>;
 
-                template
-                <
-                    typename T,
-                    std::uint32_t ID,
-                    typename TConverter = Converter::Url::Param
-                >
-                class Prm final
-                {
-                public:
-                    using PrmType = Prm<T, ID, TConverter>;
-                    using Type = T;
-                    static constexpr std::uint32_t Id = ID;
-                    using Converter = TConverter;
-
-                    explicit operator bool() const noexcept
-                    {
-                        return !!m_value;
-                    }
-
-                    explicit operator T const & () const
-                    {
-                        if (!*this)
-                            throw std::runtime_error{"[Mif::Net::Http::WebService::Prm] \"" + m_name + "\" has no value."};
-                        return *m_value;
-                    }
-
-                    Type const& Get() const
-                    {
-                        return operator T const  & ();
-                    }
-
-                private:
-                    template <typename, typename, typename ... >
-                    friend class WebServiceHandler;
-
-                    std::string m_name;
-                    std::unique_ptr<T> const m_value;
-
-                    Prm() = default;
-                    Prm(Prm &&) = default;
-                    Prm(Prm const &) = delete;
-
-                    Prm(std::string const &name, std::string const &value)
-                        : m_name{name}
-                        , m_value{new T{Converter::template Convert<T>(value)}}
-                    {
-                    }
-                };
-
-                class Params
-                {
-                public:
-                    using Type = std::map<std::string, std::string>;
-
-                    Type const& Get() const
-                    {
-                        return m_params;
-                    }
-
-                private:
-                    template <typename, typename, typename ... >
-                    friend class WebServiceHandler;
-
-                    Type const &m_params;
-
-                    Params(Type const &params)
-                        : m_params{params}
-                    {
-                    }
-                };
-
-                class Headers
-                {
-                public:
-                    using Type = std::map<std::string, std::string>;
-
-                    Type const& Get() const
-                    {
-                        return m_headers;
-                    }
-
-                private:
-                    template <typename, typename, typename ... >
-                    friend class WebServiceHandler;
-
-                    template <typename>
-                    friend class Result;
-
-                    Type const &m_headers;
-
-                    Headers(Type const &headers)
-                        : m_headers{headers}
-                    {
-                    }
-                };
+                using Params = Detail::Params<Detail::Tag::Params>;
+                using Headers = Detail::Params<Detail::Tag::Headers>;
 
                 template <typename T, typename TConverter = Converter::Content::PlainText>
-                class Content final
-                {
-                public:
-                    using ContentType = Content<T, TConverter>;
-                    using Type = T;
-                    using Converter = TConverter;
-
-                    explicit operator bool() const noexcept
-                    {
-                        return !!m_value;
-                    }
-
-                    explicit operator T const & () const
-                    {
-                        if (!*this)
-                            throw std::runtime_error{"[Mif::Net::Http::WebService::Content] No content."};
-                        return *m_value;
-                    }
-
-                    Type const& Get() const
-                    {
-                        return operator T const  & ();
-                    }
-
-                private:
-                    template <typename, typename, typename ... >
-                    friend class WebServiceHandler;
-
-                    std::unique_ptr<T> const m_value;
-
-                    Content() = default;
-                    Content(Content &&) = default;
-                    Content(Content const &) = delete;
-
-                    Content(Common::Buffer const &value)
-                        : m_value{new Type{Converter::template Convert<Type>(value)}}
-                    {
-                    }
-                };
+                using Content = Detail::Content<T, TConverter>;
 
                 template <typename TSerializer = Serializer::PlainText>
-                class Result final
+                using Result = Detail::Result<TSerializer>;
+
+                template <typename C, typename R, typename ... Args>
+                typename std::enable_if<std::is_base_of<WebService, C>::value, void>::type
+                AddHandler(std::string const &resource, C *object, R (C::*method)(Args ...))
                 {
-                public:
-                    template <typename T>
-                    Result(T const &data, std::string const &contentType = TSerializer::GetContentType())
-                        : m_value{TSerializer::Serialize(data)}
-                        , m_headers{{Constants::Header::Response::ContentType::Value, contentType}}
+                    IWebServiceHandlerPtr hanlder{new WebServiceHandler<C, R, Args ... >{object, method}};
+                    m_handlers.emplace(resource, std::move(hanlder));
+                    m_statistics.resources[resource];
+                }
+
+                template <std::size_t N>
+                static constexpr std::uint32_t Name(char const (&name)[N])
+                {
+                    return Common::Crc32(name);
+                }
+
+                struct Statistics
+                {
+                    struct ItemCounter
                     {
-                    }
+                        std::atomic_ullong total{0};
+                        std::atomic_ullong bad{0};
+                    };
 
-                    template <typename T>
-                    Result(T const &data, Headers::Type const &headers,
-                            std::string const &contentType = TSerializer::GetContentType())
-                        : m_value{TSerializer::Serialize(data)}
-                        , m_headers{headers}
-                    {
-                        if (m_headers.find(Constants::Header::Response::ContentType::Value) == std::end(m_headers))
-                            m_headers.emplace(Constants::Header::Response::ContentType::Value, contentType);
-                    }
+                    using Resources = std::map<std::string, ItemCounter>;
 
-                    template <typename TOther>
-                    Result(Result<TOther> const &other)
-                        : m_value{other.m_value}
-                        , m_headers{other.m_headers}
-                    {
-                    }
-
-                    Common::Buffer GetValue()
-                    {
-                        return std::move(m_value);
-                    }
-
-                    Headers const GetHeaders() const
-                    {
-                        return m_headers;
-                    }
-
-                private:
-                    template <typename>
-                    friend class Result;
-
-                    Common::Buffer m_value;
-                    Headers::Type m_headers;
+                    ItemCounter general;
+                    Resources resources;
                 };
+
+                Statistics const& GetStatistics() const;
+
+                virtual void OnException(IInputPack const &request, IOutputPack &response, std::exception_ptr exception,
+                        Code &code, std::string &message) const;
+                virtual void OnException(std::exception_ptr exception, Code &code, std::string &message) const;
+
+                virtual void PreProcessRequest(IInputPack const &request);
+                virtual void PostProcessResponse(IOutputPack &response);
 
             private:
                 struct IWebServiceHandler
@@ -327,45 +189,6 @@ namespace Mif
                     }
                 };
 
-            protected:
-
-                template <typename C, typename R, typename ... Args>
-                typename std::enable_if<std::is_base_of<WebService, C>::value, void>::type
-                AddHandler(std::string const &resource, C *object, R (C::*method)(Args ...))
-                {
-                    IWebServiceHandlerPtr hanlder{new WebServiceHandler<C, R, Args ... >{object, method}};
-                    m_handlers.emplace(resource, std::move(hanlder));
-                    m_statistics.resources[resource];
-                }
-
-                template <std::size_t N>
-                static constexpr std::uint32_t Name(char const (&name)[N])
-                {
-                    return Common::Crc32(name);
-                }
-
-                struct Statistics
-                {
-                    struct ItemCounter
-                    {
-                        std::atomic_ullong total{0};
-                        std::atomic_ullong bad{0};
-                    };
-
-                    using Resources = std::map<std::string, ItemCounter>;
-
-                    ItemCounter general;
-                    Resources resources;
-                };
-
-                Statistics const& GetStatistics() const;
-                virtual void OnException(IInputPack const &request, IOutputPack &response, std::exception_ptr exception,
-                        Code &code, std::string &message) const;
-                virtual void OnException(std::exception_ptr exception, Code &code, std::string &message) const;
-                virtual void PreProcessRequest(IInputPack const &request);
-                virtual void PostProcessResponse(IOutputPack &response);
-
-            private:
                 using IWebServiceHandlerPtr = std::unique_ptr<IWebServiceHandler>;
                 using Handlers = std::map<std::string, IWebServiceHandlerPtr>;
 
