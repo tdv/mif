@@ -32,7 +32,7 @@ namespace Mif
                 class Params final
                 {
                 public:
-                    using Type = std::map<std::string, std::string>;
+                    using Type = std::multimap<std::string, std::string>;
 
                     Params(Type const &params)
                         : m_params{params}
