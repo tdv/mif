@@ -29,10 +29,12 @@ list (APPEND LIBRARIES "mif")
 set (ZLIB_URL "https://github.com/madler/zlib.git")
 set (ZLIB_TAG "v1.2.8")
 
-set (BOOST_URL "https://sourceforge.net/projects/boost/files/boost/1.65.1/boost_1_65_1.tar.gz")
+set (BOOST_URL "https://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.gz")
 
 set (JSONCPP_URL "https://github.com/open-source-parsers/jsoncpp.git")
 set (JSONCPP_TAG "1.8.0")
+
+set (PUGIXML_URL "http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz")
 
 set (EVENT_URL "https://github.com/libevent/libevent.git")
 set (EVENT_TAG "release-2.1.8-stable")
@@ -43,9 +45,7 @@ set (LIBPQ_TAG "REL9_6_2")
 set (SQLITE_URL "https://www.sqlite.org/src/tarball/sqlite.tar.gz")
 
 set (MIF_URL "https://github.com/tdv/mif.git")
-set (MIF_TAG "master")
-
-set (PUGIXML_URL "http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz")
+set (MIF_TAG "v1.2.0")
 
 #------------------------ ZLib ---------------------------
 set (ZLIB_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/zlib)
