@@ -119,10 +119,7 @@ namespace Mif
                     Method m_method;
 
                     template <typename T>
-                    using ExtractType = typename std::remove_reference
-                            <
-                                typename std::remove_const<T>::type
-                            >::type;
+                    using ExtractType = typename std::decay<T>::type;
 
                     template <typename T>
                     typename ExtractType<T>::PrmType GetPrm(IInputPack::Params const &params,
@@ -139,14 +136,16 @@ namespace Mif
                     }
 
                     template <typename T>
-                    typename ExtractType<T>::Params GetPrm(IInputPack::Params const &params,
+                    typename std::enable_if<std::is_same<ExtractType<T>, Params>::value, ExtractType<T>>::type
+                    GetPrm(IInputPack::Params const &params,
                             IInputPack::Headers const &, Common::Buffer const &) const
                     {
                         return {params};
                     }
 
                     template <typename T>
-                    typename ExtractType<T>::Headers GetPrm(IInputPack::Params const &,
+                    typename std::enable_if<std::is_same<ExtractType<T>, Headers>::value, ExtractType<T>>::type
+                    GetPrm(IInputPack::Params const &,
                             IInputPack::Headers const &headers, Common::Buffer const &) const
                     {
                         return {headers};
