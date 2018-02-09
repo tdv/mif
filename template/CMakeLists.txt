@@ -45,7 +45,7 @@ set (LIBPQ_TAG "REL9_6_2")
 set (SQLITE_URL "https://www.sqlite.org/src/tarball/sqlite.tar.gz")
 
 set (MIF_URL "https://github.com/tdv/mif.git")
-set (MIF_TAG "v1.2.0")
+set (MIF_TAG "v1.2.1")
 
 #------------------------ ZLib ---------------------------
 set (ZLIB_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/zlib)
