@@ -82,6 +82,31 @@ namespace Mif
             template <typename T>
             using MakeUniqueTuple = typename UniqueTuple<T, std::tuple<>>::Tuple;
 
+            template <typename TTuple, typename TWithOutTuple, typename TRes>
+            struct DiffTuple;
+
+            template <typename TWithOutTuple, typename TRes, typename H, typename ... T>
+            struct DiffTuple<std::tuple<H, T ... >, TWithOutTuple, TRes>
+            {
+                using Tuple = typename std::conditional
+                        <
+                            TupleContains<H, TWithOutTuple>::value,
+                            typename DiffTuple<std::tuple<T ... >, TWithOutTuple, TRes>::Tuple,
+                            typename DiffTuple<std::tuple<T ... >, TWithOutTuple,
+                                        typename TupleCat<std::tuple<H>, TRes>::Tuple
+                                    >::Tuple
+                        >::type;
+            };
+
+            template <typename TWithOutTuple, typename TRes>
+            struct DiffTuple<std::tuple<>, TWithOutTuple, TRes>
+            {
+                using Tuple = TRes;
+            };
+
+            template <typename TTuple, typename TWithOutTuple>
+            using TupleDifference = typename DiffTuple<TTuple, TWithOutTuple, std::tuple<>>::Tuple;
+
         }   // namespace Detail
     }  // namespace Common
 }   // namespace Mif

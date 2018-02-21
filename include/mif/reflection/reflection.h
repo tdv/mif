@@ -42,9 +42,10 @@ namespace Mif
             {
             };
 
-            template <typename T>
+            template <std::size_t Idx, typename T>
             struct FieldItem
             {
+                using Index = std::integral_constant<std::size_t, Idx>;
                 using Name = typename T::TypeNameProvider;
                 using Class = typename T::ClassType;
                 using Type = typename T::FieldType;
@@ -64,7 +65,7 @@ namespace Mif
             public:
                 static constexpr std::size_t Count = MetaType::FieldsCount - 1;
                 template <std::size_t Index>
-                using Field = FieldItem<decltype(MetaType::GetFieldInfo(Common::Detail::Hierarchy<Index>{}))>;
+                using Field = FieldItem<Index, decltype(MetaType::GetFieldInfo(Common::Detail::Hierarchy<Index>{}))>;
             };
 
             template <typename T>

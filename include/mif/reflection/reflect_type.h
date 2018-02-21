@@ -27,6 +27,9 @@ namespace Mif
             template <typename>
             struct Class;
 
+            template <typename>
+            class FieldsList;
+
             template <typename T>
             struct FieldOwnerType
             {
