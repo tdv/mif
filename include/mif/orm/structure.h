@@ -63,7 +63,7 @@ namespace Mif
             template <typename TFieldMeta>
             using Field = Detail::FieldInfo<ThisType, TFieldMeta, std::tuple<>,
                     Detail::FieldTraits::AvailableTraits<typename std::decay<typename TFieldMeta::Type>::type>,
-                    std::tuple<>>;
+                    std::tuple<>, std::tuple<>>;
 
         private:
             static_assert(std::is_class<T>::value && Reflection::IsReflectable<T>(),

@@ -31,7 +31,7 @@ namespace Mif
     {
         namespace Detail
         {
-            template <typename, typename, typename, typename, typename>
+            template <typename, typename, typename, typename, typename, typename>
             class FieldInfo;
 
             namespace FieldTraits
@@ -62,9 +62,10 @@ namespace Mif
             typename TFieldMeta, \
             typename TTraits, \
             typename TAvailableTraits, \
+            typename TUniqueTraits, \
             typename TDeclaredFields \
         > \
-        class trait_ ## _Holder <FieldInfo<TTableEntity, TFieldMeta, TTraits, TAvailableTraits, TDeclaredFields>> \
+        class trait_ ## _Holder <FieldInfo<TTableEntity, TFieldMeta, TTraits, TAvailableTraits, TUniqueTraits, TDeclaredFields>> \
         { \
         private: \
             using CurrentTrait = std::tuple<FieldTrait<Trait_ ## trait_>>; \
@@ -85,15 +86,27 @@ namespace Mif
                         _, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__) \
                     ) \
                 >; \
+            using UniqueTraits = Common::Detail::MakeUniqueTuple \
+                < \
+                    typename Common::Detail::TupleCat \
+                        < \
+                            TUniqueTraits, \
+                            typename std::conditional<is_unique_, CurrentTrait, std::tuple<>>::type \
+                        >::Tuple \
+                >; \
+            using AllIncompatibleTraits = Common::Detail::MakeUniqueTuple \
+                < \
+                    typename Common::Detail::TupleCat<UniqueTraits, IncompatibleTraits>::Tuple \
+                >; \
             using NewAvailableTraits = typename Common::Detail::TupleDifference \
                 < \
                     TAvailableTraits, \
                     Common::Detail::MakeUniqueTuple \
                         < \
-                            typename Common::Detail::TupleCat<CurrentTrait, IncompatibleTraits>::Tuple \
+                            typename Common::Detail::TupleCat<CurrentTrait, AllIncompatibleTraits>::Tuple \
                         > \
                 >; \
-            using FieldNextTraits = FieldInfo<TTableEntity, TFieldMeta, NewFieldTraits, NewAvailableTraits, TDeclaredFields> ; \
+            using FieldNextTraits = FieldInfo<TTableEntity, TFieldMeta, NewFieldTraits, NewAvailableTraits, UniqueTraits, TDeclaredFields> ; \
         public: \
             using trait_ = FieldNextTraits; \
         }; \
@@ -205,12 +218,13 @@ namespace Mif
                 typename TFieldMeta,
                 typename TTraits,
                 typename TAvailableTraits,
+                typename TUniqueTraits,
                 typename TDeclaredFields
             >
             class FieldInfo
                 : public InheritFieldTraits
                     <
-                        FieldInfo<TTableEntity, TFieldMeta, TTraits, TAvailableTraits, TDeclaredFields>,
+                        FieldInfo<TTableEntity, TFieldMeta, TTraits, TAvailableTraits, TUniqueTraits, TDeclaredFields>,
                         TAvailableTraits
                     >
             {
@@ -219,7 +233,7 @@ namespace Mif
 
                 template <typename TField>
                 using Field = FieldInfo<TTableEntity, TField, std::tuple<>,
-                        FieldTraits::AvailableTraits<typename std::decay<typename TField::Type>::type>,
+                        FieldTraits::AvailableTraits<typename std::decay<typename TField::Type>::type>, TUniqueTraits,
                         typename Common::Detail::TupleCat<TDeclaredFields, std::tuple<typename TFieldMeta::Index>>::Tuple>;
 
             private:
