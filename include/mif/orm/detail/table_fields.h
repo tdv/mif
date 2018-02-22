@@ -171,6 +171,17 @@ namespace Mif
 
                 using NoTypeTraits = std::tuple<>;
 
+                using AllTypeTraits = std::tuple
+                    <
+                        FieldTrait<Trait_Counter>,
+                        FieldTrait<Trait_WithTimezone>,
+                        FieldTrait<Trait_NotNull>,
+                        FieldTrait<Trait_Nullable>,
+                        FieldTrait<Trait_Unique>,
+                        FieldTrait<Trait_PrimaryKey>,
+                        FieldTrait<Trait_Linked>
+                    >;
+
                 template <typename T>
                 using AvailableTraits = typename std::conditional
                     <
@@ -212,6 +223,13 @@ namespace Mif
             {
             };
 
+            template <typename TFieldMeta, typename TTraits>
+            struct FieldDescr final
+            {
+                using FieldMeta = TFieldMeta;
+                using Traits = TTraits;
+            };
+
             template
             <
                 typename TTableEntity,
@@ -229,19 +247,29 @@ namespace Mif
                     >
             {
             public:
-                using Create = typename TTableEntity::Create;
+                using Create = typename TTableEntity::template CreateTable<TDeclaredFields>;
 
                 template <typename TField>
                 using Field = FieldInfo<TTableEntity, TField, std::tuple<>,
                         FieldTraits::AvailableTraits<typename std::decay<typename TField::Type>::type>, TUniqueTraits,
-                        typename Common::Detail::TupleCat<TDeclaredFields, std::tuple<typename TFieldMeta::Index>>::Tuple>;
+                        typename Common::Detail::TupleCat<TDeclaredFields, std::tuple<FieldDescr<TFieldMeta, TTraits>>>::Tuple>;
 
             private:
                 static_assert(std::is_same<typename TTableEntity::EntityType, typename TFieldMeta::Class>::value,
                         "[Mif::Orm::Detail::FieldInfo] You cann't use a field from another struct.");
                 static_assert(!Serialization::Traits::IsSmartPointer<typename TFieldMeta::Type>(),
                         "[Mif::Orm::Detail::FieldInfo] Fields with smart pointer are not supported.");
-                static_assert(!Common::Detail::TupleContains<typename TFieldMeta::Index, TDeclaredFields>::value,
+
+                template <typename, typename>
+                struct AlreadyDeclared;
+
+                template <typename T, typename ... TDecl>
+                struct AlreadyDeclared<T, std::tuple<TDecl ... >>
+                    : public Common::Detail::Disjunction<std::is_same<typename T::Index, typename TDecl::FieldMeta::Index> ... >
+                {
+                };
+
+                static_assert(!AlreadyDeclared<TFieldMeta, TDeclaredFields>::value,
                         "[Mif::Orm::Detail::FieldInfo] "
                         "You can not override the properties of fields that have already been declared."
                     );

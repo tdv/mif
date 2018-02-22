@@ -1,5 +1,6 @@
 // STD
 #include <list>
+#include <limits>
 #include <string>
 #include <iostream>
 #include <tuple>
@@ -25,15 +26,21 @@ namespace Data
         Locked
     };
 
+    enum Code
+    {
+        Code1, Code2
+    };
+
     struct Address1
     {
         std::string country;
         std::string city;
-        std::size_t code = 0;
+        Code code = Code1;
     };
 
     struct Address
     {
+        std::size_t counter = 0;
         std::string country;
         std::string city;
         std::size_t code = 0;
@@ -59,6 +66,7 @@ namespace Data
         MIF_REFLECT_END()
 
         MIF_REFLECT_BEGIN(Address)
+            MIF_REFLECT_FIELD(counter)
             MIF_REFLECT_FIELD(country)
             MIF_REFLECT_FIELD(city)
             MIF_REFLECT_FIELD(code)
@@ -76,10 +84,38 @@ namespace Mif
 {
     namespace Orm
     {
+        namespace Detail
+        {
+            namespace Utility
+            {
+
+                template <typename TTable, typename TFieldMeta>
+                struct FieldTraits
+                {
+                    using Traits = std::tuple<>;
+                };
+
+                template <typename TFieldMeta, typename TEntity, typename ... TTraits>
+                struct FieldTraits<Orm::Detail::Entity<Table<TEntity, TTraits ... >>, TFieldMeta>
+                {
+                    using Traits = std::tuple<>;
+                };
+
+            }   // namespace Utility
+        }   // namespace Detail
+    }   // namespace Orm
+}   // namespace Mif
+
+namespace Mif
+{
+    namespace Orm
+    {
         namespace PostgreSql
         {
             namespace Detail
             {
+                using StringList = std::list<std::string>;
+
                 namespace Utility
                 {
 
@@ -97,6 +133,130 @@ namespace Mif
                         return str;
                     }
 
+                    namespace Type
+                    {
+                        namespace Simple
+                        {
+
+                            template <typename>
+                            struct Holder;
+
+    #define MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(type_, name_) \
+        template <> \
+        struct Holder<type_> \
+        { \
+            using Name = MIF_STATIC_STR(name_); \
+            using Type = type_; \
+        };
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(bool, "INTEGERU")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(char, "INTEGER")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned char, "INTEGER")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(short, "INTEGER")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned short, "INTEGER")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(int, "INTEGER")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned int, "INTEGER")
+
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(long, "BIGINT")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned long, "BIGINT")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(long long, "BIGINT")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned long long, "BIGINT")
+
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(float, "REAL")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(double, "DOUBLE PRECISION")
+
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(std::string, "TEXT")
+
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(boost::posix_time::ptime::date_type, "DATE")
+                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(boost::posix_time::ptime, "TIMESTAMP")
+
+                            using Serial = MIF_STATIC_STR("SERIAL");
+                            using BigSerial = MIF_STATIC_STR("BIGSERIAL");
+
+    #undef MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL
+
+                            struct TypeName final
+                            {
+                                template <typename T>
+                                static typename std::enable_if<!std::is_enum<T>::value, std::string>::type Get()
+                                {
+                                    return Holder<T>::Name::Value;
+                                }
+
+                                template <typename T>
+                                static typename std::enable_if<std::is_enum<T>::value, std::string>::type Get()
+                                {
+                                    return Holder<typename std::underlying_type<T>::type>::Name::Value;
+                                }
+                            };
+
+                        }   // namespace Simple
+                    }   // namespace Type
+
+                    namespace FieldTraits
+                    {
+                        namespace Trait
+                        {
+
+                            // TODO: traits to strings
+                            template <typename>
+                            struct ToString final
+                            {
+                                using Name = MIF_STATIC_STR("TRAIT");
+                            };
+
+                        }   // namespace Trait
+
+
+                        template <typename TTrait, typename TTraits, bool = Common::Detail::TupleContains<TTrait, TTraits>::value>
+                        struct AppendTrait final
+                        {
+                            static void Append(StringList &traits)
+                            {
+                                traits.emplace_back(Trait::ToString<TTrait>::Name::Value);
+                            }
+                        };
+
+                        template <typename TTrait, typename TTraits>
+                        struct AppendTrait<TTrait, TTraits, false> final
+                        {
+                            static void Append(StringList &traits)
+                            {
+                                Common::Unused(traits);
+                            }
+                        };
+
+                        template <typename TTraits, typename TAllTraits>
+                        struct TupleToStringList;
+
+                        template <typename TTraits, typename TCur, typename ... TTail>
+                        struct TupleToStringList<TTraits, std::tuple<TCur, TTail ... >> final
+                        {
+                            static void Get(StringList &traits)
+                            {
+                                AppendTrait<TCur, TTraits>::Append(traits);
+                                TupleToStringList<TTraits, std::tuple<TTail ... >>::Get(traits);
+                            }
+                        };
+
+                        template <typename TTraits>
+                        struct TupleToStringList<TTraits, std::tuple<>> final
+                        {
+                            static void Get(StringList &traits)
+                            {
+                                Common::Unused(traits);
+                            }
+                        };
+
+                        template <typename TTraits>
+                        struct ToStringList final
+                        {
+                            static void Get(StringList &traits)
+                            {
+                                TupleToStringList<TTraits, Orm::Detail::FieldTraits::AllTypeTraits>::Get(traits);
+                            }
+                        };
+
+                    }   // namespace FieldTraits
                 }   // namespace Utility
             }   // namespace Detail
         }   // namespace PostgreSql
@@ -111,12 +271,9 @@ namespace Mif
         {
             namespace Detail
             {
-
-                using DefaultSchemaName = MIF_STATIC_STR("");
+                 using DefaultSchemaName = MIF_STATIC_STR("");
 
                 using Indent = MIF_STATIC_STR("    ");
-
-                using StringList = std::list<std::string>;
 
                 template <typename TSchemaName, typename TEntityName>
                 struct EntityName final
@@ -202,24 +359,71 @@ namespace Mif
                     }
                 };
 
-                template <typename TSchemaName, typename TEntity, typename ... TEntities>
-                class Entity<TSchemaName, Orm::Detail::Entity<Orm::Table<TEntity>>, TEntities ... > final
+                template <typename TSchemaName, typename TEntity, typename ... TTableTraits, typename ... TEntities>
+                class Entity<TSchemaName, Orm::Detail::Entity<Orm::Table<TEntity, TTableTraits ... >>, TEntities ... > final
                 {
                 public:
                     static void Create(StringList &items)
                     {
                         auto sql = "CREATE TABLE " + EntityName<TSchemaName, typename Meta::Name>::Create() + "\n";
                         sql += "(\n";
-
-                        // TODO:
-
+                        StringList tableItems;
+                        CreateItem<Meta::Fields::Count>(tableItems);
+                        sql += boost::algorithm::join(tableItems, ",\n");
+                        if (!tableItems.empty())
+                            sql += "\n";
                         sql += ");\n";
                         items.emplace_back(sql);
                         Entity<TSchemaName, TEntities ... >::Create(items);
                     }
 
                 private:
+                    using Table = Orm::Detail::Entity<Orm::Table<TEntity, TTableTraits ... >>;
                     using Meta = Reflection::Reflect<TEntity>;
+
+                    // Simple types: all int, float pointers, text, datetimes, not reflectable enums
+                    template <typename TField>
+                    static typename std::enable_if
+                        <
+                            Serialization::Traits::IsSimple<typename TField::Type>() ||
+                                std::is_same<typename TField::Type, boost::posix_time::ptime>::value ||
+                                std::is_same<typename TField::Type, boost::posix_time::ptime::date_type>::value ||
+                                (std::is_enum<typename TField::Type>::value && !Reflection::IsReflectable<typename TField::Type>()),
+                            std::string
+                        >::type
+                    CreateItem()
+                    {
+                        std::string sql = Detail::Indent::Value;
+                        sql += TField::Name::Value;
+                        sql += " ";
+                        sql += Detail::Utility::Type::Simple::TypeName::Get<typename TField::Type>();
+                        StringList traits;
+                        using Traits = typename Orm::Detail::Utility::FieldTraits<Table, TField>::Traits;
+                        Detail::Utility::FieldTraits::ToStringList<Traits>::Get(traits);
+                        if (!traits.empty())
+                        {
+                            sql += " ";
+                            sql += boost::algorithm::join(traits, " ");
+                        }
+                        return sql;
+                    }
+
+                    template <std::size_t I>
+                    static typename std::enable_if<I != 0, void>::type
+                    CreateItem(StringList &items)
+                    {
+                        using Field = typename Meta::Fields::template Field<Meta::Fields::Count - I>;
+                        auto sql = CreateItem<Field>();
+                        items.emplace_back(std::move(sql));
+                        CreateItem<I - 1>(items);
+                    }
+
+                    template <std::size_t I>
+                    static typename std::enable_if<I == 0, void>::type
+                    CreateItem(StringList &items)
+                    {
+                        Common::Unused(items);
+                    }
                 };
 
                 template <typename TSchemaName, typename TEntity, typename ... TEntities>
@@ -271,7 +475,8 @@ int main()
                 typename Mif::Orm::Table<Data::Address1>::Create,
                 typename Mif::Orm::Table<Data::Address>
                         ::Field<MIF_FIELD_META(&Data::Address::country)>::NotNull::Unique
-                        ::Field<MIF_FIELD_META(&Data::Address::code)>::NotNull::PrimaryKey
+                        ::Field<MIF_FIELD_META(&Data::Address::code)>::NotNull
+                        ::Field<MIF_FIELD_META(&Data::Address::counter)>::NotNull::Counter::PrimaryKey
                     ::Create
             >::Create;
 

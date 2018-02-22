@@ -24,9 +24,6 @@ namespace Mif
 
         using DefaultSchemaName = MIF_STATIC_STR("");
 
-        template <typename>
-        class Table;
-
         template <typename, typename ... >
         class Schema;
 
@@ -52,13 +49,17 @@ namespace Mif
                     "[Mif::Orm::Enum] The type must be a reflectable enum.");
         };
 
-        template <typename T>
+        template <typename T, typename ... TTraits>
         class Table final
         {
+        private:
+            template <typename ... TTableTraits>
+            using CreateTable = Detail::Entity<Table<T, TTraits ... , TTableTraits ... >>;
+
         public:
             using EntityType = T;
-            using ThisType = Table<T>;
-            using Create = Detail::Entity<ThisType>;
+            using ThisType = Table<T, TTraits ... >;
+            using Create = CreateTable<>;
 
             template <typename TFieldMeta>
             using Field = Detail::FieldInfo<ThisType, TFieldMeta, std::tuple<>,
@@ -70,6 +71,9 @@ namespace Mif
                     "[Mif::Orm::Table] The type must be a reflectable struct.");
             static_assert(std::tuple_size<typename Reflection::Reflect<T>::Base>::value == 0,
                     "[Mif::Orm::Table] The type should not have any basic structs.");
+
+            template <typename, typename, typename, typename, typename, typename>
+            friend class Detail::FieldInfo;
         };
 
         // TODO: support index and partitional
