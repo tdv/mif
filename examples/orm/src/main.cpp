@@ -12,6 +12,7 @@
 #include <mif/reflection/reflect_type.h>
 #include <mif/reflection/reflection.h>
 #include <mif/orm/structure.h>
+#include <mif/orm/postgresql/detail/utility.h>
 
 // BOOST
 #include <boost/algorithm/string.hpp>
@@ -33,6 +34,7 @@ namespace Data
 
     struct Address1
     {
+        std::string name;
         std::string country;
         std::string city;
         Code code = Code1;
@@ -60,6 +62,7 @@ namespace Data
         MIF_REFLECT_END()
 
         MIF_REFLECT_BEGIN(Address1)
+            MIF_REFLECT_FIELD(name)
             MIF_REFLECT_FIELD(country)
             MIF_REFLECT_FIELD(city)
             MIF_REFLECT_FIELD(code)
@@ -118,21 +121,6 @@ namespace Mif
 
                 namespace Utility
                 {
-
-                    inline std::string Quote(std::string const &str)
-                    {
-                        std::string tmp = str;
-                        boost::replace_all(tmp, "'", "''");
-                        return "'" + tmp + "'";
-                    }
-
-                    inline std::string QuoteReserved(std::string const &str)
-                    {
-                        // TODO: do quote for reserved name for PostgreSql
-
-                        return str;
-                    }
-
                     namespace Type
                     {
                         namespace Simple
@@ -394,9 +382,9 @@ namespace Mif
                     CreateItem()
                     {
                         std::string sql = Detail::Indent::Value;
-                        sql += TField::Name::Value;
+                        sql += Utility::QuoteReserved(TField::Name::Value);
                         sql += " ";
-                        sql += Detail::Utility::Type::Simple::TypeName::Get<typename TField::Type>();
+                        sql += Utility::Type::Simple::TypeName::Get<typename TField::Type>();
                         StringList traits;
                         using Traits = typename Orm::Detail::Utility::FieldTraits<Table, TField>::Traits;
                         Detail::Utility::FieldTraits::ToStringList<Traits>::Get(traits);
