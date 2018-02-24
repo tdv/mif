@@ -285,7 +285,7 @@ namespace Mif
                         std::string name = Schema::Value;
                         name += Delimiter::Value;
                         name += TEntityName::Value;
-                        return Utility::QuoteReserved(name);
+                        return Utility::QuoteReserved(Utility::PascalCaseToUnderlining(name));
                     }
                 };
 
@@ -382,7 +382,7 @@ namespace Mif
                     CreateItem()
                     {
                         std::string sql = Detail::Indent::Value;
-                        sql += Utility::QuoteReserved(TField::Name::Value);
+                        sql += Utility::QuoteReserved(Utility::PascalCaseToUnderlining(TField::Name::Value));
                         sql += " ";
                         sql += Utility::Type::Simple::TypeName::Get<typename TField::Type>();
                         StringList traits;
@@ -443,7 +443,7 @@ namespace Mif
                     static typename std::enable_if<!std::is_same<T, Orm::DefaultSchemaName>::value, void>::type
                     CreateSchema(StringList &items)
                     {
-                        items.emplace_back("CREATE SCHEMA " + Utility::QuoteReserved(SchemaName::Value) + ";\n");
+                        items.emplace_back("CREATE SCHEMA " + Utility::QuoteReserved(Utility::PascalCaseToUnderlining(SchemaName::Value)) + ";\n");
                     }
                 };
 
@@ -458,7 +458,7 @@ int main()
     {
         using Schema = typename Mif::Orm::Schema
             <
-                MIF_STATIC_STR("my_ns"),
+                MIF_STATIC_STR("MyNs"),
                 typename Mif::Orm::Enum<Data::Status>::Create,
                 typename Mif::Orm::Table<Data::Address1>::Create,
                 typename Mif::Orm::Table<Data::Address>

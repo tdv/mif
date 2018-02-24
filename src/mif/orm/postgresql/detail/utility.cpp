@@ -6,10 +6,9 @@
 //-------------------------------------------------------------------
 
 // STD
-#include <unordered_set>
+#include <cctype>
 #include <vector>
-
-#include <iostream>
+#include <unordered_set>
 
 // BOOST
 #include <boost/algorithm/string.hpp>
@@ -133,6 +132,32 @@ namespace Mif
                         std::string tmp = str;
                         boost::replace_all(tmp, "'", "''");
                         return "'" + tmp + "'";
+                    }
+
+                    std::string PascalCaseToUnderlining(std::string const &str)
+                    {
+                        std::string res;
+
+                        for (auto i = std::begin(str) ; i != std::end(str) ; ++i)
+                        {
+                            if (std::isupper(*i))
+                            {
+                                if (i != std::begin(str))
+                                {
+                                    auto prev = i;
+                                    std::advance(prev, -1);
+                                    if (std::isalpha(*prev))
+                                        res += '_';
+                                }
+                                res += std::tolower(*i);
+                            }
+                            else
+                            {
+                                res += *i;
+                            }
+                        }
+
+                        return res;
                     }
 
                 }   // namespace Utility
