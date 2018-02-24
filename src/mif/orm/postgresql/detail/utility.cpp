@@ -146,7 +146,7 @@ namespace Mif
                                 {
                                     auto prev = i;
                                     std::advance(prev, -1);
-                                    if (std::isalpha(*prev))
+                                    if (std::isalpha(*prev) || std::isdigit(*prev))
                                         res += '_';
                                 }
                                 res += std::tolower(*i);
