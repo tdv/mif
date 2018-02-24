@@ -13,8 +13,11 @@
 #ifdef MIF_WITH_POSTGRESQL
 
 // STD
-#include <set>
 #include <string>
+#include <type_traits>
+
+// MIF
+#include "mif/common/static_string.h"
 
 namespace Mif
 {
@@ -30,6 +33,32 @@ namespace Mif
                     std::string QuoteReserved(std::string const &str);
                     std::string Quote(std::string const &str);
                     std::string PascalCaseToUnderlining(std::string const &str);
+
+                    template <typename TSchemaName, typename TEntityName>
+                    struct EntityName final
+                    {
+                        static std::string Create()
+                        {
+                            using Schema = typename std::conditional
+                                <
+                                    std::is_same<TSchemaName, Orm::DefaultSchemaName>::value,
+                                    DefaultSchemaName,
+                                    TSchemaName
+                                >::type;
+
+                            using Delimiter = typename std::conditional
+                                <
+                                    std::is_same<TSchemaName, Orm::DefaultSchemaName>::value,
+                                    MIF_STATIC_STR(""),
+                                    MIF_STATIC_STR(".")
+                                >::type;
+
+                            std::string name = Schema::Value;
+                            name += Delimiter::Value;
+                            name += TEntityName::Value;
+                            return Utility::QuoteReserved(Utility::PascalCaseToUnderlining(name));
+                        }
+                    };
 
                 }   // namespace Utility
             }   // namespace Detail

@@ -13,6 +13,7 @@
 #include <mif/reflection/reflection.h>
 #include <mif/orm/structure.h>
 #include <mif/orm/postgresql/detail/utility.h>
+#include <mif/orm/postgresql/detail/simple_types.h>
 
 // BOOST
 #include <boost/algorithm/string.hpp>
@@ -121,65 +122,6 @@ namespace Mif
 
                 namespace Utility
                 {
-                    namespace Type
-                    {
-                        namespace Simple
-                        {
-
-                            template <typename>
-                            struct Holder;
-
-    #define MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(type_, name_) \
-        template <> \
-        struct Holder<type_> \
-        { \
-            using Name = MIF_STATIC_STR(name_); \
-            using Type = type_; \
-        };
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(bool, "INTEGERU")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(char, "INTEGER")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned char, "INTEGER")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(short, "INTEGER")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned short, "INTEGER")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(int, "INTEGER")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned int, "INTEGER")
-
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(long, "BIGINT")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned long, "BIGINT")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(long long, "BIGINT")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(unsigned long long, "BIGINT")
-
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(float, "REAL")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(double, "DOUBLE PRECISION")
-
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(std::string, "TEXT")
-
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(boost::posix_time::ptime::date_type, "DATE")
-                            MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL(boost::posix_time::ptime, "TIMESTAMP")
-
-                            using Serial = MIF_STATIC_STR("SERIAL");
-                            using BigSerial = MIF_STATIC_STR("BIGSERIAL");
-
-    #undef MIF_ORM_POSTGRESQL_SIMPLE_TYPE_IMPL
-
-                            struct TypeName final
-                            {
-                                template <typename T>
-                                static typename std::enable_if<!std::is_enum<T>::value, std::string>::type Get()
-                                {
-                                    return Holder<T>::Name::Value;
-                                }
-
-                                template <typename T>
-                                static typename std::enable_if<std::is_enum<T>::value, std::string>::type Get()
-                                {
-                                    return Holder<typename std::underlying_type<T>::type>::Name::Value;
-                                }
-                            };
-
-                        }   // namespace Simple
-                    }   // namespace Type
-
                     namespace FieldTraits
                     {
                         namespace Trait
@@ -263,32 +205,6 @@ namespace Mif
 
                 using Indent = MIF_STATIC_STR("    ");
 
-                template <typename TSchemaName, typename TEntityName>
-                struct EntityName final
-                {
-                    static std::string Create()
-                    {
-                        using Schema = typename std::conditional
-                            <
-                                std::is_same<TSchemaName, Orm::DefaultSchemaName>::value,
-                                DefaultSchemaName,
-                                TSchemaName
-                            >::type;
-
-                        using Delimiter = typename std::conditional
-                            <
-                                std::is_same<TSchemaName, Orm::DefaultSchemaName>::value,
-                                MIF_STATIC_STR(""),
-                                MIF_STATIC_STR(".")
-                            >::type;
-
-                        std::string name = Schema::Value;
-                        name += Delimiter::Value;
-                        name += TEntityName::Value;
-                        return Utility::QuoteReserved(Utility::PascalCaseToUnderlining(name));
-                    }
-                };
-
                 template <typename ... T>
                 class Entity final
                 {
@@ -315,7 +231,7 @@ namespace Mif
                 public:
                     static void Create(StringList &items)
                     {
-                        auto sql = "CREATE TYPE " + EntityName<TSchemaName, typename Meta::Name>::Create() + " AS ENUM\n";
+                        auto sql = "CREATE TYPE " + Utility::EntityName<TSchemaName, typename Meta::Name>::Create() + " AS ENUM\n";
                         sql += "(\n";
                         StringList enumItems;
                         CreateItems<Meta::Fields::Count>(enumItems);
@@ -353,7 +269,7 @@ namespace Mif
                 public:
                     static void Create(StringList &items)
                     {
-                        auto sql = "CREATE TABLE " + EntityName<TSchemaName, typename Meta::Name>::Create() + "\n";
+                        auto sql = "CREATE TABLE " + Utility::EntityName<TSchemaName, typename Meta::Name>::Create() + "\n";
                         sql += "(\n";
                         StringList tableItems;
                         CreateItem<Meta::Fields::Count>(tableItems);
@@ -384,7 +300,7 @@ namespace Mif
                         std::string sql = Detail::Indent::Value;
                         sql += Utility::QuoteReserved(Utility::PascalCaseToUnderlining(TField::Name::Value));
                         sql += " ";
-                        sql += Utility::Type::Simple::TypeName::Get<typename TField::Type>();
+                        sql += Type::Simple::TypeName::Get<typename TField::Type>();
                         StringList traits;
                         using Traits = typename Orm::Detail::Utility::FieldTraits<Table, TField>::Traits;
                         Detail::Utility::FieldTraits::ToStringList<Traits>::Get(traits);
