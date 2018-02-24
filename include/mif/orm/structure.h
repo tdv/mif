@@ -14,6 +14,7 @@
 
 // MIF
 #include "mif/common/static_string.h"
+#include "mif/orm/common.h"
 #include "mif/orm/detail/entity.h"
 #include "mif/orm/detail/table_fields.h"
 
@@ -21,8 +22,6 @@ namespace Mif
 {
     namespace Orm
     {
-
-        using DefaultSchemaName = MIF_STATIC_STR("");
 
         template <typename, typename ... >
         class Schema;

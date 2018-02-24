@@ -14,6 +14,7 @@
 #include <mif/orm/structure.h>
 #include <mif/orm/postgresql/detail/utility.h>
 #include <mif/orm/postgresql/detail/simple_types.h>
+#include <mif/orm/postgresql/detail/common.h>
 
 // BOOST
 #include <boost/algorithm/string.hpp>
@@ -118,8 +119,6 @@ namespace Mif
         {
             namespace Detail
             {
-                using StringList = std::list<std::string>;
-
                 namespace Utility
                 {
                     namespace FieldTraits
@@ -201,10 +200,6 @@ namespace Mif
         {
             namespace Detail
             {
-                 using DefaultSchemaName = MIF_STATIC_STR("");
-
-                using Indent = MIF_STATIC_STR("    ");
-
                 template <typename ... T>
                 class Entity final
                 {

@@ -18,6 +18,7 @@
 
 // MIF
 #include "mif/common/static_string.h"
+#include "mif/orm/common.h"
 
 namespace Mif
 {
