@@ -13,6 +13,7 @@
 #ifdef MIF_WITH_POSTGRESQL
 
 // STD
+#include <cstdint>
 #include <string>
 #include <type_traits>
 
@@ -70,13 +71,29 @@ namespace Mif
 
                         struct TypeName final
                         {
-                            template <typename T>
+                            template <typename T, bool IsCounter>
                             static typename std::enable_if<!std::is_enum<T>::value, std::string>::type Get()
                             {
-                                return Holder<T>::Name::Value;
+                                using FieldType = typename std::conditional
+                                    <
+                                        !IsCounter,
+                                        typename Holder<T>::Name,
+                                        typename std::conditional
+                                        <
+                                            !std::is_integral<T>::value,
+                                            typename Holder<T>::Name,
+                                            typename std::conditional
+                                            <
+                                                sizeof(T) <= sizeof(std::uint32_t),
+                                                Serial,
+                                                BigSerial
+                                            >::type
+                                        >::type
+                                    >::type;
+                                return FieldType::Value;
                             }
 
-                            template <typename T>
+                            template <typename T, bool>
                             static typename std::enable_if<std::is_enum<T>::value, std::string>::type Get()
                             {
                                 return Holder<typename std::underlying_type<T>::type>::Name::Value;

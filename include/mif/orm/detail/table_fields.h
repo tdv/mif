@@ -126,7 +126,8 @@ namespace Mif
                 MIF_ORM_FIELD_TRAIT_IMPL(Nullable, false, NotNull, PrimaryKey, Unique)
                 MIF_ORM_FIELD_TRAIT_IMPL(PrimaryKey, true, Nullable)
                 MIF_ORM_FIELD_TRAIT_IMPL(Unique, false, Nullable)
-                MIF_ORM_FIELD_TRAIT_IMPL(WithTimezone, false)
+                MIF_ORM_FIELD_TRAIT_IMPL(WithTimezone, false, WithoutTimezone)
+                MIF_ORM_FIELD_TRAIT_IMPL(WithoutTimezone, false, WithTimezone)
                 MIF_ORM_FIELD_TRAIT_IMPL(Linked, false)
 
 #undef MIF_ORM_FIELD_NO_INCOMPATIBLE_TRAITS_IMPL
@@ -160,7 +161,8 @@ namespace Mif
                             typename Common::Detail::TupleCat
                             <
                                 SimpleTypeTraits,
-                                std::tuple<FieldTrait<Trait_WithTimezone>>
+                                std::tuple<FieldTrait<Trait_WithTimezone>>,
+                                std::tuple<FieldTrait<Trait_WithoutTimezone>>
                             >::Tuple
                         >;
 
@@ -175,6 +177,7 @@ namespace Mif
                     <
                         FieldTrait<Trait_Counter>,
                         FieldTrait<Trait_WithTimezone>,
+                        FieldTrait<Trait_WithoutTimezone>,
                         FieldTrait<Trait_NotNull>,
                         FieldTrait<Trait_Nullable>,
                         FieldTrait<Trait_Unique>,
@@ -193,8 +196,7 @@ namespace Mif
                             CounterTypeTraits,
                             typename std::conditional
                             <
-                                std::is_same<T, boost::posix_time::ptime::date_type>::value ||
-                                    std::is_same<T, boost::posix_time::ptime>::value,
+                                std::is_same<T, boost::posix_time::ptime>::value,
                                 DateTypeTraits,
                                 typename std::conditional
                                 <
@@ -246,13 +248,16 @@ namespace Mif
                         TAvailableTraits
                     >
             {
+            private:
+                using DeclaredFields = typename Common::Detail::TupleCat<TDeclaredFields, std::tuple<FieldDescr<TFieldMeta, TTraits>>>::Tuple;
+
             public:
-                using Create = typename TTableEntity::template CreateTable<TDeclaredFields>;
+                using Create = typename TTableEntity::template CreateTable<DeclaredFields>;
 
                 template <typename TField>
                 using Field = FieldInfo<TTableEntity, TField, std::tuple<>,
-                        FieldTraits::AvailableTraits<typename std::decay<typename TField::Type>::type>, TUniqueTraits,
-                        typename Common::Detail::TupleCat<TDeclaredFields, std::tuple<FieldDescr<TFieldMeta, TTraits>>>::Tuple>;
+                        FieldTraits::AvailableTraits<typename TField::Type>, TUniqueTraits,
+                        DeclaredFields>;
 
             private:
                 static_assert(std::is_same<typename TTableEntity::EntityType, typename TFieldMeta::Class>::value,

@@ -17,14 +17,12 @@
 #include "mif/orm/common.h"
 #include "mif/orm/detail/entity.h"
 #include "mif/orm/detail/table_fields.h"
+#include "mif/orm/forward.h"
 
 namespace Mif
 {
     namespace Orm
     {
-
-        template <typename, typename ... >
-        class Schema;
 
         template <char const ... TName, typename ... TEntities>
         class Schema<Common::StaticString<TName ... >, Detail::Entity<TEntities> ... > final

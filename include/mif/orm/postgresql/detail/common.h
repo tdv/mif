@@ -33,6 +33,13 @@ namespace Mif
 
                 using StringList = std::list<std::string>;
 
+                struct Context final
+                {
+                    std::string name;
+                    StringList items;
+                    StringList additional;
+                };
+
             }   // namespace Detail
         }   // namespace PostgreSql
     }   // namespace Orm
