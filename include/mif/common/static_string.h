@@ -97,6 +97,24 @@ namespace Mif
                     >::Result;
             };
 
+            template <std::size_t I, char ... Str>
+            struct ToString
+            {
+                using String = typename ToString<I / 10, static_cast<char>(I % 10 + '0'), Str ... >::String;
+            };
+
+            template <char ... Str>
+            struct ToString<0, Str ... >
+            {
+                using String = StaticString<Str ... , 0>;
+            };
+
+            template <>
+            struct ToString<0>
+            {
+                using String = StaticString<'0', 0>;
+            };
+
         }   // namespace Detail
 
         template <char ... Str>
@@ -107,7 +125,7 @@ namespace Mif
         using StringCat = typename Detail::StringCat<true, TStr1, TStr2>::Result;
 
         template <std::uint64_t I>
-        using ToString = StaticString<0>;
+        using ToString = typename Detail::ToString<I>::String;
 
     }   // namespace Common
 }   // namespace Mif
