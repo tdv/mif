@@ -173,8 +173,9 @@ namespace Mif
                         FakeField
                         <
                             std::size_t,
-                            Utility::CreateUniqueName
+                            Utility::CreateUniqueFieldName
                             <
+                                EntityFields,
                                 Common::StringCat
                                 <
                                     typename Reflection::Reflect<TEntity>::Name,

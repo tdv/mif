@@ -50,6 +50,7 @@ namespace Data
 
     struct Nested1
     {
+        std::size_t nested1_id = 0;
         std::string nestedSimpleField1;
         std::size_t nestedSimpleField2 = 0;
         Nested2 complexField;
@@ -95,6 +96,7 @@ namespace Data
         MIF_REFLECT_END()
 
         MIF_REFLECT_BEGIN(Nested1)
+            MIF_REFLECT_FIELD(nested1_id)
             MIF_REFLECT_FIELD(nestedSimpleField1)
             MIF_REFLECT_FIELD(nestedSimpleField2)
             MIF_REFLECT_FIELD(complexField)
