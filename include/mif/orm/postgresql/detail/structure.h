@@ -126,6 +126,8 @@ namespace Mif
                         Context itemContext;
                         itemContext.name = context.name;
                         CreateItem<Meta::Fields::Count>(itemContext);
+                        std::copy(std::begin(context.injectedItems), std::end(context.injectedItems),
+                                std::back_inserter(itemContext.items));
                         sql += boost::algorithm::join(itemContext.items, ",\n");
                         if (!itemContext.items.empty())
                             sql += "\n";
@@ -222,7 +224,29 @@ namespace Mif
                         nested.name += "_";
                         nested.name += TField::Name::Value;
                         nested.name = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(nested.name));
-                        using NestedTable = typename Orm::Table<typename TField::Type>::Create;
+
+                        using FieldType = typename TField::Type;
+                        using NestedTable = typename Orm::Table<FieldType>::Create;
+
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
+                        using PrimaryKey = typename Orm::Detail::PrimaryKey<NestedTable>::Fields;
+
+                        std::string primaryKey;
+                        CreatePrimaryKey<PrimaryKey, std::tuple_size<PrimaryKey>::value>(
+                                nested.injectedItems, primaryKey);
+
+                        std::string foreignKey;
+                        CreateForeignKey<FieldType, OwnerPrimaryKey, std::tuple_size<OwnerPrimaryKey>::value>(
+                                context.name, nested.injectedItems, foreignKey);
+
+                        if (!nested.injectedItems.empty())
+                        {
+                            foreignKey = "FOREIGN KEY (" + foreignKey + ")";
+                            foreignKey = Detail::Indent::Value + foreignKey;
+                            foreignKey += " REFERENCES " + context.name + " ON DELETE CASCADE";
+                            nested.injectedItems.emplace_back(std::move(foreignKey));
+                        }
+
                         Entity<TSchemaName, NestedTable>::Create(nested);
                         std::copy(std::begin(nested.items), std::end(nested.items), std::back_inserter(context.additional));
                     }
@@ -241,6 +265,63 @@ namespace Mif
                     CreateItem(Context &context)
                     {
                         Common::Unused(context);
+                    }
+
+                    template <typename TChildType, typename TKeyFields, std::size_t N>
+                    static typename std::enable_if<N != 0, void>::type
+                    CreateForeignKey(std::string const &refTable, StringList &items, std::string &foreignKey)
+                    {
+                        using FieldMeta = typename std::tuple_element<N - 1, TKeyFields>::type;
+                        using FieldType = typename FieldMeta::Type;
+                        auto const fieldName = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(FieldMeta::Name::Value));
+                        std::string item = Detail::Indent::Value;
+                        item += fieldName;
+                        item += " ";
+                        item += Type::Simple::TypeName::Get<FieldType, false>();
+                        item += " ";
+                        item += "REFERENCES ";
+                        item += refTable;
+                        item += "(";
+                        item += fieldName;
+                        item += ")";
+                        item += " ON DELETE CASCADE";
+                        foreignKey += fieldName;
+                        items.emplace_back(std::move(item));
+                        CreateForeignKey<TChildType, TKeyFields, N - 1>(refTable, items, foreignKey);
+                    }
+
+                    template <typename TChildType, typename TKeyFields, std::size_t N>
+                    static typename std::enable_if<N == 0, void>::type
+                    CreateForeignKey(std::string const &refTable, StringList &items, std::string &foreignKey)
+                    {
+                        Common::Unused(refTable);
+                        Common::Unused(items);
+                        Common::Unused(foreignKey);
+                    }
+
+                    template <typename TKeyFields, std::size_t N>
+                    static typename std::enable_if<N != 0, void>::type
+                    CreatePrimaryKey(StringList &items, std::string &key)
+                    {
+                        using FieldMeta = typename std::tuple_element<N - 1, TKeyFields>::type;
+                        using FieldType = typename FieldMeta::Type;
+                        auto const fieldName = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(FieldMeta::Name::Value));
+                        std::string item = Detail::Indent::Value;
+                        item += fieldName;
+                        item += " ";
+                        item += Type::Simple::TypeName::Get<FieldType, true>();
+                        item += " NOT NULL PRIMARY KEY";
+                        key += fieldName;
+                        items.emplace_back(std::move(item));
+                        CreatePrimaryKey<TKeyFields, N - 1>(items, key);
+                    }
+
+                    template <typename TKeyFields, std::size_t N>
+                    static typename std::enable_if<N == 0, void>::type
+                    CreatePrimaryKey(StringList &items, std::string &key)
+                    {
+                        Common::Unused(items);
+                        Common::Unused(key);
                     }
                 };
 

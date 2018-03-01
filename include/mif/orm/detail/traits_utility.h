@@ -14,9 +14,12 @@
 #include <type_traits>
 
 // MIF
+#include "mif/common/detail/tuple_utility.h"
 #include "mif/orm/forward.h"
 #include "mif/orm/detail/entity.h"
 #include "mif/orm/detail/table_fields.h"
+#include "mif/orm/detail/utility.h"
+#include "mif/reflection/reflection.h"
 
 namespace Mif
 {
@@ -91,6 +94,104 @@ namespace Mif
             struct HasTrait<TraitId, std::tuple<>>
                 : public std::false_type
             {
+            };
+
+            template <std::uint32_t TraitId, typename TTable, typename TFields, std::size_t N>
+            class FieldsWithTrait final
+            {
+            private:
+                using Field = typename TFields::template Field<N - 1>;
+                using FieldTraits = typename FieldTraitsList<TTable, Field>::Traits;
+
+            public:
+                using Fields = typename std::conditional
+                    <
+                        HasTrait<TraitId, FieldTraits>::value,
+                        Common::Detail::MakeUniqueTuple
+                        <
+                            typename Common::Detail::TupleCat
+                            <
+                                std::tuple<Field>,
+                                typename FieldsWithTrait<TraitId, TTable, TFields, N - 1>::Fields
+                            >::Tuple
+                        >,
+                        typename FieldsWithTrait<TraitId, TTable, TFields, N - 1>::Fields
+                    >::type;
+            };
+
+            template <std::uint32_t TraitId, typename TTable, typename TFields>
+            class FieldsWithTrait<TraitId, TTable, TFields, 0> final
+            {
+            public:
+                using Fields = std::tuple<>;
+            };
+
+            template
+            <
+                typename TFieldType,
+                typename TName,
+                typename TOwner
+            >
+            class FakeField final
+            {
+            private:
+                using ThisType = FakeField<TFieldType, TName, TOwner>;
+
+            public:
+                using FieldType = TFieldType;
+                using TypeNameProvider = TName;
+                using ClassType = TOwner;
+
+                static constexpr FieldType ThisType::* Access()
+                {
+                    return &ThisType::m_field;
+                }
+
+            private:
+                FieldType m_field;
+            };
+
+            template <typename>
+            class PrimaryKey;
+
+            template <typename TEntity, typename ... TTraits>
+            class PrimaryKey<Entity<Table<TEntity, TTraits ... >>> final
+            {
+            private:
+                using EntityFields = typename Reflection::Reflect<TEntity>::Fields;
+                using EntityTable = Entity<Table<TEntity, TTraits ... >>;
+                using PrimaryKeyFields = typename FieldsWithTrait
+                <
+                    FieldTraits::Trait_PrimaryKey,
+                    EntityTable,
+                    EntityFields,
+                    EntityFields::Count
+                >::Fields;
+                using FakePrimaryKey = Reflection::Detail::FieldItem
+                    <
+                        EntityFields::Count,
+                        FakeField
+                        <
+                            std::size_t,
+                            Utility::CreateUniqueName
+                            <
+                                Common::StringCat
+                                <
+                                    typename Reflection::Reflect<TEntity>::Name,
+                                    MIF_STATIC_STR("_id")
+                                >
+                            >,
+                            TEntity
+                        >
+                    >;
+
+            public:
+                using Fields = typename std::conditional
+                    <
+                        std::tuple_size<PrimaryKeyFields>::value,
+                        PrimaryKeyFields,
+                        std::tuple<FakePrimaryKey>
+                    >::type;
             };
 
         }   // namespace Detail

@@ -128,10 +128,10 @@ int main()
             <
                 MIF_STATIC_STR("MyNs"),
                 typename Mif::Orm::Enum<Data::Status>::Create,
-                typename Mif::Orm::Table<Data::Address1>
+                /*typename Mif::Orm::Table<Data::Address1>
                         ::Field<MIF_FIELD_META(&Data::Address1::counter)>::NotNull::Counter::PrimaryKey
                         ::Field<MIF_FIELD_META(&Data::Address1::timestamp)>::NotNull::Unique::WithoutTimezone
-                    ::Create,
+                    ::Create,*/
                 typename Mif::Orm::Table<Data::Address>
                         ::Field<MIF_FIELD_META(&Data::Address::country)>::NotNull::Unique
                         ::Field<MIF_FIELD_META(&Data::Address::code)>::NotNull

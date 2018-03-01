@@ -37,6 +37,7 @@ namespace Mif
                 {
                     std::string name;
                     StringList items;
+                    StringList injectedItems;
                     StringList additional;
                 };
 

@@ -75,11 +75,39 @@ namespace Mif
             constexpr StaticString<StaticString<Str ... >::Value[Indexes] ... >
             MakeStaticString(IndexSequence<Indexes ... > const *);
 
+            template <bool, typename, typename>
+            struct StringCat;
+
+            template <char ... Str1, char ... Str2>
+            struct StringCat<false, StaticString<Str1 ... >, StaticString<Str2 ... >>
+            {
+                using Result = StaticString<Str1 ... , Str2 ... , 0>;
+            };
+
+            template <char ... Str1, char ... Str2>
+            struct StringCat<true, StaticString<Str1 ... >, StaticString<Str2 ... >>
+            {
+                using Result = typename StringCat
+                    <
+                        false,
+                        decltype(MakeStaticString<Str1 ... >(
+                            static_cast<MakeIndexSequence<CharArraySize<Str1 ... , 0>::Size - 1> const *>(nullptr))),
+                        decltype(MakeStaticString<Str2 ... >(
+                            static_cast<MakeIndexSequence<CharArraySize<Str2 ... , 0>::Size - 1> const *>(nullptr)))
+                    >::Result;
+            };
+
         }   // namespace Detail
 
         template <char ... Str>
         using MakeStaticString = decltype(Detail::MakeStaticString<Str ... >(
             static_cast<MakeIndexSequence<Detail::CharArraySize<Str ... , 0>::Size> const *>(nullptr)));
+
+        template <typename TStr1, typename TStr2>
+        using StringCat = typename Detail::StringCat<true, TStr1, TStr2>::Result;
+
+        template <std::uint64_t I>
+        using ToString = StaticString<0>;
 
     }   // namespace Common
 }   // namespace Mif
