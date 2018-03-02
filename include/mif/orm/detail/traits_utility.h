@@ -18,7 +18,6 @@
 #include "mif/orm/forward.h"
 #include "mif/orm/detail/entity.h"
 #include "mif/orm/detail/table_fields.h"
-#include "mif/orm/detail/utility.h"
 #include "mif/reflection/reflection.h"
 
 namespace Mif
@@ -173,9 +172,9 @@ namespace Mif
                         FakeField
                         <
                             std::size_t,
-                            Utility::CreateUniqueFieldName
+                            Common::StringCat
                             <
-                                EntityFields,
+                                MIF_STATIC_STR("pk_"),
                                 Common::StringCat
                                 <
                                     typename Reflection::Reflect<TEntity>::Name,
