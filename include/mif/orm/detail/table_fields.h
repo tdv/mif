@@ -128,7 +128,7 @@ namespace Mif
                 MIF_ORM_FIELD_TRAIT_IMPL(Unique, false, Nullable)
                 MIF_ORM_FIELD_TRAIT_IMPL(WithTimezone, false, WithoutTimezone)
                 MIF_ORM_FIELD_TRAIT_IMPL(WithoutTimezone, false, WithTimezone)
-                MIF_ORM_FIELD_TRAIT_IMPL(Linked, false)
+                MIF_ORM_FIELD_TRAIT_IMPL(Reference, false)
 
 #undef MIF_ORM_FIELD_NO_INCOMPATIBLE_TRAITS_IMPL
 #undef MIF_ORM_FIELD_INCOMPATIBLE_TRAITS_IMPL
@@ -168,7 +168,7 @@ namespace Mif
 
                 using ComplexTypeTraits = std::tuple
                         <
-                            FieldTrait<Trait_Linked>
+                            FieldTrait<Trait_Reference>
                         >;
 
                 using NoTypeTraits = std::tuple<>;
@@ -182,7 +182,7 @@ namespace Mif
                         FieldTrait<Trait_Nullable>,
                         FieldTrait<Trait_Unique>,
                         FieldTrait<Trait_PrimaryKey>,
-                        FieldTrait<Trait_Linked>
+                        FieldTrait<Trait_Reference>
                     >;
 
                 template <typename T>

@@ -54,7 +54,7 @@ struct ToString<Orm::Detail::FieldTraits::FieldTrait<Orm::Detail::FieldTraits::T
                         MIF_ORM_POSTGRESQL_FIELD_TRAIT_IMPL(Unique, "UNIQUE")
                         MIF_ORM_POSTGRESQL_FIELD_TRAIT_IMPL(WithTimezone, "WITH TIME ZONE")
                             MIF_ORM_POSTGRESQL_FIELD_TRAIT_IMPL(WithoutTimezone, "WITHOUT TIME ZONE")
-                        MIF_ORM_POSTGRESQL_FIELD_TRAIT_IMPL(Linked, "")
+                        MIF_ORM_POSTGRESQL_FIELD_TRAIT_IMPL(Reference, "")
 
 #undef MIF_ORM_POSTGRESQL_FIELD_TRAIT_IMPL
                     }   // namespace Trait
