@@ -15,7 +15,7 @@
 #include <boost/algorithm/string.hpp>
 
 // TODO: check created enums for table fields (Mif::Orm::Detail. Not in PG ns)
-// TODO: if table has child tables and has not primary key, create fake primary key
+// TODO: check created tables for table fields (Mif::Orm::Detail. Not in PG ns)
 
 namespace Data
 {

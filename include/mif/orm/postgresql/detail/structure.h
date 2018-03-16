@@ -426,8 +426,7 @@ namespace Mif
                         CreateSchema<TSchemaName>(items);
                         using CreatedEntities = typename Common::Detail::TupleCat
                             <
-                                TCreated,
-                                /*std::tuple<Orm::Schema<TSchemaName, TEntity, TEntities ... >>*/std::tuple<>
+                                TCreated, std::tuple<Orm::Schema<TSchemaName>>
                             >::Tuple;
                         Entity<CreatedEntities, TSchemaName, TEntity, TEntities ... >::Create(items);
                     }
