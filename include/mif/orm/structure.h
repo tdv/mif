@@ -28,16 +28,16 @@ namespace Mif
         class Schema<Common::StaticString<TName ... >, Detail::Entity<TEntities> ... > final
         {
         public:
+            using EntityType = struct SchemaEntity;
             using ThisType = Schema<Common::StaticString<TName ... >, Detail::Entity<TEntities> ... >;
             using Create = Detail::Entity<ThisType>;
-
-        private:
         };
 
         template <typename T>
         class Enum final
         {
         public:
+            using EntityType = T;
             using ThisType = Enum<T>;
             using Create = Detail::Entity<ThisType>;
 

@@ -28,6 +28,7 @@
 #include "mif/orm/forward.h"
 #include "mif/orm/postgresql/detail/common.h"
 #include "mif/orm/postgresql/detail/field_traits.h"
+#include "mif/orm/postgresql/detail/fake_reference_entity.h"
 #include "mif/orm/postgresql/detail/simple_types.h"
 #include "mif/orm/postgresql/detail/utility.h"
 #include "mif/reflection/reflection.h"
@@ -55,14 +56,14 @@ namespace Mif
                     static constexpr std::true_type IsName(Common::StaticString<Ch ... > const *);
                     static constexpr std::false_type IsName(...);
 
-                    static_assert(sizeof ... (T) == 1 &&
+                    /*static_assert(sizeof ... (T) == 2 &&
                             decltype(IsName(static_cast<typename std::tuple_element<0, std::tuple<T ... >>::type const *>(nullptr)))::value,
                             "[Mif::Orm::PostgreSql::Detail::Entity] Unknown object to generate sql."
-                        );
+                        );*/
                 };
 
-                template <typename TSchemaName, typename TEntity, typename ... TEntities>
-                class Entity<TSchemaName, Orm::Detail::Entity<Orm::Enum<TEntity>>, TEntities ... > final
+                template <typename TCreated, typename TSchemaName, typename TEntity, typename ... TEntities>
+                class Entity<TCreated, TSchemaName, Orm::Detail::Entity<Orm::Enum<TEntity>>, TEntities ... > final
                 {
                 public:
                     static void Create(StringList &items)
@@ -76,7 +77,8 @@ namespace Mif
                             sql += "\n";
                         sql += ");\n";
                         items.emplace_back(sql);
-                        Entity<TSchemaName, TEntities ... >::Create(items);
+                        using CreatedEntities = typename Common::Detail::TupleCat<TCreated, std::tuple<Orm::Enum<TEntity>>>::Tuple;
+                        Entity<CreatedEntities, TSchemaName, TEntities ... >::Create(items);
                     }
 
                 private:
@@ -99,8 +101,8 @@ namespace Mif
                     }
                 };
 
-                template <typename TSchemaName, typename TEntity, typename ... TTableTraits, typename ... TEntities>
-                class Entity<TSchemaName, Orm::Detail::Entity<Orm::Table<TEntity, TTableTraits ... >>, TEntities ... > final
+                template <typename TCreated, typename TSchemaName, typename TEntity, typename ... TTableTraits, typename ... TEntities>
+                class Entity<TCreated, TSchemaName, Orm::Detail::Entity<Orm::Table<TEntity, TTableTraits ... >>, TEntities ... > final
                 {
                 public:
                     static void Create(StringList &items)
@@ -109,7 +111,8 @@ namespace Mif
                         context.name = Utility::EntityName<TSchemaName, typename Meta::Name>::Create();
                         Create(context);
                         std::copy(std::begin(context.items), std::end(context.items), std::back_inserter(items));
-                        Entity<TSchemaName, TEntities ... >::Create(items);
+                        using CreatedEntities = typename Common::Detail::TupleCat<TCreated, std::tuple<Orm::Table<TEntity, TTableTraits ... >>>::Tuple;
+                        Entity<CreatedEntities, TSchemaName, TEntities ... >::Create(items);
                     }
 
                 private:
@@ -126,8 +129,24 @@ namespace Mif
                         Context itemContext;
                         itemContext.name = context.name;
                         CreateItem<Meta::Fields::Count>(itemContext);
+
+                        using PrimaryKeyFields = typename Orm::Detail::PrimaryKey<Table>::Fields;
+                        using PrimaryKey = typename std::conditional
+                            <
+                                std::tuple_element<0, PrimaryKeyFields>::type::Index::value == Meta::Fields::Count &&
+                                    Orm::Detail::HasFieldReference<typename Meta::Fields>::value,
+                                PrimaryKeyFields,
+                                std::tuple<>
+                            >::type;
+                        std::string primaryKey;
+                        CreatePrimaryKey<PrimaryKey>(itemContext.items, primaryKey);
+
                         std::copy(std::begin(context.injectedItems), std::end(context.injectedItems),
                                 std::back_inserter(itemContext.items));
+
+                        if (!primaryKey.empty())
+                            itemContext.items.emplace_back(std::move(primaryKey));
+
                         sql += boost::algorithm::join(itemContext.items, ",\n");
                         if (!itemContext.items.empty())
                             sql += "\n";
@@ -210,11 +229,16 @@ namespace Mif
                         Common::Unused(context);
                     }
 
-                    // Nested entity (reflectable)
+                    // Nested reflectable entity (not a reference)
                     template <typename TField>
                     static typename std::enable_if
                         <
-                            Reflection::IsReflectable<typename TField::Type>() && std::is_class<typename TField::Type>::value,
+                            Reflection::IsReflectable<typename TField::Type>() && std::is_class<typename TField::Type>::value &&
+                                !Orm::Detail::HasTrait
+                                    <
+                                        Orm::Detail::FieldTraits::Trait_Reference,
+                                        typename Orm::Detail::FieldTraitsList<Table, TField>::Traits
+                                    >::value,
                             void
                         >::type
                     CreateItem(Context &context)
@@ -229,25 +253,61 @@ namespace Mif
                         using NestedTable = typename Orm::Table<FieldType>::Create;
 
                         using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
-                        using PrimaryKey = typename Orm::Detail::PrimaryKey<NestedTable>::Fields;
-
-                        std::string primaryKey;
-                        CreatePrimaryKey<PrimaryKey, std::tuple_size<PrimaryKey>::value>(
-                                nested.injectedItems, primaryKey);
 
                         std::string foreignKey;
-                        CreateForeignKey<FieldType, OwnerPrimaryKey, std::tuple_size<OwnerPrimaryKey>::value>(
-                                context.name, nested.injectedItems, foreignKey);
+                        CreateForeignKey<OwnerPrimaryKey>(context.name, nested.injectedItems, foreignKey);
 
                         if (!nested.injectedItems.empty())
-                        {
-                            foreignKey = "FOREIGN KEY (" + foreignKey + ")";
-                            foreignKey = Detail::Indent::Value + foreignKey;
-                            foreignKey += " REFERENCES " + context.name + " ON DELETE CASCADE";
                             nested.injectedItems.emplace_back(std::move(foreignKey));
-                        }
 
-                        Entity<TSchemaName, NestedTable>::Create(nested);
+                        Entity<TCreated, TSchemaName, NestedTable>::Create(nested);
+                        std::copy(std::begin(nested.items), std::end(nested.items), std::back_inserter(context.additional));
+                    }
+
+                    // Reference to reflectable entity (not nested)
+                    template <typename TField>
+                    static typename std::enable_if
+                        <
+                            Reflection::IsReflectable<typename TField::Type>() && std::is_class<typename TField::Type>::value &&
+                                Orm::Detail::HasTrait
+                                    <
+                                        Orm::Detail::FieldTraits::Trait_Reference,
+                                        typename Orm::Detail::FieldTraitsList<Table, TField>::Traits
+                                    >::value,
+                            void
+                        >::type
+                    CreateItem(Context &context)
+                    {
+                        Context nested;
+                        nested.name = context.name;
+                        nested.name += "_";
+                        nested.name += TField::Name::Value;
+                        nested.name = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(nested.name));
+
+                        using ReferenceTable = typename Orm::Table<Detail::Reference>
+                                ::Field<MIF_FIELD_META(&Detail::Reference::pkReferenceId)>::Counter::NotNull::PrimaryKey
+                            ::Create;
+
+                        using FieldType = typename TField::Type;
+
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
+                        using ReferenceEntitty = Orm::Detail::Entity
+                            <
+                                typename Orm::Detail::FindEntityByType<FieldType, TCreated>::Entity
+                            >;
+                        using ReferencePrimaryKey = typename Orm::Detail::PrimaryKey<ReferenceEntitty>::Fields;
+
+                        std::string ownerTableKey;
+                        CreateForeignKey<OwnerPrimaryKey>(context.name, nested.injectedItems, ownerTableKey);
+
+                        auto const referenceTableName = Utility::EntityName<TSchemaName, typename Reflection::Reflect<FieldType>::Name>::Create();
+                        std::string referenceTableKey;
+                        CreateForeignKey<ReferencePrimaryKey>(referenceTableName, nested.injectedItems, referenceTableKey);
+
+                        nested.injectedItems.emplace_back(std::move(ownerTableKey));
+                        nested.injectedItems.emplace_back(std::move(referenceTableKey));
+
+                        Entity<TCreated, TSchemaName, ReferenceTable>::Create(nested);
                         std::copy(std::begin(nested.items), std::end(nested.items), std::back_inserter(context.additional));
                     }
 
@@ -267,15 +327,34 @@ namespace Mif
                         Common::Unused(context);
                     }
 
-                    template <typename TChildType, typename TKeyFields, std::size_t N>
+                    template <typename TKeyFields>
+                    static void CreateForeignKey(std::string const &refTable, StringList &items, std::string &key)
+                    {
+                        StringList fieldsList;
+                        CreateForeignKey<TKeyFields, std::tuple_size<TKeyFields>::value>(refTable, items, fieldsList);
+
+                        if (fieldsList.empty())
+                            return;
+
+                        key = Detail::Indent::Value;
+                        key += "FOREIGN KEY (" + boost::algorithm::join(fieldsList, ", ") + ") ";
+                        key += "REFERENCES " + refTable + " ON DELETE CASCADE";
+                    }
+
+                    template <typename TKeyFields, std::size_t N>
                     static typename std::enable_if<N != 0, void>::type
-                    CreateForeignKey(std::string const &refTable, StringList &items, std::string &foreignKey)
+                    CreateForeignKey(std::string const &refTable, StringList &items, StringList &fieldsList)
                     {
                         using FieldMeta = typename std::tuple_element<N - 1, TKeyFields>::type;
                         using FieldType = typename FieldMeta::Type;
                         auto const fieldName = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(FieldMeta::Name::Value));
+                        std::string fkFieldName = "fk_";
+                        fkFieldName += Reflection::Reflect<typename FieldMeta::Class>::Name::Value;
+                        fkFieldName += "_";
+                        fkFieldName += fieldName;
+                        fkFieldName = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(fkFieldName));
                         std::string item = Detail::Indent::Value;
-                        item += fieldName;
+                        item += fkFieldName;
                         item += " ";
                         item += Type::Simple::TypeName::Get<FieldType, false>();
                         item += " ";
@@ -285,23 +364,36 @@ namespace Mif
                         item += fieldName;
                         item += ")";
                         item += " ON DELETE CASCADE";
-                        foreignKey += fieldName;
+                        fieldsList.emplace_back(fkFieldName);
                         items.emplace_back(std::move(item));
-                        CreateForeignKey<TChildType, TKeyFields, N - 1>(refTable, items, foreignKey);
+                        CreateForeignKey<TKeyFields, N - 1>(refTable, items, fieldsList);
                     }
 
-                    template <typename TChildType, typename TKeyFields, std::size_t N>
+                    template <typename TKeyFields, std::size_t N>
                     static typename std::enable_if<N == 0, void>::type
-                    CreateForeignKey(std::string const &refTable, StringList &items, std::string &foreignKey)
+                    CreateForeignKey(std::string const &refTable, StringList &items, StringList &fieldsList)
                     {
                         Common::Unused(refTable);
                         Common::Unused(items);
-                        Common::Unused(foreignKey);
+                        Common::Unused(fieldsList);
+                    }
+
+                    template <typename TKeyFields>
+                    static void CreatePrimaryKey(StringList &items, std::string &key)
+                    {
+                        StringList fieldsList;
+                        CreatePrimaryKey<TKeyFields, std::tuple_size<TKeyFields>::value>(items, fieldsList);
+
+                        if (fieldsList.empty())
+                            return;
+
+                        key = Detail::Indent::Value;
+                        key += "PRIMARY KEY (" + boost::algorithm::join(fieldsList, ", ") + ")";
                     }
 
                     template <typename TKeyFields, std::size_t N>
                     static typename std::enable_if<N != 0, void>::type
-                    CreatePrimaryKey(StringList &items, std::string &key)
+                    CreatePrimaryKey(StringList &items, StringList &fieldsList)
                     {
                         using FieldMeta = typename std::tuple_element<N - 1, TKeyFields>::type;
                         using FieldType = typename FieldMeta::Type;
@@ -310,29 +402,34 @@ namespace Mif
                         item += fieldName;
                         item += " ";
                         item += Type::Simple::TypeName::Get<FieldType, true>();
-                        item += " NOT NULL PRIMARY KEY";
-                        key += fieldName;
+                        item += " NOT NULL";
                         items.emplace_back(std::move(item));
-                        CreatePrimaryKey<TKeyFields, N - 1>(items, key);
+                        fieldsList.emplace_back(fieldName);
+                        CreatePrimaryKey<TKeyFields, N - 1>(items, fieldsList);
                     }
 
                     template <typename TKeyFields, std::size_t N>
                     static typename std::enable_if<N == 0, void>::type
-                    CreatePrimaryKey(StringList &items, std::string &key)
+                    CreatePrimaryKey(StringList &items, StringList &fieldsList)
                     {
                         Common::Unused(items);
-                        Common::Unused(key);
+                        Common::Unused(fieldsList);
                     }
                 };
 
-                template <typename TSchemaName, typename TEntity, typename ... TEntities>
-                class Entity<Orm::Detail::Entity<Orm::Schema<TSchemaName, TEntity, TEntities ... >>> final
+                template <typename TCreated, typename TSchemaName, typename TEntity, typename ... TEntities>
+                class Entity<TCreated, Orm::Detail::Entity<Orm::Schema<TSchemaName, TEntity, TEntities ... >>> final
                 {
                 public:
                     static void Create(StringList &items)
                     {
                         CreateSchema<TSchemaName>(items);
-                        Entity<TSchemaName, TEntity, TEntities ... >::Create(items);
+                        using CreatedEntities = typename Common::Detail::TupleCat
+                            <
+                                TCreated,
+                                /*std::tuple<Orm::Schema<TSchemaName, TEntity, TEntities ... >>*/std::tuple<>
+                            >::Tuple;
+                        Entity<CreatedEntities, TSchemaName, TEntity, TEntities ... >::Create(items);
                     }
 
                 private:

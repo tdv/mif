@@ -66,6 +66,7 @@ namespace Data
         Status status = Status::Active;
         std::vector<std::string> items;
         Nested1 nested;
+        Address1 linkedAddress;
     };
 
 }   // namespace Data
@@ -111,6 +112,7 @@ namespace Data
             MIF_REFLECT_FIELD(status)
             MIF_REFLECT_FIELD(items)
             MIF_REFLECT_FIELD(nested)
+            MIF_REFLECT_FIELD(linkedAddress)
         MIF_REFLECT_END()
 
     }   // namespace Meta
@@ -140,11 +142,12 @@ int main()
                         ::Field<MIF_FIELD_META(&Data::Address::code)>::NotNull
                         ::Field<MIF_FIELD_META(&Data::Address::counter)>::NotNull::Counter::PrimaryKey
                         ::Field<MIF_FIELD_META(&Data::Address::status)>::NotNull
+                        ::Field<MIF_FIELD_META(&Data::Address::linkedAddress)>::Reference
                     ::Create
             >::Create;
 
         Mif::Orm::PostgreSql::Detail::StringList items;
-        Mif::Orm::PostgreSql::Detail::Entity<Schema>::Create(items);
+        Mif::Orm::PostgreSql::Detail::Entity<std::tuple<>, Schema>::Create(items);
         auto const sql = "BEGIN;\n\n" + boost::algorithm::join(items, "\n") + "\nROLLBACK;\n";
         std::cout << sql << std::endl;
     }

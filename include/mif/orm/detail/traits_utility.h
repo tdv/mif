@@ -194,6 +194,40 @@ namespace Mif
                     >::type;
             };
 
+            template <typename TFields, std::size_t I = TFields::Count>
+            struct HasFieldReference
+                : public std::conditional
+                    <
+                        Reflection::IsReflectable<typename TFields::template Field<I - 1>::Type>(),
+                        std::true_type,
+                        HasFieldReference<TFields, I - 1>
+                    >::type
+            {
+            };
+
+            template <typename TFields>
+            struct HasFieldReference<TFields, 0>
+                : public std::false_type
+            {
+            };
+
+            template <typename T, typename TEntities, std::size_t I = std::tuple_size<TEntities>::value>
+            struct FindEntityByType
+            {
+                using Entity = typename std::conditional
+                    <
+                        std::is_same<T, typename std::tuple_element<I - 1, TEntities>::type::EntityType>::value,
+                        typename std::tuple_element<I - 1, TEntities>::type,
+                        typename FindEntityByType<T, TEntities, I - 1>::Entity
+                    >::type;
+            };
+
+            template <typename T, typename TEntities>
+            struct FindEntityByType<T, TEntities, 0>
+            {
+                using Entity = struct EntityNotFound;
+            };
+
         }   // namespace Detail
     }   // namespace Orm
 }   // namespace Mif
