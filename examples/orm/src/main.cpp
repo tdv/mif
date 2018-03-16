@@ -1,18 +1,12 @@
 // STD
-#include <list>
 #include <string>
 #include <iostream>
 #include <vector>
-#include <tuple>
-#include <type_traits>
 
 // MIF
 #include <mif/reflection/reflect_type.h>
-#include <mif/orm/structure.h>
-#include <mif/orm/postgresql/detail/structure.h>
+#include <mif/orm/postgresql/driver.h>
 
-// BOOST
-#include <boost/algorithm/string.hpp>
 
 // TODO: check created enums for table fields (Mif::Orm::Detail. Not in PG ns)
 // TODO: check created tables for table fields (Mif::Orm::Detail. Not in PG ns)
@@ -146,9 +140,11 @@ int main()
                     ::Create
             >::Create;
 
-        Mif::Orm::PostgreSql::Detail::StringList items;
-        Mif::Orm::PostgreSql::Detail::Entity<std::tuple<>, Schema>::Create(items);
-        auto const sql = "BEGIN;\n\n" + boost::algorithm::join(items, "\n") + "\nROLLBACK;\n";
+        using Driver = Mif::Orm::PostgreSql::Driver<Schema>;
+
+        auto const schemaSql = Driver::CreateSchema();
+
+        auto const sql = "BEGIN;\n\n" + schemaSql + "\nROLLBACK;\n";
         std::cout << sql << std::endl;
     }
     catch (std::exception const &e)
