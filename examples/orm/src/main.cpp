@@ -11,6 +11,8 @@
 
 // TODO: check created enums for table fields (Mif::Orm::Detail. Not in PG ns)
 // TODO: check created tables for table fields (Mif::Orm::Detail. Not in PG ns)
+// TODO: iterable for reflectable types
+// TODO: traits 'Reference' for reflectalbe iterable types
 
 namespace Data
 {

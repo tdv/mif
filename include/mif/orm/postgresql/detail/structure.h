@@ -231,7 +231,41 @@ namespace Mif
                         >::type
                     CreateItem(Context &context)
                     {
-                        Common::Unused(context);
+                        Context nested;
+                        nested.name = context.name;
+                        nested.name += "_";
+                        nested.name += TField::Name::Value;
+                        nested.name = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(nested.name));
+
+                        using FieldType = typename TField::Type::value_type;
+
+                        using MetaFakeField = Orm::Detail::FakeField
+                            <
+                                FieldType, typename TField::Name, typename TField::Class
+                            >;
+                        using ItemFakeField = Reflection::Detail::FieldItem
+                            <
+                                Reflection::Reflect<typename TField::Class>::Fields::Count,
+                                MetaFakeField
+                            >;
+
+                        CreateItem<ItemFakeField>(nested);
+                        nested.injectedItems = std::move(nested.items);
+
+                        using ReferenceTable = typename Orm::Table<Detail::Reference>
+                                ::Field<MIF_FIELD_META(&Detail::Reference::pkReferenceId)>::Counter::NotNull::PrimaryKey
+                            ::Create;
+
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
+
+                        std::string ownerTableKey;
+                        CreateForeignKey<OwnerPrimaryKey>(context.name, nested.injectedItems, ownerTableKey);
+
+                        nested.injectedItems.emplace_back(std::move(ownerTableKey));
+
+                        Entity<TCreated, TSchemaName, ReferenceTable>::Create(nested);
+
+                        std::copy(std::begin(nested.items), std::end(nested.items), std::back_inserter(context.additional));
                     }
 
                     // Nested reflectable entity (not a reference)
