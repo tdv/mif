@@ -52,14 +52,19 @@ namespace Mif
                     }
 
                 private:
+                    template <typename ... X>
+                    static constexpr std::true_type IsTuple(std::tuple<X ... > const *);
+                    static constexpr std::false_type IsTuple(...);
+
                     template <char const ... Ch>
                     static constexpr std::true_type IsName(Common::StaticString<Ch ... > const *);
                     static constexpr std::false_type IsName(...);
 
-                    /*static_assert(sizeof ... (T) == 2 &&
-                            decltype(IsName(static_cast<typename std::tuple_element<0, std::tuple<T ... >>::type const *>(nullptr)))::value,
+                    static_assert(sizeof ... (T) == 2 &&
+                            decltype(IsTuple(static_cast<typename std::tuple_element<0, std::tuple<T ... >>::type const *>(nullptr)))::value &&
+                            decltype(IsName(static_cast<typename std::tuple_element<1, std::tuple<T ... >>::type const *>(nullptr)))::value,
                             "[Mif::Orm::PostgreSql::Detail::Entity] Unknown object to generate sql."
-                        );*/
+                        );
                 };
 
                 template <typename TCreated, typename TSchemaName, typename TEntity, typename ... TEntities>

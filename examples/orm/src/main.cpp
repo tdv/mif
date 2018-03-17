@@ -5,6 +5,7 @@
 
 // MIF
 #include <mif/reflection/reflect_type.h>
+#include <mif/orm/structure.h>
 #include <mif/orm/postgresql/driver.h>
 
 

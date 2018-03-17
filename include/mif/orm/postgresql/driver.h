@@ -21,7 +21,7 @@
 
 // MIF
 #include "mif/orm/detail/entity.h"
-#include "mif/orm/structure.h"
+#include "mif/orm/forward.h"
 #include "mif/orm/postgresql/detail/common.h"
 #include "mif/orm/postgresql/detail/structure.h"
 
@@ -32,25 +32,19 @@ namespace Mif
         namespace PostgreSql
         {
 
-            template <typename>
-            class Driver;
-
-            template <typename TSchemaName, typename TEntity, typename ... TEntities>
-            class Driver<Orm::Detail::Entity<Orm::Schema<TSchemaName, TEntity, TEntities ... >>> final
+            template <typename TSchema>
+            class Driver
             {
             public:
                 static std::string CreateSchema()
                 {
                     Detail::StringList items;
-                    Detail::Entity<std::tuple<>, Schema>::Create(items);
+                    Detail::Entity<std::tuple<>, SchemaType>::Create(items);
                     return boost::algorithm::join(items, "\n");
                 }
 
             private:
-                using Schema = Orm::Detail::Entity
-                    <
-                        Orm::Schema<TSchemaName, TEntity, TEntities ... >
-                    >;
+                using SchemaType = TSchema;
             };
 
         }   // namespace PostgreSql
