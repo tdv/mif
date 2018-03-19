@@ -28,6 +28,7 @@ namespace Mif
         class Schema<Common::StaticString<TName ... >, Detail::Entity<TEntities> ... > final
         {
         public:
+            using Name = Common::StaticString<TName ... >;
             using EntityType = struct SchemaEntity;
             using ThisType = Schema<Common::StaticString<TName ... >, Detail::Entity<TEntities> ... >;
             using Create = Detail::Entity<ThisType>;

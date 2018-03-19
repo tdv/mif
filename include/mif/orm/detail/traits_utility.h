@@ -211,23 +211,6 @@ namespace Mif
             {
             };
 
-            template <typename T, typename TEntities, std::size_t I = std::tuple_size<TEntities>::value>
-            struct FindEntityByType
-            {
-                using Entity = typename std::conditional
-                    <
-                        std::is_same<T, typename std::tuple_element<I - 1, TEntities>::type::EntityType>::value,
-                        typename std::tuple_element<I - 1, TEntities>::type,
-                        typename FindEntityByType<T, TEntities, I - 1>::Entity
-                    >::type;
-            };
-
-            template <typename T, typename TEntities>
-            struct FindEntityByType<T, TEntities, 0>
-            {
-                using Entity = struct EntityNotFound;
-            };
-
         }   // namespace Detail
     }   // namespace Orm
 }   // namespace Mif

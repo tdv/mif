@@ -33,6 +33,20 @@ namespace Mif
                 inline std::false_type IsIterable(...);
 
                 template <typename T>
+                inline std::true_type IsMap(T const *,
+                        typename T::iterator = typename std::decay<T>::type{}.begin(),
+                        typename T::iterator = typename std::decay<T>::type{}.end(),
+                        typename T::const_iterator = typename std::decay<T>::type{}.cbegin(),
+                        typename T::const_iterator = typename std::decay<T>::type{}.cend(),
+                        typename T::mapped_type = typename std::decay<T>::type{}[typename std::decay<T>::type::key_type{}],
+                        typename T::key_type = typename std::decay<T>::type{}.begin()->first,
+                        typename T::mapped_type = typename std::decay<T>::type{}.begin()->second,
+                        typename T::value_type = * typename std::decay<T>::type{}.begin()
+                    );
+
+                inline std::false_type IsMap(...);
+
+                template <typename T>
                 inline std::true_type IsSmartPointer(T const *,
                         typename T::element_type* = typename std::decay<T>::type{}.operator -> (),
                         typename T::element_type = * typename std::decay<T>::type{}.get()
@@ -45,14 +59,20 @@ namespace Mif
             template <typename T>
             inline constexpr bool IsIterable()
             {
-                return std::is_same<decltype(Detail::IsIterable(static_cast<typename std::decay<T>::type const *>(nullptr))), std::true_type>::value
+                return decltype(Detail::IsIterable(static_cast<typename std::decay<T>::type const *>(nullptr)))::value
                     && !std::is_same<typename std::decay<T>::type, std::string>::value;
+            }
+
+            template <typename T>
+            inline constexpr bool IsMap()
+            {
+                return decltype(Detail::IsMap(static_cast<typename std::decay<T>::type const *>(nullptr)))::value;
             }
 
             template <typename T>
             inline constexpr bool IsSmartPointer()
             {
-                return std::is_same<decltype(Detail::IsSmartPointer(static_cast<T const *>(nullptr))), std::true_type>::value;
+                return decltype(Detail::IsSmartPointer(static_cast<T const *>(nullptr)))::value;
             }
 
             template <typename T>

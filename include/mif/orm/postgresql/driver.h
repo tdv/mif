@@ -23,6 +23,7 @@
 #include "mif/orm/detail/entity.h"
 #include "mif/orm/forward.h"
 #include "mif/orm/postgresql/detail/common.h"
+#include "mif/orm/postgresql/detail/modifications/inserter.h"
 #include "mif/orm/postgresql/detail/structure.h"
 
 namespace Mif
@@ -40,6 +41,14 @@ namespace Mif
                 {
                     Detail::StringList items;
                     Detail::Entity<std::tuple<>, SchemaType>::Create(items);
+                    return boost::algorithm::join(items, "\n");
+                }
+
+                template <typename T>
+                static std::string Insert(T const &value)
+                {
+                    Detail::StringList items;
+                    Detail::Inserter<SchemaType>::Insert(value, items);
                     return boost::algorithm::join(items, "\n");
                 }
 

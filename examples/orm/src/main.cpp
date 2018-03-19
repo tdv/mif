@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <map>
 
 // MIF
 #include <mif/reflection/reflect_type.h>
@@ -11,7 +12,6 @@
 
 // TODO: check created enums for table fields (Mif::Orm::Detail. Not in PG ns)
 // TODO: check created tables for table fields (Mif::Orm::Detail. Not in PG ns)
-// TODO: iterable for reflectable types
 // TODO: traits 'Reference' for reflectalbe iterable types
 
 namespace Data
@@ -64,6 +64,7 @@ namespace Data
         std::vector<std::string> items;
         Nested1 nested;
         Address1 linkedAddress;
+        std::map<std::string, Nested1> mapData;
     };
 
 }   // namespace Data
@@ -110,6 +111,7 @@ namespace Data
             MIF_REFLECT_FIELD(items)
             MIF_REFLECT_FIELD(nested)
             MIF_REFLECT_FIELD(linkedAddress)
+            MIF_REFLECT_FIELD(mapData)
         MIF_REFLECT_END()
 
     }   // namespace Meta
@@ -147,8 +149,13 @@ int main()
 
         auto const schemaSql = Driver::CreateSchema();
 
-        auto const sql = "BEGIN;\n\n" + schemaSql + "\nROLLBACK;\n";
-        std::cout << sql << std::endl;
+        //auto const sql = "BEGIN;\n\n" + schemaSql + "\nROLLBACK;\n";
+        //std::cout << sql << std::endl;
+
+        Data::Address1 address1{};
+        auto const sql = Driver::Insert(address1);
+
+        std::cout << "BEGIN;\n" << sql << "ROLLBACK;" << std::endl;
     }
     catch (std::exception const &e)
     {

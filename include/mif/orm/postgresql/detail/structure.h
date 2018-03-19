@@ -25,6 +25,7 @@
 #include "mif/common/unused.h"
 #include "mif/orm/detail/entity.h"
 #include "mif/orm/detail/traits_utility.h"
+#include "mif/orm/detail/utility.h"
 #include "mif/orm/forward.h"
 #include "mif/orm/postgresql/detail/common.h"
 #include "mif/orm/postgresql/detail/field_traits.h"
@@ -116,7 +117,6 @@ namespace Mif
                         context.name = Utility::EntityName<TSchemaName, typename Meta::Name>::Create();
                         Create(context);
                         std::copy(std::begin(context.items), std::end(context.items), std::back_inserter(items));
-                        using CreatedEntities = typename Common::Detail::TupleCat<TCreated, std::tuple<Orm::Table<TEntity, TTableTraits ... >>>::Tuple;
                         Entity<CreatedEntities, TSchemaName, TEntities ... >::Create(items);
                     }
 
@@ -125,6 +125,7 @@ namespace Mif
                     friend class Entity;
 
                     using Table = Orm::Detail::Entity<Orm::Table<TEntity, TTableTraits ... >>;
+                    using CreatedEntities = typename Common::Detail::TupleCat<TCreated, std::tuple<Orm::Table<TEntity, TTableTraits ... >>>::Tuple;
                     using Meta = Reflection::Reflect<TEntity>;
 
                     static void Create(Context &context)
@@ -222,11 +223,12 @@ namespace Mif
                         context.items.emplace_back(std::move(sql));
                     }
 
-                    // Iterable
+                    // Iterable (not a map)
                     template <typename TField>
                     static typename std::enable_if
                         <
-                            Serialization::Traits::IsIterable<typename TField::Type>(),
+                            Serialization::Traits::IsIterable<typename TField::Type>() &&
+                                !Serialization::Traits::IsMap<typename TField::Type>(),
                             void
                         >::type
                     CreateItem(Context &context)
@@ -241,7 +243,7 @@ namespace Mif
 
                         using MetaFakeField = Orm::Detail::FakeField
                             <
-                                FieldType, typename TField::Name, typename TField::Class
+                                FieldType, typename TField::Name, Detail::Reference
                             >;
                         using ItemFakeField = Reflection::Detail::FieldItem
                             <
@@ -256,7 +258,13 @@ namespace Mif
                                 ::Field<MIF_FIELD_META(&Detail::Reference::pkReferenceId)>::Counter::NotNull::PrimaryKey
                             ::Create;
 
-                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey
+                            <
+                                Orm::Detail::Entity
+                                    <
+                                        typename Orm::Detail::FindTableByType<typename TField::Class, CreatedEntities>::Entity
+                                    >
+                            >::Fields;
 
                         std::string ownerTableKey;
                         CreateForeignKey<OwnerPrimaryKey>(context.name, nested.injectedItems, ownerTableKey);
@@ -266,6 +274,88 @@ namespace Mif
                         Entity<TCreated, TSchemaName, ReferenceTable>::Create(nested);
 
                         std::copy(std::begin(nested.items), std::end(nested.items), std::back_inserter(context.additional));
+                        std::copy(std::begin(nested.additional), std::end(nested.additional), std::back_inserter(context.additional));
+                    }
+
+                    // Iterable (map)
+                    template <typename TField>
+                    static typename std::enable_if
+                        <
+                            Serialization::Traits::IsIterable<typename TField::Type>() &&
+                                Serialization::Traits::IsMap<typename TField::Type>(),
+                            void
+                        >::type
+                    CreateItem(Context &context)
+                    {
+                        Context nested;
+                        nested.name = context.name;
+                        nested.name += "_";
+                        nested.name += TField::Name::Value;
+                        nested.name = Utility::QuoteReserved(Utility::PascalCaseToUnderlining(nested.name));
+
+                        using FieldType = typename TField::Type;
+
+                        static_assert(Serialization::Traits::IsSimple<typename TField::Type::key_type>() ||
+                                std::is_same<typename TField::Type::key_type, boost::posix_time::ptime>::value ||
+                                std::is_same<typename TField::Type::key_type, boost::posix_time::ptime::date_type>::value ||
+                                (std::is_enum<typename TField::Type::key_type>::value &&
+                                    !Reflection::IsReflectable<typename TField::Type::key_type>()),
+                                "[Mif::Orm::PostgreSql::Detail::Entity::CreateItem] The key type must be a simple type."
+                            );
+
+                        using MetaFakeValueField = Orm::Detail::FakeField
+                            <
+                                typename std::decay<typename FieldType::mapped_type>::type,
+                                Common::StringCat<typename TField::Name, MIF_STATIC_STR("Value")>,
+                                Detail::Reference
+                            >;
+                        using ItemFakeValueField = Reflection::Detail::FieldItem
+                            <
+                                Reflection::Reflect<typename TField::Class>::Fields::Count,
+                                MetaFakeValueField
+                            >;
+
+                        CreateItem<ItemFakeValueField>(nested);
+                        nested.injectedItems = std::move(nested.items);
+
+                        using MetaFakeIdField = Orm::Detail::FakeField
+                            <
+                                typename std::decay<typename FieldType::key_type>::type,
+                                Common::StringCat<typename TField::Name, MIF_STATIC_STR("Id")>,
+                                Detail::Reference
+                            >;
+                        using ItemFakeIdField = Reflection::Detail::FieldItem
+                            <
+                                Reflection::Reflect<typename TField::Class>::Fields::Count,
+                                MetaFakeIdField
+                            >;
+
+                        CreateItem<ItemFakeIdField>(nested);
+                        std::copy(std::begin(nested.items), std::end(nested.items),
+                                std::inserter(nested.injectedItems, std::begin(nested.injectedItems)));
+                        nested.items.clear();
+
+                        using ReferenceTable = typename Orm::Table<Detail::Reference>
+                                ::Field<MIF_FIELD_META(&Detail::Reference::pkReferenceId)>::Counter::NotNull::PrimaryKey
+                            ::Create;
+
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey
+                            <
+                                Orm::Detail::Entity
+                                    <
+                                        typename Orm::Detail::FindTableByType<typename TField::Class, CreatedEntities>::Entity
+                                    >
+                            >::Fields;
+
+                        std::string ownerTableKey;
+                        CreateForeignKey<OwnerPrimaryKey>(context.name, nested.injectedItems, ownerTableKey);
+
+                        nested.injectedItems.emplace_back(std::move(ownerTableKey));
+
+                        Entity<TCreated, TSchemaName, ReferenceTable>::Create(nested);
+
+                        std::copy(std::begin(nested.items), std::end(nested.items), std::back_inserter(context.additional));
+                        std::copy(std::begin(nested.additional), std::end(nested.additional), std::back_inserter(context.additional));
                     }
 
                     // Nested reflectable entity (not a reference)
@@ -291,7 +381,13 @@ namespace Mif
                         using FieldType = typename TField::Type;
                         using NestedTable = typename Orm::Table<FieldType>::Create;
 
-                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey
+                            <
+                                Orm::Detail::Entity
+                                    <
+                                        typename Orm::Detail::FindTableByType<typename TField::Class, CreatedEntities>::Entity
+                                    >
+                            >::Fields;
 
                         std::string foreignKey;
                         CreateForeignKey<OwnerPrimaryKey>(context.name, nested.injectedItems, foreignKey);
@@ -329,10 +425,17 @@ namespace Mif
 
                         using FieldType = typename TField::Type;
 
-                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey<Table>::Fields;
+                        using OwnerPrimaryKey = typename Orm::Detail::PrimaryKey
+                            <
+                                Orm::Detail::Entity
+                                    <
+                                        typename Orm::Detail::FindTableByType<typename TField::Class, CreatedEntities>::Entity
+                                    >
+                            >::Fields;
+
                         using ReferenceEntitty = Orm::Detail::Entity
                             <
-                                typename Orm::Detail::FindEntityByType<FieldType, TCreated>::Entity
+                                typename Orm::Detail::FindTableByType<FieldType, TCreated>::Entity
                             >;
                         using ReferencePrimaryKey = typename Orm::Detail::PrimaryKey<ReferenceEntitty>::Fields;
 
