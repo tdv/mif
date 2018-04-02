@@ -80,7 +80,7 @@ namespace Mif
                             Serialization::Traits::IsSimple<typename TField::Type>() ||
                                 std::is_same<typename TField::Type, boost::posix_time::ptime>::value ||
                                 std::is_same<typename TField::Type, boost::posix_time::ptime::date_type>::value ||
-                                (std::is_enum<typename TField::Type>::value && !Reflection::IsReflectable<typename TField::Type>()),
+                                std::is_enum<typename TField::Type>::value,
                             void
                         >::type
                     AddSimpleField(StringList &list)
@@ -92,7 +92,7 @@ namespace Mif
                     static typename std::enable_if
                         <
                             Serialization::Traits::IsIterable<typename TField::Type>() ||
-                                Reflection::IsReflectable<typename TField::Type>(),
+                                (!std::is_enum<typename TField::Type>::value && Reflection::IsReflectable<typename TField::Type>()),
                             void
                         >::type
                     AddSimpleField(StringList &list)
