@@ -54,6 +54,17 @@ namespace Mif
 
                 inline std::false_type IsSmartPointer(...);
 
+                template <typename T>
+                inline std::true_type IsOptional(T const *,
+                        typename T::reference_const_type = typename std::decay<T>::type{}.get(),
+                        typename T::reference_const_type = typename std::decay<T>::type{}.value(),
+                        typename T::pointer_const_type = typename std::decay<T>::type{}.operator -> (),
+                        typename T::reference_const_type = typename std::decay<T>::type{}.operator * (),
+                        bool = typename std::decay<T>::type{}.is_initialized()
+                    );
+
+                inline std::false_type IsOptional(...);
+
             }   // namespace Detail
 
             template <typename T>
@@ -73,6 +84,12 @@ namespace Mif
             inline constexpr bool IsSmartPointer()
             {
                 return decltype(Detail::IsSmartPointer(static_cast<T const *>(nullptr)))::value;
+            }
+
+            template <typename T>
+            inline constexpr bool IsOptional()
+            {
+                return decltype(Detail::IsOptional(static_cast<T const *>(nullptr)))::value;
             }
 
             template <typename T>

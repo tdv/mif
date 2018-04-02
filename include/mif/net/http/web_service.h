@@ -25,6 +25,7 @@
 #include "mif/net/http/detail/content.h"
 #include "mif/net/http/detail/params.h"
 #include "mif/net/http/detail/prm.h"
+#include "mif/net/http/detail/param_pack.h"
 #include "mif/net/http/detail/result.h"
 #include "mif/net/http/iweb_service.h"
 #include "mif/net/http/request_handler.h"
@@ -49,6 +50,9 @@ namespace Mif
 
                 using Params = Detail::Params<Detail::Tag::Params>;
                 using Headers = Detail::Params<Detail::Tag::Headers>;
+
+                template <typename T, typename TConverter = Converter::Url::Param>
+                using ParamPack = Detail::ParamPack<T, TConverter>;
 
                 template <typename T, typename TConverter = Converter::Content::PlainText>
                 using Content = Detail::Content<T, TConverter>;
@@ -149,6 +153,14 @@ namespace Mif
                             IInputPack::Headers const &headers, Common::Buffer const &) const
                     {
                         return {headers};
+                    }
+
+                    template <typename T>
+                    typename std::enable_if<Detail::IsParamPack<T>(), ExtractType<T>>::type
+                    GetPrm(IInputPack::Params const &params,
+                            IInputPack::Headers const &, Common::Buffer const &) const
+                    {
+                        return {params};
                     }
 
                     template <typename T>

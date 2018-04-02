@@ -55,7 +55,7 @@ namespace Mif
                     Type const& Get() const
                     {
                         if (!*this)
-                            throw std::runtime_error{"[Mif::Net::Http::WebService::Prm] \"" + m_name + "\" has no value."};
+                            throw std::invalid_argument{"[Mif::Net::Http::WebService::Prm] \"" + m_name + "\" has no value."};
                         return *m_value;
                     }
 
