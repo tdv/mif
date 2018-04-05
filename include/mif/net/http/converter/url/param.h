@@ -23,6 +23,7 @@
 
 // MIF
 #include "mif/common/static_string.h"
+#include "mif/reflection/reflection.h"
 #include "mif/serialization/traits.h"
 
 namespace Mif
@@ -105,6 +106,13 @@ namespace Mif
                             boost::posix_time::ptime pt;
                             stream >> pt;
                             return pt;
+                        }
+
+                        template <typename T>
+                        static typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, T>::type
+                        Convert(std::string const &value)
+                        {
+                            return Reflection::FromString<T>(value);
                         }
                     };
 
