@@ -2,7 +2,9 @@ project (Mif)
 set (PROJECT ${PROJECT_NAME})
 string (TOLOWER "${PROJECT}" PROJECT_LC)
 
-set (MIF_STD_CXX "c++11")
+if (NOT MIF_STD_CXX)
+    set (MIF_STD_CXX "c++11")
+endif(NOT MIF_STD_CXX)
 
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/MyCMakeScripts)
 

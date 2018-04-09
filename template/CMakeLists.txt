@@ -297,6 +297,7 @@ ExternalProject_Add (${MIF_PROJECT}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_INSTALL_DIR} 
+                -DMIF_STD_CXX=STD_CXX
                 -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
                 -DMIF_NEED_THIRD_PARTY_BUILD=OFF
