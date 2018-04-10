@@ -89,8 +89,7 @@ private:
 
     void Clean(Mif::Net::Http::IInputPack const &req, Mif::Net::Http::IOutputPack &resp)
     {
-        Mif::Common::Unused(req);
-        Mif::Common::Unused(resp);
+        Mif::Common::Unused(req, resp);
 
         LockGuard lock{m_lock};
         m_cache.clear();
