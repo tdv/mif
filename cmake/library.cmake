@@ -111,7 +111,7 @@ if (MIF_WITH_POSTGRESQL)
 endif()
 
 include_directories (include)
-include_directories (MIF_SOURCES)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_library ("${PROJECT_LC}_obj" OBJECT ${MIF_SOURCES})
 if (MIF_NEED_THIRD_PARTY_BUILD)
