@@ -45,7 +45,7 @@ set (LIBPQ_TAG "REL9_6_2")
 set (SQLITE_URL "https://www.sqlite.org/src/tarball/sqlite.tar.gz")
 
 set (MIF_URL "https://github.com/tdv/mif.git")
-set (MIF_TAG "v1.2.1")
+set (MIF_TAG "master")
 
 #------------------------ ZLib ---------------------------
 set (ZLIB_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/zlib)
@@ -278,7 +278,7 @@ ExternalProject_Add (${PUGIXML_PROJECT}
             LOG_INSTALL 1
         )
 
-list (APPEND LIBRARIES "sqlite3")
+list (APPEND LIBRARIES "pugixml")
 #---------------------------------------------------------
 
 #------------------------ MIF ----------------------------
@@ -297,7 +297,7 @@ ExternalProject_Add (${MIF_PROJECT}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${MIF_INSTALL_DIR} 
-                -DMIF_STD_CXX=STD_CXX
+                -DMIF_STD_CXX=${STD_CXX}
                 -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
                 -DMIF_NEED_THIRD_PARTY_BUILD=OFF
@@ -340,6 +340,9 @@ set(LIBRARIES
     pthread
     rt
 )
+
+include_directories (include)
+include_directories (${HEADERS})
 
 add_executable(${PROJECT_LC} ${HEADERS} ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 target_link_libraries(${PROJECT_LC} ${LIBRARIES})
