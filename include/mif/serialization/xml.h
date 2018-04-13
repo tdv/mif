@@ -315,8 +315,7 @@ namespace Mif
                 inline typename std::enable_if<I == N, void>::type
                 Serialize(NodeType &node, std::tuple<T ... > const &object)
                 {
-                    Common::Unused(node);
-                    Common::Unused(object);
+                    Common::Unused(node, object);
                 }
 
                 template <std::size_t I, std::size_t N, typename T>
@@ -332,8 +331,7 @@ namespace Mif
                 inline typename std::enable_if<I == N, void>::type
                 Serialize(NodeType &node, T const &object)
                 {
-                    Common::Unused(node);
-                    Common::Unused(object);
+                    Common::Unused(node, object);
                 }
 
                 //--------------------------------------------------------------------------------------------------------------------------
@@ -346,7 +344,7 @@ namespace Mif
                     auto result = doc.load(stream);
                     if (!result)
                     {
-                        throw std::invalid_argument{"[Mif::Serialization::Xml::Deserialize] Failed to parse json. Error: " +
+                        throw std::invalid_argument{"[Mif::Serialization::Xml::Deserialize] Failed to parse xml. Error: " +
                             std::string{result.description()}};
                     }
 
@@ -470,15 +468,15 @@ namespace Mif
                 inline typename std::enable_if<Traits::IsIterable<T>(), void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (auto const item = node.child(name.c_str()))
+                    if (auto const items = node.child(name.c_str()))
                     {
-                        for (auto const &i : item.children())
+                        for (auto i = items.child(Tag::Item::Value); i ; i = i.next_sibling())
                         {
-                            if (i.name() != std::string{Tag::Item::Value})
-                                continue;
                             using Type = typename T::value_type;
                             Type data;
-                            Deserialize(i, data, name);
+                            pugi::xml_document tmp;
+                            tmp.append_copy(i);
+                            Deserialize(tmp, data, Tag::Item::Value);
                             *std::inserter(object, std::end(object)) = std::move(data);
                         }
                     }
@@ -572,8 +570,7 @@ namespace Mif
                 inline typename std::enable_if<I == N, void>::type
                 Deserialize(NodeType &node, T &object)
                 {
-                    Common::Unused(node);
-                    Common::Unused(object);
+                    Common::Unused(node, object);
                 }
 
                 template <typename ... T>
