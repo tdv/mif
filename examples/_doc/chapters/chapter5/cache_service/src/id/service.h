@@ -1,5 +1,5 @@
-#ifndef __CACHESERVICE_ID_H__
-#define __CACHESERVICE_ID_H__
+#ifndef __CACHESERVICE_ID_SERVICE_H__
+#define __CACHESERVICE_ID_SERVICE_H__
 
 // MIF
 #include <mif/common/crc32.h>
@@ -20,4 +20,4 @@ namespace CacheService
     }   // namespace Id
 }   // namespace CacheService
 
-#endif  // !__CACHESERVICE_ID_H__
+#endif  // !__CACHESERVICE_ID_SERVICE_H__
