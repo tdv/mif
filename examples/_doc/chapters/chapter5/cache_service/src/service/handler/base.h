@@ -5,6 +5,9 @@
 #include <mif/net/http/serializer/json.h>
 #include <mif/net/http/web_service.h>
 
+// THIS
+#include "data/api.h"
+
 namespace CacheService
 {
     namespace Handler
@@ -24,8 +27,15 @@ namespace CacheService
                 WebService::AddHandler(m_prefix + path, object, handler);
             }
 
+            Data::Api::Response::Info GetMeta(std::int32_t code = 0, std::string message = {}) const;
+
         private:
             std::string m_prefix;
+
+            // WebService
+            virtual void OnException(Mif::Net::Http::IInputPack const &request,
+                    Mif::Net::Http::IOutputPack &response, std::exception_ptr exception,
+                    Mif::Net::Http::Code &code, std::string &message) const override final;
         };
 
     }   // namespace Handler

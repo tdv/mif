@@ -1,9 +1,13 @@
 // MIF
 #include <mif/service/creator.h>
+#include <mif/service/root_locator.h>
 
 // THIS
 #include "base.h"
+#include "data/common.h"
+#include "data/meta/api.h"
 #include "id/service.h"
+#include "interface/icache.h"
 
 namespace CacheService
 {
@@ -31,22 +35,74 @@ namespace CacheService
                     // WebService.Hadlers
                     Response List()
                     {
-                        return std::string{};
+                        auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
+
+                        Data::Api::Response::BucketKeys response;
+
+                        response.meta = GetMeta();
+                        response.data = cache->ListBucketKeys({});
+
+                        return response;
                     }
 
-                    Response Get()
+                    Response Get(Prm<Data::ID, Name("bucket")> const &bucket,
+                                 Prm<Data::ID, Name("key")> const &key)
                     {
-                        return std::string{};
+                        CheckId(bucket, key);
+
+                        auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
+
+                        Data::Api::Response::Data response;
+
+                        response.meta = GetMeta();
+                        response.data = cache->GetData(bucket.Get(), key.Get());
+
+                        return response;
                     }
 
-                    Response Set()
+                    Response Set(Prm<Data::ID, Name("bucket")> const &bucket,
+                                 Prm<Data::ID, Name("key")> const &key,
+                                 Content<std::string> const &data)
                     {
-                        return std::string{};
+                        CheckId(bucket, key);
+
+                        auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
+                        cache->SetData(bucket.Get(), key.Get(), data.Get());
+
+                        Data::Api::Response::Header response;
+
+                        response.meta = GetMeta();
+
+                        return response;
                     }
 
-                    Response Remove()
+                    Response Remove(Prm<Data::ID, Name("bucket")> const &bucket,
+                                    Prm<Data::ID, Name("key")> const &key)
                     {
-                        return std::string{};
+                        CheckId(bucket, key);
+
+                        auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
+                        cache->RemoveData(bucket.Get(), key.Get());
+
+                        Data::Api::Response::Header response;
+
+                        response.meta = GetMeta();
+
+                        return response;
+                    }
+
+                    void CheckId(Prm<Data::ID, Name("bucket")> const &bucket,
+                                 Prm<Data::ID, Name("key")> const &key) const
+                    {
+                        if (!bucket)
+                            throw std::invalid_argument{"No \"bucket\" parameter."};
+                        if (bucket.Get().empty())
+                            throw std::invalid_argument{"\"bucket\" must not be empty."};
+
+                        if (!key)
+                            throw std::invalid_argument{"No \"key\" parameter."};
+                        if (key.Get().empty())
+                            throw std::invalid_argument{"\"key\" must not be empty."};
                     }
                 };
 

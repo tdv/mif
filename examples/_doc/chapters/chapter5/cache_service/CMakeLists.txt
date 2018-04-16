@@ -6,6 +6,12 @@ project(cache_service)
 set(PROJECT ${PROJECT_NAME})
 string(TOLOWER "${PROJECT}" PROJECT_LC)
 
+set(PROJECT_VERSION_MAJOR 1)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 0)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/version/version.h)
+
 set (STD_CXX "c++11")
 
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/MyCMakeScripts)
