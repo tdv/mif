@@ -13,6 +13,7 @@
 #include <type_traits>
 
 // MIF
+#include "mif/common/types.h"
 #include "mif/serialization/traits.h"
 
 namespace Mif
