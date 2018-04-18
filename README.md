@@ -1,10 +1,11 @@
 # MIF - C++11 MetaInfo Framework
 MIF is a C++11 web-application framework designed for the backend micro-service development. The framework makes use of additional type meta-information.
 
-**[ru] Post about MIF** [Microservices - MIF on C++](https://habrahabr.ru/post/239571/)  
+## MIF Documentation
+[MIF is a C++ web-application backend framework](https://github.com/tdv/mif/wiki/MIF.-Home-page#mif-is-a-c-web-application-backend-framework)  
 
-**[en] Documentation.** [MIF is a C++ web-application backend framework](https://github.com/tdv/mif/wiki/MIF.-Home-page#mif-is-a-c-web-application-backend-framework)  
-**NOTE:** Some chapters of the documentation are not yet complete.  
+
+**[ru] Post about MIF** [Microservices - MIF on C++](https://habrahabr.ru/post/239571/)  
 
 # Version
 1.3.0  
