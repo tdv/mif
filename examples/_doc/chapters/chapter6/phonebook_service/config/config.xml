@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<document>
+    <common>
+        <daemon>0</daemon>
+        <log>
+            <level>4</level>
+            <dir>.</dir>
+            <pattern>log_%5N.log</pattern>
+        </log>
+    </common>
+    <data>
+        <server>
+            <host>0.0.0.0</host>
+            <port>55555</port>
+            <workers>8</workers>
+            <timeout>10000000</timeout>
+        </server>
+        <storage>
+            <active>
+                <id>Phonebook.Id.FileStorage</id>
+                <!-- <id>Phonebook.Id.PgStorage</id> -->
+            </active>
+            <pg>
+                <database>
+                    <host>127.0.0.1</host>
+                    <port>5432</port>
+                    <dbname>test_phonebook</dbname>
+                    <user>postgres</user>
+                    <password></password>
+                    <connectiontimeout>30</connectiontimeout>
+                </database>
+            </pg>
+            <file>
+                <path>test_phonebook.data</path>
+            </file>
+        </storage>
+    </data>
+</document>
