@@ -1,4 +1,5 @@
 // BOOST
+#include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -7,11 +8,14 @@
 #include <mif/common/unused.h>
 #include <mif/net/http/constants.h>
 #include <mif/serialization/json.h>
+#include <mif/service/root_locator.h>
 
 // THIS
 #include "base.h"
 #include "data/meta/api.h"
 #include "exception.h"
+#include "id/service.h"
+#include "interface/iauth.h"
 #include "version/version.h"
 
 namespace CacheService
@@ -80,6 +84,77 @@ namespace CacheService
             {
                 MIF_LOG(Error) << "[Service::Base] Failed to format message. Error: " << e.what() << " Message: " << message;
             }
+        }
+
+        Data::ID Base::GetSession(Headers const &headers) const
+        {
+            std::string session;
+
+            for (auto const &header : headers.Get())
+            {
+                std::string const cookeiId = Mif::Net::Http::Constants::Header::Request::Cookie::Value;
+                std::string cookieKey;
+                std::transform(std::begin(cookeiId), std::end(cookeiId),
+                               std::inserter(cookieKey, std::end(cookieKey)), [] (std::string::value_type ch) { return std::tolower(ch); } );
+
+                std::string headerKey;
+                std::transform(std::begin(header.first), std::end(header.first),
+                               std::inserter(headerKey, std::end(headerKey)), [] (std::string::value_type ch) { return std::tolower(ch); } );
+
+                if (cookieKey == headerKey)
+                {
+                    Data::IDs items;
+                    boost::algorithm::split(items, header.second, boost::is_any_of(";"));
+                    if (!items.empty())
+                    {
+                        for (auto const &item : items)
+                        {
+                            std::vector<std::string> cookie;
+                            boost::algorithm::split(cookie, item, boost::is_any_of("="));
+                            for (auto &i : cookie)
+                                boost::algorithm::trim(i);
+
+                            if (cookie.size() >= 2 && cookie.front() == CookieId::Value)
+                            {
+                                session = cookie[1];
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+
+            return session;
+        }
+
+        Data::Profile Base::GetProfile(Headers const &headers) const
+        {
+            auto const session = GetSession(headers);
+            if (session.empty())
+                throw Exception::Unauthorized{"No session."};
+
+            auto auth = Mif::Service::RootLocator::Get()->Get<IAuth>(Id::DataFacade);
+            return auth->GetSessionProfile(session);
+        }
+
+        Data::Profile Base::CheckPermissions(Headers const &headers, Data::Roles const &roles) const
+        {
+            auto const profile = GetProfile(headers);
+
+            Data::Roles result;
+
+            std::set_intersection(std::begin(profile.roles), std::end(profile.roles),
+                    std::begin(roles), std::end(roles),
+                    std::inserter(result, std::begin(result))
+                );
+
+            if (result.empty())
+            {
+                throw std::runtime_error{"Access denied."};
+            }
+
+            return profile;
         }
 
     }   // namespace Handler

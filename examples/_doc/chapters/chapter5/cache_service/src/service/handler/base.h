@@ -2,6 +2,8 @@
 #define __CACHESERVICE_HANDLER_BASE_H__
 
 // MIF
+#include <mif/common/static_string.h>
+#include <mif/net/http/converter/content/json.h>
 #include <mif/net/http/serializer/json.h>
 #include <mif/net/http/web_service.h>
 
@@ -17,6 +19,11 @@ namespace CacheService
             : public Mif::Net::Http::WebService
         {
         protected:
+            using CookieId = MIF_STATIC_STR("cache_service_session");
+
+            template <typename T>
+            using RequestContent = Content<T, Mif::Net::Http::Converter::Content::Json>;
+
             using Response = Result<Mif::Net::Http::Serializer::Json>;
 
             Base(std::string const &prefix);
@@ -28,6 +35,9 @@ namespace CacheService
             }
 
             Data::Api::Response::Info GetMeta(std::int32_t code = 0, std::string message = {}) const;
+            Data::ID GetSession(Headers const &headers) const;
+            Data::Profile GetProfile(Headers const &headers) const;
+            Data::Profile CheckPermissions(Headers const &headers, Data::Roles const &roles) const;
 
         private:
             std::string m_prefix;

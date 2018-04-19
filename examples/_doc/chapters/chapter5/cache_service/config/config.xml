@@ -15,5 +15,12 @@
             <workers>8</workers>
             <timeout>10000000</timeout>
         </server>
+        <data_facade>
+            <root>
+                <login>root</login>
+                <password>qwerty</password>
+                <name>Root</name>
+            </root>
+        </data_facade>
     </data>
 </document>

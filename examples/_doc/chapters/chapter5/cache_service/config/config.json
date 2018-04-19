@@ -14,6 +14,15 @@
             "port": "55555",
             "workers": 8,
             "timeout": 10000000
+        },
+        "data_facade":
+        {
+            "root":
+            {
+                "login": "root",
+                "password": "qwerty",
+                "name": "Root"
+            }
         }
     }
 }

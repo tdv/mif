@@ -1,5 +1,6 @@
 // MIF
 #include <mif/service/creator.h>
+#include <mif/service/root_locator.h>
 
 // THIS
 #include "base.h"
@@ -31,24 +32,78 @@ namespace CacheService
 
                 private:
                     // WebService.Hadlers
-                    Response List()
+                    Response List(Headers const &headers)
                     {
-                        return {std::string{}};
+                        CheckPermissions(headers, {Data::Role::Admin});
+
+                        auto admin = Mif::Service::RootLocator::Get()->Get<IAdmin>(Id::DataFacade);
+
+                        Data::Api::Response::ProfilesList response;
+
+                        response.meta = GetMeta();
+                        response.data = admin->GetProfilesList();
+
+                        return response;
                     }
 
-                    Response Get()
+                    Response Get(Headers const &headers, Prm<Data::ID, Name("login")> const &login)
                     {
-                        return {std::string{}};
+                        CheckPermissions(headers, {Data::Role::Admin});
+
+                        if (!login)
+                            throw std::invalid_argument{"No \"login\" parameter."};
+
+                        if (login.Get().empty())
+                            throw std::invalid_argument{"\"login\" must not be empty."};
+
+                        auto admin = Mif::Service::RootLocator::Get()->Get<IAdmin>(Id::DataFacade);
+
+                        Data::Api::Response::Profile response;
+
+                        response.meta = GetMeta();
+                        response.data = admin->GetProfile(login.Get());
+
+                        return response;
                     }
 
-                    Response Set()
+                    Response Set(Headers const &headers, RequestContent<Data::Profile> const &content)
                     {
-                        return {std::string{}};
+                        CheckPermissions(headers, {Data::Role::Admin});
+
+                        auto const &profile = content.Get();
+
+                        if (profile.login.empty())
+                            throw std::invalid_argument{"\"login\" must not be empty."};
+                        if (profile.password.empty())
+                            throw std::invalid_argument{"\"password\" must not be empty."};
+
+                        auto admin = Mif::Service::RootLocator::Get()->Get<IAdmin>(Id::DataFacade);
+                        admin->SetProfile(profile);
+
+                        Data::Api::Response::Header response;
+
+                        response.meta = GetMeta();
+
+                        return response;
                     }
 
-                    Response Remove()
+                    Response Remove(Headers const &headers, Prm<Data::ID, Name("login")> const &login)
                     {
-                        return {std::string{}};
+                        CheckPermissions(headers, {Data::Role::Admin});
+
+                        if (!login)
+                            throw std::invalid_argument{"No \"login\" parameter."};
+                        if (login.Get().empty())
+                            throw std::invalid_argument{"\"login\" must not be empty."};
+
+                        auto admin = Mif::Service::RootLocator::Get()->Get<IAdmin>(Id::DataFacade);
+                        admin->RemoveProfile(login.Get());
+
+                        Data::Api::Response::Header response;
+
+                        response.meta = GetMeta();
+
+                        return response;
                     }
                 };
 

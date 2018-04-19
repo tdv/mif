@@ -33,22 +33,27 @@ namespace CacheService
 
                 private:
                     // WebService.Hadlers
-                    Response List()
+                    Response List(Headers const &headers)
                     {
+                        auto const profile = CheckPermissions(headers, {Data::Role::User});
+
                         auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
 
                         Data::Api::Response::BucketKeys response;
 
                         response.meta = GetMeta();
-                        response.data = cache->ListBucketKeys({});
+                        response.data = cache->ListBucketKeys(profile.buckets);
 
                         return response;
                     }
 
-                    Response Get(Prm<Data::ID, Name("bucket")> const &bucket,
+                    Response Get(Headers const &headers,
+                                 Prm<Data::ID, Name("bucket")> const &bucket,
                                  Prm<Data::ID, Name("key")> const &key)
                     {
+                        auto const profile = CheckPermissions(headers, {Data::Role::User});
                         CheckId(bucket, key);
+                        CheckBucketId(bucket.Get(), profile.buckets);
 
                         auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
 
@@ -60,11 +65,14 @@ namespace CacheService
                         return response;
                     }
 
-                    Response Set(Prm<Data::ID, Name("bucket")> const &bucket,
+                    Response Set(Headers const &headers,
+                                 Prm<Data::ID, Name("bucket")> const &bucket,
                                  Prm<Data::ID, Name("key")> const &key,
                                  Content<std::string> const &data)
                     {
+                        auto const profile = CheckPermissions(headers, {Data::Role::User});
                         CheckId(bucket, key);
+                        CheckBucketId(bucket.Get(), profile.buckets);
 
                         auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
                         cache->SetData(bucket.Get(), key.Get(), data.Get());
@@ -76,10 +84,13 @@ namespace CacheService
                         return response;
                     }
 
-                    Response Remove(Prm<Data::ID, Name("bucket")> const &bucket,
+                    Response Remove(Headers const &headers,
+                                    Prm<Data::ID, Name("bucket")> const &bucket,
                                     Prm<Data::ID, Name("key")> const &key)
                     {
+                        auto const profile = CheckPermissions(headers, {Data::Role::User});
                         CheckId(bucket, key);
+                        CheckBucketId(bucket.Get(), profile.buckets);
 
                         auto cache = Mif::Service::RootLocator::Get()->Get<ICache>(Id::DataFacade);
                         cache->RemoveData(bucket.Get(), key.Get());
@@ -103,6 +114,12 @@ namespace CacheService
                             throw std::invalid_argument{"No \"key\" parameter."};
                         if (key.Get().empty())
                             throw std::invalid_argument{"\"key\" must not be empty."};
+                    }
+
+                    void CheckBucketId(Data::ID const &bucket, Data::IDs const &buckets) const
+                    {
+                        if (buckets.find(bucket) == std::end(buckets))
+                            throw std::invalid_argument{"You can't working with bucket \"" + bucket + "\"."};
                     }
                 };
 

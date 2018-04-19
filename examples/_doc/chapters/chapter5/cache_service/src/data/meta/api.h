@@ -6,6 +6,7 @@
 
 // THIS
 #include "data/api.h"
+#include "data/meta/common.h"
 
 namespace CacheService
 {
@@ -34,12 +35,27 @@ namespace CacheService
                         MIF_REFLECT_FIELD(meta)
                     MIF_REFLECT_END()
 
+                    MIF_REFLECT_BEGIN(Id)
+                        MIF_REFLECT_FIELD(meta)
+                        MIF_REFLECT_FIELD(data)
+                    MIF_REFLECT_END()
+
                     MIF_REFLECT_BEGIN(Data)
                         MIF_REFLECT_FIELD(meta)
                         MIF_REFLECT_FIELD(data)
                     MIF_REFLECT_END()
 
                     MIF_REFLECT_BEGIN(BucketKeys)
+                        MIF_REFLECT_FIELD(meta)
+                        MIF_REFLECT_FIELD(data)
+                    MIF_REFLECT_END()
+
+                    MIF_REFLECT_BEGIN(Profile)
+                        MIF_REFLECT_FIELD(meta)
+                        MIF_REFLECT_FIELD(data)
+                    MIF_REFLECT_END()
+
+                    MIF_REFLECT_BEGIN(ProfilesList)
                         MIF_REFLECT_FIELD(meta)
                         MIF_REFLECT_FIELD(data)
                     MIF_REFLECT_END()
@@ -53,7 +69,10 @@ namespace CacheService
 MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::Status)
 MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::Info)
 MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::Header)
+MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::Id)
 MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::Data)
 MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::BucketKeys)
+MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::Profile)
+MIF_REGISTER_REFLECTED_TYPE(CacheService::Data::Api::Response::Meta::ProfilesList)
 
 #endif  // !__CACHESERVICE_DATA_META_API_H__

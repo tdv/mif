@@ -20,7 +20,6 @@ namespace CacheService
             MIF_REFLECT_END()
 
             MIF_REFLECT_BEGIN(Profile)
-                MIF_REFLECT_FIELD(id)
                 MIF_REFLECT_FIELD(login)
                 MIF_REFLECT_FIELD(password)
                 MIF_REFLECT_FIELD(name)

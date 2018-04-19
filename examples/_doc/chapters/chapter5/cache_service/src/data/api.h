@@ -37,6 +37,12 @@ namespace CacheService
                     Info meta;
                 };
 
+                struct Id
+                {
+                    Info meta;
+                    ID data;
+                };
+
                 struct Data
                 {
                     Info meta;
@@ -47,6 +53,18 @@ namespace CacheService
                 {
                     Info meta;
                     std::map<ID, IDs> data;
+                };
+
+                struct Profile
+                {
+                    Info meta;
+                    CacheService::Data::Profile data;
+                };
+
+                struct ProfilesList
+                {
+                    Info meta;
+                    StringMap data;
                 };
 
             }   // namespace Response

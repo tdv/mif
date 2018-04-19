@@ -18,7 +18,7 @@ namespace CacheService
     private:
         virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
         {
-            Mif::Service::RootLocator::Get()->Put<Id::DataFacade>();
+            Mif::Service::RootLocator::Get()->Put<Id::DataFacade>(GetConfig()->GetConfig("data_facade"));
 
             std::string const authLocation = "/auth";
             handlers.emplace(authLocation, Mif::Net::Http::MakeWebService<Id::Auth>(authLocation));
