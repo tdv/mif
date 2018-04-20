@@ -21,13 +21,19 @@ namespace Phonebook
         virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
         {
             auto config = GetConfig();
+            if (!config)
+                throw std::runtime_error{"No input config."};
+
+            auto storageConfig = config->GetConfig("storage");
+            if (!storageConfig)
+                throw std::runtime_error{"No \"storage\" node in the \"data\" section in config."};
 
             auto factory = Mif::Service::Make<Mif::Service::Factory, Mif::Service::Factory>();
 
-            factory->AddClass<Id::PgStorage>(config->GetConfig("storage.pg"));
-            factory->AddClass<Id::FileStorage>(config->GetConfig("storage.file"));
+            factory->AddClass<Id::PgStorage>(storageConfig->GetConfig("pg"));
+            factory->AddClass<Id::FileStorage>(storageConfig->GetConfig("file"));
 
-            auto const activeStorageId = Mif::Common::Crc32str(config->GetValue("storage.active.id"));
+            auto const activeStorageId = Mif::Common::Crc32str(storageConfig->GetValue("active.id"));
             auto storage = factory->Create(activeStorageId);
 
             Mif::Service::RootLocator::Get()->Put(Id::Storage, storage);

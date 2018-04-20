@@ -30,6 +30,11 @@ namespace Phonebook
                 MIF_REFLECT_FIELD(meta)
             MIF_REFLECT_END()
 
+            MIF_REFLECT_BEGIN(Phones)
+                MIF_REFLECT_FIELD(meta)
+                MIF_REFLECT_FIELD(data)
+            MIF_REFLECT_END()
+
         }   // namespace Meta
     }   // namespace Data
 }   // namespace Phonebook
@@ -37,5 +42,6 @@ namespace Phonebook
 MIF_REGISTER_REFLECTED_TYPE(Phonebook::Data::Meta::Status)
 MIF_REGISTER_REFLECTED_TYPE(Phonebook::Data::Meta::Info)
 MIF_REGISTER_REFLECTED_TYPE(Phonebook::Data::Meta::Header)
+MIF_REGISTER_REFLECTED_TYPE(Phonebook::Data::Meta::Phones)
 
 #endif  // !__PHONEBOOK_DATA_META_DATA_H__

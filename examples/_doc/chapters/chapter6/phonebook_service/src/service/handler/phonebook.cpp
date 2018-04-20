@@ -35,17 +35,52 @@ namespace Phonebook
                         // WebService.Hadlers
                         Response List()
                         {
-                            return {std::string{}};
+                            auto storage = Mif::Service::RootLocator::Get()->Get<IStorage>(Id::Storage);
+
+                            Data::Phones response;
+
+                            response.meta = GetMeta();
+                            response.data = storage->List();
+
+                            return response;
                         }
 
-                        Response Set()
+                        Response Set(Prm<std::string, Name("phone")> const &phone,
+                                     Prm<std::string, Name("name")> const &name)
                         {
-                            return {std::string{}};
+                            if (!phone)
+                                throw std::invalid_argument{"No \"phone\" parameter."};
+                            if (phone.Get().empty())
+                                throw std::invalid_argument{"\"phone\" must not be empty."};
+
+                            if (!name)
+                                throw std::invalid_argument{"No \"name\" parameter."};
+                            if (name.Get().empty())
+                                throw std::invalid_argument{"\"name\" must not be empty."};
+
+                            auto storage = Mif::Service::RootLocator::Get()->Get<IStorage>(Id::Storage);
+                            storage->Set(phone.Get(), name.Get());
+
+                            Data::Header response;
+                            response.meta = GetMeta();
+                            return response;
                         }
 
-                        Response Find()
+                        Response Find(Prm<std::string, Name("name")> const &name)
                         {
-                            return {std::string{}};
+                            if (!name)
+                                throw std::invalid_argument{"No \"name\" parameter."};
+                            if (name.Get().empty())
+                                throw std::invalid_argument{"\"name\" must not be empty."};
+
+                            auto storage = Mif::Service::RootLocator::Get()->Get<IStorage>(Id::Storage);
+
+                            Data::Phones response;
+
+                            response.meta = GetMeta();
+                            response.data = storage->Find(name.Get());
+
+                            return response;
                         }
                     };
 

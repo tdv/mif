@@ -3,6 +3,7 @@
 
 // STD
 #include <cstdint>
+#include <map>
 #include <string>
 
 namespace Phonebook
@@ -27,6 +28,12 @@ namespace Phonebook
         struct Header
         {
             Info meta;
+        };
+
+        struct Phones
+        {
+            Info meta;
+            std::map<std::string, std::string> data;
         };
 
     }   // namespace Data
