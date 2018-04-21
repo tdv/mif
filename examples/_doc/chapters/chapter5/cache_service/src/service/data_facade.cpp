@@ -26,14 +26,14 @@ namespace CacheService
         namespace
         {
 
-            class DataFacace
+            class DataFacade
                 : public Mif::Service::Inherit
                     <
                         IAuth, IAdmin, ICache
                     >
             {
             public:
-                DataFacace(Mif::Application::IConfigPtr config)
+                DataFacade(Mif::Application::IConfigPtr config)
                 {
                     if (!config)
                         throw std::invalid_argument{"DataFacade. No config."};
@@ -251,6 +251,6 @@ namespace CacheService
 MIF_SERVICE_CREATOR
 (
     ::CacheService::Id::DataFacade,
-    ::CacheService::Detail::DataFacace,
+    ::CacheService::Detail::DataFacade,
     Mif::Application::IConfigPtr
 )
