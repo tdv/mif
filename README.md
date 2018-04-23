@@ -65,7 +65,7 @@ cd build
 cmake ..  
 make  
 ```
-After that you can change this template to create your own application. In addition, you can use the examples doned from the template. Examples are fully completed and have a script for build itself. All of them are in the [_docs](https://github.com/tdv/mif/tree/master/examples/_doc/chapters) folder.  
+After that you can change this template to create your own application. In addition, you can use the examples doned from the template. Examples are fully completed and have a script for build itself. All of them are in the [_docs](https://github.com/tdv/mif/tree/master/examples/_doc/chapters) folder. You can find detailed documentation of the examples in the [wiki](https://github.com/tdv/mif/wiki/MIF.-Home-page#mif-is-a-c-web-application-backend-framework).  
 
 
 ## Run examples
