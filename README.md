@@ -130,7 +130,7 @@ int main(int argc, char const **argv)
 ## HTTP
 [Source code](https://github.com/tdv/mif/tree/master/examples/http)  
 **Description**  
-The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP.
+The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP. More you can see in the chapter ["Web service. Additional"](https://github.com/tdv/mif/wiki/Chapter-5)  
 
 ## RPC. Hello World
 [Source code](https://github.com/tdv/mif/tree/master/examples/hello_world)  
