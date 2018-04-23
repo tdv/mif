@@ -84,7 +84,55 @@ Please use --help to get more information about runing an example
 
 # Examples
 
-## Hello World
+## HTTP Echo Server
+[Source code](https://github.com/tdv/mif/tree/master/examples/http_echo_server)  
+**Description**  
+The example demonstrates the work of the simple HTTP echo server.
+[HTTP-echo-server](https://github.com/tdv/mif/blob/master/examples/http_echo_server/src/main.cpp)  
+```cpp
+// MIF
+#include <mif/application/http_server.h>
+#include <mif/common/log.h>
+#include <mif/net/http/constants.h>
+
+class Application
+    : public Mif::Application::HttpServer
+{
+public:
+    using HttpServer::HttpServer;
+
+private:
+    // Mif.Application.HttpServer
+    virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
+    {
+        handlers["/"] = [] (Mif::Net::Http::IInputPack const &request,
+                Mif::Net::Http::IOutputPack &response)
+        {
+            auto data = request.GetData();
+
+            MIF_LOG(Info) << "Process request \"" << request.GetPath() << request.GetQuery() << "\"\t Data: "
+                    << (data.empty() ? std::string{"null"} : std::string{std::begin(data), std::end(data)});
+
+            response.SetCode(Mif::Net::Http::Code::Ok);
+            response.SetHeader(Mif::Net::Http::Constants::Header::Connection::Value,
+                               Mif::Net::Http::Constants::Value::Connection::Close::Value);
+
+            response.SetData(std::move(data));
+        };
+    }
+};
+
+int main(int argc, char const **argv)
+{
+    return Mif::Application::Run<Application>(argc, argv);
+}
+```
+## HTTP
+[Source code](https://github.com/tdv/mif/tree/master/examples/http)  
+**Description**  
+The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP.
+
+## RPC. Hello World
 [Source code](https://github.com/tdv/mif/tree/master/examples/hello_world)  
 **Description**  
 The "Hello World" example demonstrates a basic client-server application with the interface-based RPC marshaling and TCP communication with using boost.archives for data serialization
@@ -365,56 +413,8 @@ Compared to the previous examples this one adds the inteface inheritance. In the
 ## Visitor
 [Source code](https://github.com/tdv/mif/tree/master/examples/visitor)  
 **Description**  
-The "Visitor" example demonstrates the mechanism of remote callbacks for interface methods. This can be used as a starting point for publish / subscribe based applications.
+The "Visitor" example demonstrates the mechanism of remote callbacks for interface methods. This can be used as a starting point for publish / subscribe based applications.  
 
-## HTTP
-[Source code](https://github.com/tdv/mif/tree/master/examples/http)  
-**Description**  
-The example demonstrates the work of the HTTP server with dual interface for processing raw HTTP requests and MIF RPC by HTTP.
-
-## HTTP Echo Server
-[Source code](https://github.com/tdv/mif/tree/master/examples/http_echo_server)  
-**Description**  
-The example demonstrates the work of the simple HTTP echo server.
-[HTTP-echo-server](https://github.com/tdv/mif/blob/master/examples/http_echo_server/src/main.cpp)  
-```cpp
-// MIF
-#include <mif/application/http_server.h>
-#include <mif/common/log.h>
-#include <mif/net/http/constants.h>
-
-class Application
-    : public Mif::Application::HttpServer
-{
-public:
-    using HttpServer::HttpServer;
-
-private:
-    // Mif.Application.HttpServer
-    virtual void Init(Mif::Net::Http::ServerHandlers &handlers) override final
-    {
-        handlers["/"] = [] (Mif::Net::Http::IInputPack const &request,
-                Mif::Net::Http::IOutputPack &response)
-        {
-            auto data = request.GetData();
-
-            MIF_LOG(Info) << "Process request \"" << request.GetPath() << request.GetQuery() << "\"\t Data: "
-                    << (data.empty() ? std::string{"null"} : std::string{std::begin(data), std::end(data)});
-
-            response.SetCode(Mif::Net::Http::Code::Ok);
-            response.SetHeader(Mif::Net::Http::Constants::Header::Connection::Value,
-                               Mif::Net::Http::Constants::Value::Connection::Close::Value);
-
-            response.SetData(std::move(data));
-        };
-    }
-};
-
-int main(int argc, char const **argv)
-{
-    return Mif::Application::Run<Application>(argc, argv);
-}
-```
 **Test**
 ```bash
 curl -iv -X POST "http://localhost:55555/" -d 'Test data'
