@@ -127,6 +127,11 @@ int main(int argc, char const **argv)
     return Mif::Application::Run<Application>(argc, argv);
 }
 ```
+**Test**
+```bash
+curl -iv -X POST "http://localhost:55555/" -d 'Test data'
+```
+
 ## HTTP
 [Source code](https://github.com/tdv/mif/tree/master/examples/http)  
 **Description**  
@@ -415,16 +420,10 @@ Compared to the previous examples this one adds the inteface inheritance. In the
 **Description**  
 The "Visitor" example demonstrates the mechanism of remote callbacks for interface methods. This can be used as a starting point for publish / subscribe based applications.  
 
-**Test**
-```bash
-curl -iv -X POST "http://localhost:55555/" -d 'Test data'
-```
-
 ## HTTP CRUD
 [Source code](https://github.com/tdv/mif/tree/master/examples/http_crud)  
 **Description**  
 The example demonstrates the Json API (CRUD operations) on HTTP server.
-
 
 **Test**
 - run PostgreSQL
