@@ -97,6 +97,7 @@ namespace Mif
 
                 virtual void PreProcessRequest(IInputPack const &request);
                 virtual void PostProcessResponse(IOutputPack &response);
+                virtual void PostProcessResponse(IInputPack const &request, IOutputPack &response);
 
             private:
                 struct IWebServiceHandler

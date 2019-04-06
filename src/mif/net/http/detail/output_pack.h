@@ -55,6 +55,10 @@ namespace Mif
                     static void CleanUpData(void const *data, size_t datalen, void *extra);
 
                     // IOutputPack
+                    virtual Code GetCode() const override final;
+                    virtual std::string GetReason() const override final;
+                    virtual Common::Buffer GetData() const override final;
+
                     virtual void SetCode(Code code) override final;
                     virtual void SetReason(std::string const &reason) override final;
 

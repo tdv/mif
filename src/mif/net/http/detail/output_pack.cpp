@@ -73,6 +73,21 @@ namespace Mif
                     m_newRequest.release();
                 }
 
+                Code OutputPack::GetCode() const
+                {
+                    return m_code;
+                }
+
+                std::string OutputPack::GetReason() const
+                {
+                    return m_reason;
+                }
+
+                Common::Buffer OutputPack::GetData() const
+                {
+                    return m_buffer;
+                }
+
                 void OutputPack::SetCode(Code code)
                 {
                     m_code = code;

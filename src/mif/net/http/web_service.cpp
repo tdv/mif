@@ -98,7 +98,7 @@ namespace Mif
                                 std::make_exception_ptr(std::runtime_error{"Handler not found."}));
                     }
 
-                    PostProcessResponse(response);
+                    PostProcessResponse(request, response);
                 }
                 catch (std::invalid_argument const &e)
                 {
@@ -167,6 +167,12 @@ namespace Mif
             void WebService::PreProcessRequest(IInputPack const &request)
             {
                 Common::Unused(request);
+            }
+
+            void WebService::PostProcessResponse(IInputPack const &request, IOutputPack &response)
+            {
+                Common::Unused(request);
+                PostProcessResponse(response);
             }
 
             void WebService::PostProcessResponse(IOutputPack &response)
