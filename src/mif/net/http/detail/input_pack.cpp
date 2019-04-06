@@ -13,6 +13,9 @@
 #include <event2/buffer.h>
 #include <event2/keyvalq_struct.h>
 
+// MIF
+#include "../../../../../include/mif/common/log.h"
+
 // THIS
 #include "input_pack.h"
 #include "utility.h"
@@ -43,7 +46,7 @@ namespace Mif
                     auto const *uri = evhttp_request_get_uri(m_request);
                     if (!uri)
                         throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to get uri."};
-                    m_uri.reset(evhttp_uri_parse(uri));
+                    m_uri.reset(evhttp_uri_parse_with_flags(uri, EVHTTP_URI_NONCONFORMANT));
                     if (!m_uri)
                         throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to parse uri."};
                 }
@@ -153,7 +156,7 @@ namespace Mif
 
                     evkeyvalq params;
                     if (evhttp_parse_query_str(query.c_str(), &params))
-                        throw std::runtime_error{"[Mif::Net::Http::Detail::InputPack] Failed to parse query."};
+                        return {};
 
                     Params result;
                     for (evkeyval *i = params.tqh_first ; i ; i = i->next.tqe_next)

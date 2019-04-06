@@ -8,6 +8,10 @@
 // C
 #include <string.h>
 
+// STD
+#include <algorithm>
+#include <set>
+
 // MIF
 #include "mif/common/log.h"
 #include "mif/common/unused.h"
@@ -32,7 +36,33 @@ namespace Mif
                     PreProcessRequest(request);
                     ++m_statistics.general.total;
                     auto const path = request.GetPath();
-                    auto const iter = m_handlers.find(path);
+                    auto iter = m_handlers.find(path);
+                    if (iter == std::end(m_handlers))
+                    {
+                        std::set<std::string> paths;
+                        std::transform(std::begin(m_handlers), std::end(m_handlers),
+                                std::inserter(paths, std::begin(paths)),
+                                [] (typename std::decay<typename decltype(m_handlers)::value_type>::type const &v)
+                                {
+                                    return v.first;
+                                }
+                            );
+
+                        std::int64_t cntLen = 0;
+                        for (auto const &i : paths)
+                        {
+                            if (path.find(i) == std::string::npos)
+                                continue;
+
+                            auto const cnt = std::count(std::begin(i), std::end(i), '/');
+                            if (cntLen < cnt)
+                            {
+                                iter = m_handlers.find(i);
+                                if (iter != std::end(m_handlers))
+                                    cntLen = cnt;
+                            }
+                        }
+                    }
                     if (iter != std::end(m_handlers))
                     {
                         try

@@ -126,7 +126,7 @@ namespace Mif
                     using ExtractType = typename std::decay<T>::type;
 
                     template <typename T>
-                    typename ExtractType<T>::PrmType GetPrm(IInputPack::Params const &params,
+                    typename ExtractType<T>::PrmType GetPrm(IInputPack const &, IInputPack::Params const &params,
                             IInputPack::Headers const &, Common::Buffer const &) const
                     {
                         for (auto const &i : params)
@@ -141,7 +141,7 @@ namespace Mif
 
                     template <typename T>
                     typename std::enable_if<std::is_same<ExtractType<T>, Params>::value, ExtractType<T>>::type
-                    GetPrm(IInputPack::Params const &params,
+                    GetPrm(IInputPack const &, IInputPack::Params const &params,
                             IInputPack::Headers const &, Common::Buffer const &) const
                     {
                         return {params};
@@ -149,22 +149,30 @@ namespace Mif
 
                     template <typename T>
                     typename std::enable_if<std::is_same<ExtractType<T>, Headers>::value, ExtractType<T>>::type
-                    GetPrm(IInputPack::Params const &,
+                    GetPrm(IInputPack const &, IInputPack::Params const &,
                             IInputPack::Headers const &headers, Common::Buffer const &) const
                     {
                         return {headers};
                     }
 
                     template <typename T>
+                    typename std::enable_if<std::is_same<ExtractType<T>, IInputPack>::value, ExtractType<T>>::type const &
+                    GetPrm(IInputPack const &request, IInputPack::Params const &,
+                            IInputPack::Headers const &, Common::Buffer const &) const
+                    {
+                        return request;
+                    }
+
+                    template <typename T>
                     typename std::enable_if<Detail::IsParamPack<T>(), ExtractType<T>>::type
-                    GetPrm(IInputPack::Params const &params,
+                    GetPrm(IInputPack const &, IInputPack::Params const &params,
                             IInputPack::Headers const &, Common::Buffer const &) const
                     {
                         return {params};
                     }
 
                     template <typename T>
-                    typename ExtractType<T>::ContentType GetPrm(IInputPack::Params const &,
+                    typename ExtractType<T>::ContentType GetPrm(IInputPack const &, IInputPack::Params const &,
                             IInputPack::Headers const &, Common::Buffer const &content) const
                     {
                         return {content};
@@ -183,7 +191,7 @@ namespace Mif
                         auto const params = request.GetParams();
                         auto const headers = request.GetHeaders();
                         auto const content = request.GetData();
-                        (m_object->*m_method)(GetPrm<Args>(params, headers, content) ... );
+                        (m_object->*m_method)(GetPrm<Args>(request, params, headers, content) ... );
                     }
 
                     template <typename T>
@@ -193,7 +201,7 @@ namespace Mif
                         auto const params = request.GetParams();
                         auto const headers = request.GetHeaders();
                         auto const content = request.GetData();
-                        Result<> res{(m_object->*m_method)(GetPrm<Args>(params, headers, content) ... )};
+                        Result<> res{(m_object->*m_method)(GetPrm<Args>(request, params, headers, content) ... )};
                         for (auto const &header : res.GetHeaders().Get())
                             response.SetHeader(header.first, header.second);
                         response.SetData(std::move(res.GetValue()));
