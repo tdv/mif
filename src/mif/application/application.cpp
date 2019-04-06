@@ -66,6 +66,43 @@ namespace Mif
 
         }   // namespace
 
+#if defined(__linux__) || defined(__unix__)
+        class WaitCtrlC final
+        {
+        public:
+            WaitCtrlC()
+            {
+                if (!m_mutex)
+                    m_mutex.reset(new std::mutex);
+
+                if (!m_cv)
+                    m_cv.reset(new std::condition_variable);
+
+                signal(SIGINT, ShutdownSignal);
+            }
+
+            void Wait()
+            {
+                std::unique_lock<std::mutex> lock{*m_mutex};
+                m_cv->wait(lock);
+            }
+
+        private:
+            static std::unique_ptr<std::mutex> m_mutex;
+            static std::unique_ptr<std::condition_variable> m_cv;
+
+            static void ShutdownSignal(int)
+            {
+                if (m_cv)
+                    m_cv->notify_all();
+            }
+        };
+
+        std::unique_ptr<std::mutex> WaitCtrlC::m_mutex;
+        std::unique_ptr<std::condition_variable> WaitCtrlC::m_cv;
+
+#endif
+
         class Application::Daemon final
         {
         public:
@@ -468,8 +505,13 @@ namespace Mif
                         try
                         {
                             OnStart();
+#if defined(__linux__) || defined(__unix__)
+                            std::cout << "Press 'Ctrl+C' for quit." << std::endl;
+                            WaitCtrlC{}.Wait();
+#else
                             std::cout << "Press 'Enter' for quit." << std::endl;
                             std::cin.get();
+#endif
                             Stop();
                         }
                         catch (...)
