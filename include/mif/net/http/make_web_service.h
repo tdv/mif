@@ -14,6 +14,7 @@
 #include <utility>
 
 // MIF
+#include "mif/net/http/request_handler.h"
 #include "mif/net/http/iweb_service.h"
 #include "mif/service/create.h"
 #include "mif/service/make.h"
