@@ -206,6 +206,7 @@ namespace Mif
 
         Application::~Application()
         {
+            Service::RootLocator::Get()->Clear();
         }
 
         void Application::OnStart()
@@ -428,9 +429,10 @@ namespace Mif
             }
             catch (std::exception const &e)
             {
-                Service::RootLocator::Get()->Clear();
                 MIF_LOG(Warning) << "[Mif::Application::Application::Stop] Failed to call OnStop. Error: " << e.what();
             }
+
+            Service::RootLocator::Get()->Clear();
         }
 
         void Application::PrepareConfigData(std::string &data, std::string const &format) const
