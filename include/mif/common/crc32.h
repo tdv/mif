@@ -65,15 +65,15 @@ namespace Mif
         typedef Crc32TableHolderT<void> Crc32TableHolder;
 
         template<std::uint32_t const I>
-        inline constexpr std::uint32_t Crc32(char const *str)
+        inline constexpr std::uint32_t Crc32(char const *str, std::uint32_t crc)
         {
-            return (Crc32<I - 1>(str) >> 8) ^ Crc32TableHolder::Table.m_data[(Crc32<I - 1>(str) ^ str[I - 1]) & 0x000000FF];
+            return Crc32<I - 1>(str + 1, (crc >> 8) ^ Crc32TableHolder::Table.m_data[(crc ^ *str) & 0x000000FF]);
         }
 
         template<>
-        inline constexpr std::uint32_t Crc32<0>(char const *)
+        inline constexpr std::uint32_t Crc32<0>(char const *, std::uint32_t crc)
         {
-            return 0xFFFFFFFF;
+            return crc ^ 0xFFFFFFFF;
         }
 
     }   // namespace Detail
@@ -81,7 +81,7 @@ namespace Mif
     template <std::uint32_t N>
     inline constexpr std::uint32_t Crc32(char const (&str)[N])
     {
-        return (Detail::Crc32<N - 1>(str) ^ 0xFFFFFFFF);
+        return Detail::Crc32<N - 1>(str, 0xFFFFFFFF);
     }
 
     inline std::uint32_t Crc32(void const *data, std::uint32_t bytes)
