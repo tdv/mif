@@ -37,7 +37,8 @@ namespace Mif
                     Content(Content const &) = delete;
 
                     Content(Common::Buffer const &value)
-                        : m_value{new Type{Converter::template Convert<Type>(value)}}
+                        : m_value{value.empty() ? nullptr :
+                            new Type{Converter::template Convert<Type>(value)}}
                     {
                     }
 
