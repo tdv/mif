@@ -35,6 +35,7 @@ namespace Mif
 
                 virtual void SetHeader(std::string const &key, std::string const &value) = 0;
                 virtual void SetData(Common::Buffer buffer) = 0;
+                virtual void SetData(Common::BufferPtr buffer) = 0;
             };
 
         }   // namespace Http

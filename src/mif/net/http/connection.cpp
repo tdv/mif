@@ -127,7 +127,7 @@ namespace Mif
                         throw std::runtime_error{"[Mif::Net::Http::Connection::Impl::CreateRequest] Failed to create request."};
 
                     IOutputPackPtr pack{new Detail::OutputPack{std::move(request)}};
-                    return std::move(pack);
+                    return pack;
                 }
 
                 void MakeRequest(Method::Type method, std::string const &request, IOutputPackPtr pack)

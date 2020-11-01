@@ -9,6 +9,7 @@
 #define __MIF_COMMON_TYPES_H__
 
 // STD
+#include <memory>
 #include <vector>
 
 namespace Mif
@@ -17,6 +18,7 @@ namespace Mif
     {
 
         using Buffer = std::vector<char>;
+        using BufferPtr = std::shared_ptr<Buffer>;
 
     }   // namespace Common
 }   // namespace Mif

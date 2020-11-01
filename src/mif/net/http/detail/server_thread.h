@@ -47,7 +47,7 @@ namespace Mif
                     evutil_socket_t GetSocket() const;
 
                 private:
-                    std::chrono::milliseconds const m_timeout{5};
+                    std::chrono::milliseconds const m_timeout{50};
                     std::exception_ptr m_exception;
                     std::unique_ptr<Server> m_server;
                     using ThreadPtr = std::unique_ptr<std::thread, void (*)(std::thread *)>;

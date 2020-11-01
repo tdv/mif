@@ -58,14 +58,16 @@ namespace Mif
 
                 void OutputPack::MoveDataToBuffer()
                 {
-                    std::unique_ptr<Common::Buffer> buffer{!m_buffer.empty() ? new Common::Buffer{std::move(m_buffer)} : nullptr};
-                    auto *data = buffer ? buffer->data() : nullptr;
-                    auto const size = buffer ? buffer->size() : 0;
-                    if (evbuffer_add_reference(m_responseBuffer, data, size, &OutputPack::CleanUpData, buffer.get()))
+                    if (!m_buffer)
+                        return;
+
+                    std::unique_ptr<Common::BufferPtr> buf{new Common::BufferPtr{m_buffer}};
+                    if (evbuffer_add_reference(m_responseBuffer, m_buffer->data(), m_buffer->size(),
+                            &OutputPack::CleanUpData, buf.get()))
                     {
                         throw std::runtime_error{"[Mif::Net::Http::Detail::OutputPack] Failed to set data."};
                     }
-                    buffer.release();
+                    buf.release();
                 }
 
                 void OutputPack::ReleaseNewRequest()
@@ -85,7 +87,9 @@ namespace Mif
 
                 Common::Buffer OutputPack::GetData() const
                 {
-                    return m_buffer;
+                    if (m_buffer)
+                        return *m_buffer.get();
+                    return {};
                 }
 
                 void OutputPack::SetCode(Code code)
@@ -114,14 +118,19 @@ namespace Mif
 
                 void OutputPack::SetData(Common::Buffer buffer)
                 {
-                    m_buffer = std::move(buffer);
+                    m_buffer = std::make_shared<Common::Buffer>(std::move(buffer));
+                }
+
+                void OutputPack::SetData(Common::BufferPtr buffer)
+                {
+                    m_buffer = buffer;
                 }
 
                 void OutputPack::CleanUpData(void const *data, size_t datalen, void *extra)
                 {
                     Common::Unused(data);
                     Common::Unused(datalen);
-                    delete reinterpret_cast<Common::Buffer *>(extra);
+                    std::unique_ptr<Common::BufferPtr>{reinterpret_cast<Common::BufferPtr *>(extra)};
                 }
 
             }   // namespace Detail

@@ -50,7 +50,7 @@ namespace Mif
 
                     Code m_code = Code::Ok;
                     std::string m_reason;
-                    Common::Buffer m_buffer;
+                    Common::BufferPtr m_buffer;
 
                     static void CleanUpData(void const *data, size_t datalen, void *extra);
 
@@ -64,6 +64,7 @@ namespace Mif
 
                     virtual void SetHeader(std::string const &key, std::string const &value) override final;
                     virtual void SetData(Common::Buffer buffer) override final;
+                    virtual void SetData(Common::BufferPtr buffer) override final;
                 };
 
             }   // namespace Detail
