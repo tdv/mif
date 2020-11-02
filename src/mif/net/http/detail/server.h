@@ -73,7 +73,6 @@ namespace Mif
                     Server(ServerHandler const &handler, Methods const &allowedMethods,
                             std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
 
-                    static void OnTimer(evutil_socket_t, short, void *arg);
                     static void OnRequest(evhttp_request *req, void *arg);
                     void OnRequest(evhttp_request *req) noexcept;
                 };
