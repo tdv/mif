@@ -19,6 +19,7 @@
 #include "mif/service/icheckable.h"
 #include "mif/service/ifactory.h"
 #include "mif/service/ipool.h"
+#include "mif/remote/meta/service/icheckable.h"
 
 namespace Mif
 {
