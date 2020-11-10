@@ -35,7 +35,11 @@ namespace Mif
             auto const host = GetHost();
             auto const port = GetPort();
             auto const workers = GetWorkers();
-            //auto const timeout = GetTimeout();
+
+            auto timeout = static_cast<std::size_t>(GetTimeout().count() / 1000000);
+
+            if (!timeout)
+                timeout = 1;
 
             MIF_LOG(Info) << "Starting server on " << host << ":" << port;
 
@@ -43,7 +47,10 @@ namespace Mif
 
             Init(handlers);
 
-            m_server.reset(new Net::Http::Server{host, port, workers, m_methods, handlers});
+            auto const defaultSize = static_cast<std::size_t>(-1);
+
+            m_server.reset(new Net::Http::Server{host, port, workers, m_methods,
+                handlers, defaultSize, defaultSize, timeout});
 
             MIF_LOG(Info) << "Server is successfully started.";
         }
