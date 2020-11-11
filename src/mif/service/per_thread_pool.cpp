@@ -71,7 +71,18 @@ namespace Mif
                         {
                             if (auto checkable = Service::Query<ICheckable>(service))
                             {
-                                if (!checkable->IsGood())
+                                auto isOk = false;
+                                try
+                                {
+                                    isOk = checkable->IsGood();
+                                }
+                                catch (std::exception const &e)
+                                {
+                                    MIF_LOG(Info) << "[Mif::Service::Detail::PerThreadPool::GetService] "
+                                                  << "Service for thread \"" << std::this_thread::get_id() << "\" is bad "
+                                                  << "and will be recreated. Error: " << e.what();
+                                }
+                                if (!isOk)
                                 {
                                     {
                                         LockGuard lock{m_lock};
