@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     10.2016
-//  Copyright (C) 2016-2018 tdv
+//  Copyright (C) 2016-2020 tdv
 //-------------------------------------------------------------------
 
 #ifndef __MIF_COMMON_STATIC_STRING_H__

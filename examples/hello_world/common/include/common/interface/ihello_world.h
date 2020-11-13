@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     09.2016
-//  Copyright (C) 2016-2018 tdv
+//  Copyright (C) 2016-2020 tdv
 //-------------------------------------------------------------------
 
 #ifndef __HELLO_WORLD_COMMON_INTERFACE_IHELLO_WORLD_H__

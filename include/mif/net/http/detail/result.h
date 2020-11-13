@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     01.2018
-//  Copyright (C) 2016-2018 tdv
+//  Copyright (C) 2016-2020 tdv
 //-------------------------------------------------------------------
 
 #ifndef __MIF_NET_HTTP_DETAIL_RESULT_H__
