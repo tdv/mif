@@ -10,6 +10,7 @@
 
 // STD
 #include <cstdint>
+#include <string>
 #include <tuple>
 
 // BOOST

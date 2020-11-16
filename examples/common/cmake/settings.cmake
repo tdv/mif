@@ -27,6 +27,7 @@ set(LIBRARIES
     boost_system
     jsoncpp
     event
+    event_pthreads
     pugixml
     pthread
     z

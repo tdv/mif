@@ -4,10 +4,10 @@ git clone --branch v1.2.9 https://github.com/madler/zlib.git
 git clone --branch 1.9.4 https://github.com/open-source-parsers/jsoncpp.git
 git clone --branch release-2.1.12-stable https://github.com/libevent/libevent.git
 
-wget https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz
-tar zxvf boost_1_66_0.tar.gz
-mv boost_1_66_0 boost
-rm boost_1_66_0.tar.gz
+wget https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz
+tar zxvf boost_1_74_0.tar.gz
+mv boost_1_74_0 boost
+rm boost_1_74_0.tar.gz
 
 wget https://github.com/postgres/postgres/archive/REL9_6_2.tar.gz
 tar zxvf REL9_6_2.tar.gz

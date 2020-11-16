@@ -165,7 +165,7 @@ namespace Mif
                         }
 
                     private:
-                        std::tuple<typename std::decay<TParams>::type ... > m_params;
+                        std::tuple<typename std::remove_cv<typename std::decay<TParams>::type>::type ... > m_params;
                         // IData
                         virtual void Save(TArchive &archive) override final
                         {
@@ -180,7 +180,7 @@ namespace Mif
                         }
 
                         template <typename ... T>
-                        typename std::enable_if<std::tuple_size<std::tuple<T ... >>::value, void>::type
+                        typename std::enable_if<std::tuple_size<std::tuple<T ... >>::value != 0, void>::type
                         SaveParams(std::tuple<T ... > &params, TArchive &archive) const
                         {
                             SaveTupleParams(params, archive,
@@ -188,7 +188,7 @@ namespace Mif
                         }
 
                         template <typename ... T>
-                        typename std::enable_if< !std::tuple_size<std::tuple<T ... >>::value, void>::type
+                        typename std::enable_if<std::tuple_size<std::tuple<T ... >>::value == 0, void>::type
                         SaveParams(std::tuple<T ... > &, TArchive &) const
                         {
                         }

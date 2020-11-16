@@ -53,7 +53,7 @@ namespace Mif
 
                         auto data = std::make_shared<Common::Buffer>(std::move(buffer));
 
-                        m_socket.get_io_service().post([self, data] ()
+                        m_socket.get_executor().execute([self, data] ()
                                 {
                                     boost::asio::async_write(self->m_socket, boost::asio::buffer(*data),
                                             [self, data] (boost::system::error_code error, std::size_t /*length*/)
@@ -80,7 +80,7 @@ namespace Mif
                 void Session::CloseMe()
                 {
                     auto self = shared_from_this();
-                    m_socket.get_io_service().post([self] ()
+                    m_socket.get_executor().execute([self] ()
                             {
                                 try
                                 {
@@ -116,7 +116,7 @@ namespace Mif
                             {
                                 if (!error)
                                 {
-                                    self->m_socket.get_io_service().post([self, length, buffer] ()
+                                    self->m_socket.get_executor().execute([self, length, buffer] ()
                                             {
                                                 try
                                                 {
