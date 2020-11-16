@@ -108,8 +108,6 @@ namespace Mif
                         return;
                     m_isActive = true;
 
-                    m_worker = Common::CreateThreadPool(1);
-
                     m_isRun = true;
 
                     while (m_isActive)
@@ -131,8 +129,6 @@ namespace Mif
                         return;
 
                     m_isActive = false;
-
-                    m_worker.reset();
 
                     if (event_base_loopbreak(m_base.get()))
                     {
@@ -169,7 +165,7 @@ namespace Mif
                         return;
                     }
 
-                    self->m_worker->Post([self, req] { self->OnRequest(req); });
+                    self->OnRequest(req);
                 }
 
                 void Server::OnRequest(evhttp_request *req) noexcept

@@ -19,7 +19,6 @@
 #include <event2/http.h>
 
 // MIF
-#include "mif/common/thread_pool.h"
 #include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
 
@@ -68,7 +67,6 @@ namespace Mif
 
                     Utility::EventBasePtr m_base;
                     HttpPtr m_http{nullptr, &evhttp_free};
-                    Common::IThreadPoolPtr m_worker;
 
                     Server(ServerHandler const &handler, Methods const &allowedMethods,
                             std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout);
