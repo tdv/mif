@@ -235,17 +235,12 @@ namespace Mif
                                     if (!session->NeedForClose())
                                     {
                                         response.SetHeader(Constants::Header::MifExt::Session::Value, sessionId);
-                                        SetKeepAliveFromClient(headers, response);
                                     }
                                     else
                                     {
                                         auto ex = session->GetException();
                                         if (ex)
                                             std::rethrow_exception(ex);
-
-                                        response.SetHeader(
-                                            Constants::Header::Response::Connection::Value,
-                                            Constants::Value::Connection::Close::Value);
                                     }
                                 }
                             }
@@ -294,18 +289,6 @@ namespace Mif
                         LockType m_lock;
                         Sessions m_sessions;
 
-                        void SetKeepAliveFromClient(IInputPack::Headers const &requestHeaders, IOutputPack &response) const
-                        {
-                            auto const iter = requestHeaders.find(Constants::Header::Request::Connection::Value);
-                            if (iter == std::end(requestHeaders) && !iter->second.empty())
-                                return;
-                            if (!iter->second.empty() && !evutil_ascii_strcasecmp(iter->second.c_str(), "keep-alive"))
-                            {
-                                response.SetHeader(Constants::Header::Response::Connection::Value,
-                                        Constants::Value::Connection::KeepAlive::Value);
-                            }
-                        }
-
                         void RemoveSession(std::string const &sessionId)
                         {
                             if (sessionId.empty())
@@ -326,8 +309,6 @@ namespace Mif
 
                         void OnExceptionResponse(Http::IOutputPack &pack, Http::Code code, std::string const &message)
                         {
-                            pack.SetHeader(Constants::Header::Response::Connection::Value,
-                                Constants::Value::Connection::Close::Value);
                             pack.SetCode(code);
                             pack.SetData({std::begin(message), std::end(message)});
                         }

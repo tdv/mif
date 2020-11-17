@@ -187,8 +187,6 @@ namespace Mif
                             try
                             {
                                 IOutputPack &pack = *out;
-                                pack.SetHeader(Constants::Header::Response::Connection::Value,
-                                        Constants::Value::Connection::Close::Value);
                                 pack.SetCode(Code::BadMethod);
                                 out->Send();
                             }

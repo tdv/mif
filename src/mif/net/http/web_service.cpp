@@ -69,21 +69,6 @@ namespace Mif
                         {
                             ++m_statistics.resources[path].total;
                             iter->second->OnRequest(request, response);
-                            {
-                                auto const headers = request.GetHeaders();
-                                auto const keepAlive = headers.find(Constants::Header::Request::Connection::Value);
-                                if (keepAlive != std::end(headers))
-                                {
-                                    auto const &value = keepAlive->second;
-                                    auto const *keepAliveValue = Constants::Value::Connection::KeepAlive::Value;
-                                    auto const len = strlen(keepAliveValue);
-                                    if (value.length() == len && !strncasecmp(value.c_str(),  keepAliveValue, len))
-                                    {
-                                        response.SetHeader(Constants::Header::Response::Connection::Value,
-                                                Constants::Value::Connection::KeepAlive::Value);
-                                    }
-                                }
-                            }
                         }
                         catch (...)
                         {
@@ -129,9 +114,6 @@ namespace Mif
             void WebService::OnExceptionResponse(IInputPack const &request, IOutputPack &response,
                                                  Code code, std::exception_ptr exception)
             {
-                response.SetHeader(Constants::Header::Response::Connection::Value,
-                        Constants::Value::Connection::Close::Value);
-
                 std::string message;
                 try
                 {
