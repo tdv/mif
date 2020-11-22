@@ -36,10 +36,7 @@ namespace Mif
             auto const port = GetPort();
             auto const workers = GetWorkers();
 
-            auto timeout = static_cast<std::size_t>(GetTimeout().count() / 1000000);
-
-            if (!timeout)
-                timeout = 1;
+            auto timeout = std::max<int>(GetTimeout().count(), 100);
 
             MIF_LOG(Info) << "Starting server on " << host << ":" << port;
 

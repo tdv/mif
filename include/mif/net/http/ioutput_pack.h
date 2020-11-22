@@ -26,10 +26,6 @@ namespace Mif
             {
                 virtual ~IOutputPack() = default;
 
-                virtual Code GetCode() const = 0;
-                virtual std::string GetReason() const = 0;
-                virtual Common::Buffer GetData() const = 0;
-
                 virtual void SetCode(Code code) = 0;
                 virtual void SetReason(std::string const &reason) = 0;
 

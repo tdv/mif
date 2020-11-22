@@ -8,11 +8,9 @@
 #ifndef __MIF_NET_HTTP_DETAIL_UTILITY_H__
 #define __MIF_NET_HTTP_DETAIL_UTILITY_H__
 
-// STD
-#include <memory>
-
-// EVENT
-#include <event2/event.h>
+// BOOST
+#include <boost/beast/http/status.hpp>
+#include <boost/beast/http/verb.hpp>
 
 // MIF
 #include "mif/net/http/codes.h"
@@ -29,16 +27,24 @@ namespace Mif
                 namespace Utility
                 {
 
-                    int ConvertMethodType(Method::Type type);
-                    int ConvertAllowedMethods(Methods const &allowedMethods);
+                    Method::Type ConvertMethodType(boost::beast::http::verb verb);
 
                     char const* GetReasonString(Code code);
-                    int ConvertCode(Code code);
-                    Code ConvertCode(int code);
+                    boost::beast::http::status ConvertCode(Code code);
+                    Code ConvertCode(boost::beast::http::status code);
 
-                    using EventBasePtr = std::unique_ptr<event_base, decltype(&event_base_free)>;
+                    class Target final
+                    {
+                    public:
+                        Target(std::string const &url);
 
-                    EventBasePtr CreateEventBase();
+                        std::string const& GetPath() const noexcept;
+                        std::string const& GetQuery() const noexcept;
+
+                    private:
+                        std::string m_path;
+                        std::string m_query;
+                   };
 
                 }   // namespace Utility
 

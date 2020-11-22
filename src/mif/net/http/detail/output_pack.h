@@ -11,12 +11,14 @@
 // STD
 #include <memory>
 
-// EVENT
-#include <event2/buffer.h>
-#include <event2/http.h>
+// BOOST
+#include <boost/beast/http.hpp>
 
 // MIF
 #include "mif/net/http/ioutput_pack.h"
+
+// THIS
+#include "utility.h"
 
 namespace Mif
 {
@@ -27,44 +29,49 @@ namespace Mif
             namespace Detail
             {
 
-                class OutputPack final
+                template <typename>
+                class OutputPack;
+
+                template <typename TBody, typename TFields>
+                class OutputPack<boost::beast::http::response<TBody, TFields>> final
                     : public IOutputPack
                 {
                 public:
-                    using RequestPtr = std::unique_ptr<evhttp_request, decltype(&evhttp_request_free)>;
+                    using Response = boost::beast::http::response<TBody, TFields>;
 
-                    explicit OutputPack(evhttp_request *request);
-                    explicit OutputPack(RequestPtr request);
-
-                    void Send();
-                    evhttp_request* GetRequest();
-                    void MoveDataToBuffer();
-                    void ReleaseNewRequest();
+                    OutputPack(Response &response)
+                        : m_response{response}
+                    {
+                    }
 
                 private:
-                    RequestPtr m_newRequest{nullptr, &evhttp_request_free};
-
-                    evhttp_request *m_request = nullptr;
-                    evbuffer *m_responseBuffer = nullptr;
-                    evkeyvalq *m_headers = nullptr;
-
-                    Code m_code = Code::Ok;
-                    std::string m_reason;
-                    Common::BufferPtr m_buffer;
-
-                    static void CleanUpData(void const *data, size_t datalen, void *extra);
+                    Response &m_response;
 
                     // IOutputPack
-                    virtual Code GetCode() const override final;
-                    virtual std::string GetReason() const override final;
-                    virtual Common::Buffer GetData() const override final;
+                    virtual void SetCode(Code code) override final
+                    {
+                        m_response.result(Utility::ConvertCode(code));
+                    }
 
-                    virtual void SetCode(Code code) override final;
-                    virtual void SetReason(std::string const &reason) override final;
+                    virtual void SetReason(std::string const &reason) override final
+                    {
+                        m_response.reason(reason);
+                    }
 
-                    virtual void SetHeader(std::string const &key, std::string const &value) override final;
-                    virtual void SetData(Common::Buffer buffer) override final;
-                    virtual void SetData(Common::BufferPtr buffer) override final;
+                    virtual void SetHeader(std::string const &key, std::string const &value) override final
+                    {
+                        m_response.set(key, value);
+                    }
+
+                    virtual void SetData(Common::Buffer buffer) override final
+                    {
+                        m_response.body() = buffer;
+                    }
+
+                    virtual void SetData(Common::BufferPtr buffer) override final
+                    {
+                        (void)buffer;
+                    }
                 };
 
             }   // namespace Detail

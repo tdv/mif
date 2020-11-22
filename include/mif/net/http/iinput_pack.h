@@ -34,23 +34,14 @@ namespace Mif
 
                 virtual Method::Type GetType() const = 0;
 
-                virtual Code GetCode() const = 0;
-                virtual std::string GetReason() const = 0;
-
-                virtual std::string GetHost() const = 0;
-                virtual std::uint16_t GetPort() const = 0;
-
-                virtual std::string GetSchema() const = 0;
-                virtual std::string GetUserInfo() const = 0;
                 virtual std::string GetPath() const = 0;
                 virtual std::string GetQuery() const = 0;
-                virtual std::string GetFragment() const = 0;
 
                 virtual Params GetParams() const = 0;
 
                 virtual Headers GetHeaders() const = 0;
 
-                virtual Common::Buffer GetData() const = 0;
+                virtual Common::Buffer const& GetData() const = 0;
             };
 
         }   // namespace Http

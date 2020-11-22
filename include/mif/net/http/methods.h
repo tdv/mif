@@ -9,7 +9,7 @@
 #define __MIF_NET_HTTP_METHODS_H__
 
 // STD
-#include <list>
+#include <set>
 
 namespace Mif
 {
@@ -35,7 +35,7 @@ namespace Mif
 
             }   // namespace Method
 
-            using Methods = std::list<Method::Type>;
+            using Methods = std::set<Method::Type>;
 
         }   // namespace Http
     }   // namespace Net
