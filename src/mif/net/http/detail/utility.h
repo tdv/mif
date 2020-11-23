@@ -35,6 +35,8 @@ namespace Mif
 
                     std::string CreateTimestamp();
 
+                    std::string DecodeUrl(std::string const &url);
+
                     class Target final
                     {
                     public:

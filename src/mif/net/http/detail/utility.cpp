@@ -173,6 +173,44 @@ namespace Mif
                         return stream.str();
                     }
 
+                    std::string DecodeUrl(std::string const &url)
+                    {
+                        std::string out;
+                        out.reserve(url.size());
+                        for (std::size_t i = 0; i < url.size() ; ++i)
+                        {
+                            if (url[i] == '%')
+                            {
+                                if (i + 3 <= url.size())
+                                {
+                                    int value = 0;
+                                    std::istringstream is(url.substr(i + 1, 2));
+                                    if (is >> std::hex >> value)
+                                    {
+                                        out += static_cast<char>(value);
+                                        i += 2;
+                                    }
+                                    else
+                                    {
+                                        throw std::runtime_error{"[Mif::Net::Http::Detail::Utility::DecodeUrl] "
+                                                "Failed to decode url. Error: failed to recognize the char."};
+                                    }
+                                }
+                                else
+                                {
+                                    throw std::runtime_error{"[Mif::Net::Http::Detail::Utility::DecodeUrl] "
+                                            "Failed to decode url. Error: bad encoding."};
+                                }
+                            }
+                            else if (url[i] == '+')
+                                out += ' ';
+                            else
+                                out += url[i];
+                        }
+
+                        return out;
+                    }
+
                     Target::Target (std::string const &url)
                     {
                         /*std::regex const regexpr{std::string{"^"

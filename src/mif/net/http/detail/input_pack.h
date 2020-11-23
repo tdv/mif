@@ -67,7 +67,7 @@ namespace Mif
 
                     virtual std::string GetQuery() const override final
                     {
-                        return m_target.GetQuery();
+                        return Utility::DecodeUrl(m_target.GetQuery());
                     }
 
                     virtual Params GetParams() const override final
