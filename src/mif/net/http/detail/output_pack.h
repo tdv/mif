@@ -32,12 +32,20 @@ namespace Mif
                 template <typename>
                 class OutputPack;
 
-                template <typename TBody, typename TFields>
-                class OutputPack<boost::beast::http::response<TBody, TFields>> final
+                template <typename TFields>
+                class OutputPack
+                        <
+                            boost::beast::http::response
+                            <
+                                boost::beast::http::buffer_body,
+                                TFields
+                            >
+                        > final
                     : public IOutputPack
                 {
                 public:
-                    using Response = boost::beast::http::response<TBody, TFields>;
+                    using BodyType = boost::beast::http::buffer_body;
+                    using Response = boost::beast::http::response<BodyType, TFields>;
 
                     OutputPack(Response &response)
                         : m_response{response}
@@ -46,6 +54,7 @@ namespace Mif
 
                 private:
                     Response &m_response;
+                    Common::BufferPtr m_buffer;
 
                     // IOutputPack
                     virtual void SetCode(Code code) override final
@@ -65,12 +74,26 @@ namespace Mif
 
                     virtual void SetData(Common::Buffer buffer) override final
                     {
-                        m_response.body() = buffer;
+                        SetData(std::make_shared<Common::Buffer>(std::move(buffer)));
                     }
 
                     virtual void SetData(Common::BufferPtr buffer) override final
                     {
-                        (void)buffer;
+                        std::swap(m_buffer, buffer);
+
+                        auto &body = m_response.body();
+                        body.more = false;
+
+                        if (m_buffer && !m_buffer->empty())
+                        {
+                            body.data = m_buffer->data();
+                            body.size = m_buffer->size();
+                        }
+                        else
+                        {
+                            body.data = nullptr;
+                            body.size = 0;
+                        }
                     }
                 };
 

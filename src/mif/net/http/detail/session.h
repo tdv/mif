@@ -87,7 +87,8 @@ namespace Mif
 
                     void ReplyError(boost::beast::http::status status, std::string const &reason, bool isKeepAlive);
 
-                    using Response = boost::beast::http::response<BodyType>;
+                    using ResponseBodyType = boost::beast::http::buffer_body;
+                    using Response = boost::beast::http::response<ResponseBodyType>;
 
                     void Reply(Response &&response, bool isKeepAlive);
                 };

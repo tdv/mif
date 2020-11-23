@@ -7,7 +7,11 @@
 
 // STD
 #include <regex>
+#include <sstream>
 #include <stdexcept>
+
+// BOOST
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 // THIS
 #include "utility.h"
@@ -157,6 +161,16 @@ namespace Mif
 
                         throw std::invalid_argument{"[Mif::Net::Http::Detail::Utility::ConvertCode] Unknowd HTTP code " +
                                 std::to_string(static_cast<unsigned>(code))};
+                    }
+
+                    std::string CreateTimestamp()
+                    {
+                        std::stringstream stream;
+                        stream.imbue(std::locale(std::locale::classic(),
+                                new boost::posix_time::time_input_facet("%a, %d %b %Y %H:%M:%S GMT")));
+                        auto const now = boost::posix_time::second_clock::universal_time();
+                        stream << now;
+                        return stream.str();
                     }
 
                     Target::Target (std::string const &url)

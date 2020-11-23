@@ -33,6 +33,8 @@ namespace Mif
                     boost::beast::http::status ConvertCode(Code code);
                     Code ConvertCode(boost::beast::http::status code);
 
+                    std::string CreateTimestamp();
+
                     class Target final
                     {
                     public:

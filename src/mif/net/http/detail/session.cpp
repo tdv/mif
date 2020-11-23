@@ -298,9 +298,11 @@ namespace Mif
                     boost::beast::http::response<boost::beast::http::string_body> response;
 
                     response.result(status);
-                    response.set(boost::beast::http::field::server, "Mif");
+                    //response.set(boost::beast::http::field::server, "Mif");
                     response.set(boost::beast::http::field::content_type, "text/plain");
+                    response.set(boost::beast::http::field::date, Utility::CreateTimestamp());
                     response.keep_alive(isKeepAlive);
+                    response.version(11);
                     response.body() = std::string(reason);
 
                     response.prepare_payload();
@@ -311,7 +313,9 @@ namespace Mif
                 void Session::Reply(Response &&response, bool isKeepAlive)
                 {
                     response.result(boost::beast::http::status::ok);
-                    response.set(boost::beast::http::field::server, "Mif");
+                    //response.set(boost::beast::http::field::server, "Mif");
+                    response.set(boost::beast::http::field::date, Utility::CreateTimestamp());
+                    response.version(11);
                     response.keep_alive(isKeepAlive);
 
                     response.prepare_payload();
