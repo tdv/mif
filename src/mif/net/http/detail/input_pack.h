@@ -46,7 +46,7 @@ namespace Mif
 
                     InputPack(Request const &request)
                         : m_request{request}
-                        , m_target{std::string{m_request.target()}}
+                        , m_target{Utility::DecodeUrl(std::string{m_request.target()})}
                     {
                     }
 
@@ -67,7 +67,7 @@ namespace Mif
 
                     virtual std::string GetQuery() const override final
                     {
-                        return Utility::DecodeUrl(m_target.GetQuery());
+                        return m_target.GetQuery();
                     }
 
                     virtual Params GetParams() const override final
