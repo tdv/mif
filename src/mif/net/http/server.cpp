@@ -7,17 +7,16 @@
 
 // STD
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 
 // BOOST
-#include <boost/asio/bind_executor.hpp>
-#include <boost/asio/dispatch.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/signal_set.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/make_unique.hpp>
 #include <boost/optional.hpp>
@@ -158,16 +157,26 @@ namespace Mif
                     {
                         m_threads.create_thread([this]
                                 {
-                                    try
+                                    while (m_isRun)
                                     {
-                                        m_ioc.run();
-                                    }
-                                    catch (std::exception const &e)
-                                    {
-                                        MIF_LOG(Fatal) << "[Mif::Net::Http::Server::Impl] "
-                                                << "Failed to run ioc. Error: " << e.what();
+                                        try
+                                        {
+                                            m_ioc.run();
+                                        }
+                                        catch (std::exception const &e)
+                                        {
+                                            MIF_LOG(Fatal) << "[Mif::Net::Http::Server::Impl] "
+                                                    << "Failed to run ioc. Error: " << e.what();
 
-                                        std::abort();
+                                            std::abort();
+                                        }
+
+                                        if (m_isRun)
+                                        {
+                                            MIF_LOG(Warning) << "[Mif::Net::Http::Server::Impl] "
+                                                    << "Ioc has been interrupted and run again.";
+                                            std::this_thread::sleep_for(std::chrono::milliseconds{20});;
+                                        }
                                     }
                                 }
                             );
@@ -176,6 +185,8 @@ namespace Mif
 
                 ~Impl()
                 {
+                    m_isRun = false;
+
                     try
                     {
                         m_ioc.stop();
@@ -202,6 +213,7 @@ namespace Mif
                 }
 
             private:
+                std::atomic<bool> m_isRun{true};
                 boost::thread_group m_threads;
                 boost::asio::io_context m_ioc;
             };
