@@ -28,6 +28,7 @@ namespace Mif
                 {
 
                     Method::Type ConvertMethodType(boost::beast::http::verb verb);
+                    boost::beast::http::verb ConvertMethodType(Method::Type method);
 
                     char const* GetReasonString(Code code);
                     boost::beast::http::status ConvertCode(Code code);

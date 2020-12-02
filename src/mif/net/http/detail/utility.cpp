@@ -57,6 +57,36 @@ namespace Mif
                             "Unknown method type."};
                     }
 
+                    boost::beast::http::verb ConvertMethodType(Method::Type method)
+                    {
+                        switch (method)
+                        {
+                        case Method::Type::Get :
+                            return boost::beast::http::verb::get ;
+                        case Method::Type::Post :
+                            return boost::beast::http::verb::post ;
+                        case Method::Type::Head :
+                            return boost::beast::http::verb::head ;
+                        case Method::Type::Put :
+                            return boost::beast::http::verb::put ;
+                        case Method::Type::Delete :
+                            return boost::beast::http::verb::delete_ ;
+                        case Method::Type::Options :
+                            return boost::beast::http::verb::options ;
+                        case Method::Type::Trqce :
+                            return boost::beast::http::verb::trace ;
+                        case Method::Type::Connect :
+                            return boost::beast::http::verb::connect ;
+                        case Method::Type::Patch :
+                            return boost::beast::http::verb::patch ;
+                        default :
+                            break;
+                        }
+
+                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Utility::ConvertMethodType] "
+                            "Unknown method type."};
+                    }
+
                     char const* GetReasonString(Code code)
                     {
                         switch (code)

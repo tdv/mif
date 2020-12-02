@@ -34,30 +34,46 @@ namespace Mif
             namespace Detail
             {
 
-                template <typename>
-                class InputPack;
-
-                template <typename TBody, typename TAllocator>
-                class InputPack<boost::beast::http::request<TBody, boost::beast::http::basic_fields<TAllocator>>> final
+                template <typename T>
+                class InputPack
                     : public IInputPack
                 {
                 public:
-                    using Request = boost::beast::http::request<TBody, boost::beast::http::basic_fields<TAllocator>>;
+                    template <typename Y>
+                    explicit InputPack(Y const &data)
+                        : m_data{data}
+                        , m_target{Utility::DecodeUrl(std::string{data.target()})}
+                    {
+                    }
 
-                    InputPack(Request const &request)
-                        : m_request{request}
-                        , m_target{Utility::DecodeUrl(std::string{m_request.target()})}
+                    template <typename Y>
+                    explicit InputPack(Y const &data, std::string const &target)
+                        : m_data{data}
+                        , m_target{Utility::DecodeUrl(target)}
                     {
                     }
 
                 private:
-                    Request const &m_request;
+                    T const &m_data;
                     Utility::Target m_target;
+
+                    template <typename Y>
+                    auto GetType(Y const &data) const
+                            -> decltype (Utility::ConvertMethodType(data.method()))
+                    {
+                        return Utility::ConvertMethodType(data.method());
+                    }
+
+                    Method::Type GetType(...) const
+                    {
+                        throw std::logic_error{"[Mif::Net::Http::Detail::InputPack::GetType] "
+                                "You can't get method type from a response."};
+                    }
 
                     // IInputPack
                     virtual Method::Type GetType() const override final
                     {
-                        return Utility::ConvertMethodType(m_request.method());
+                        return GetType(m_data);
                     }
 
                     virtual std::string GetPath() const override final
@@ -108,7 +124,7 @@ namespace Mif
                     {
                         Headers headers;
 
-                        for (auto const &i : m_request.base())
+                        for (auto const &i : m_data.base())
                             headers.emplace(std::string{i.name_string()}, std::string{i.value()});
 
                         return headers;
@@ -116,7 +132,7 @@ namespace Mif
 
                     virtual Common::Buffer const& GetData() const override final
                     {
-                        return m_request.body();
+                        return m_data.body();
                     }
                 };
 

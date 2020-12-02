@@ -7,17 +7,19 @@
 
 // STD
 #include <atomic>
-#include <cstdint>
-#include <mutex>
+#include <chrono>
+#include <cstdlib>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <utility>
 
-// EVENT
-#include <event2/buffer.h>
-#include <event2/event.h>
-#include <event2/http.h>
-#include <event2/http_struct.h>
+// BOOST
+#include <boost/asio.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/make_unique.hpp>
 
 // MIF
 #include "mif/common/log.h"
@@ -26,7 +28,6 @@
 
 // THIS
 #include "detail/input_pack.h"
-#include "detail/lib_event_initializer.h"
 #include "detail/output_pack.h"
 #include "detail/utility.h"
 
@@ -36,59 +37,250 @@ namespace Mif
     {
         namespace Http
         {
+            namespace
+            {
+
+                class Session final
+                    : public std::enable_shared_from_this<Session>
+                {
+                public:
+                    using RequestBodyType = boost::beast::http::buffer_body;
+                    using Request = boost::beast::http::request<RequestBodyType>;
+
+                    Session(boost::asio::io_context &ioc, Connection::Params const &params,
+                            ClientHandler &handler, Connection::OnCloseHandler &onClose)
+                        : m_ioc{ioc}
+                        , m_stream{boost::asio::make_strand(m_ioc)}
+                        , m_params{params}
+                        , m_handler{handler}
+                        , m_onClose{onClose}
+                    {
+                    }
+
+                    ~Session()
+                    {
+                    }
+
+                    void Run(boost::asio::ip::tcp::resolver::results_type const &destinations,
+                            Connection::Params const &params, Connection::IOutputPackPtr pack)
+                    {
+                        if (params.connectionTimeout)
+                            m_stream.expires_after(*params.connectionTimeout);
+
+                        m_stream.async_connect(destinations, boost::beast::bind_front_handler(
+                                &Session::OnConnect, shared_from_this(), std::move(pack)
+                            ));
+                    }
+
+                    void Post(Connection::IOutputPackPtr pack)
+                    {
+                        if (m_isClosed)
+                        {
+                            throw std::logic_error("[Mif::Net::Http::Session::Post] "
+                                    "The connection has not been opened or has already closed.");
+                        }
+
+                        auto &request = dynamic_cast<Detail::OutputPack<Request> &>(*pack).GetData();
+                        request.keep_alive(false);
+
+                        if (m_params.requestTimeout)
+                            m_stream.expires_after(*m_params.requestTimeout);
+
+                        boost::beast::http::async_write(m_stream, request,
+                                boost::beast::bind_front_handler(&Session::OnWrite,
+                                shared_from_this(), pack, std::string{request.target()}));
+                    }
+
+                    bool IsClosed() const
+                    {
+                        return m_isClosed;
+                    }
+
+                private:
+                    std::atomic<bool> m_isClosed{false};
+
+                    boost::asio::io_context &m_ioc;
+                    boost::beast::tcp_stream m_stream;
+                    Connection::Params const &m_params;
+                    ClientHandler &m_handler;
+                    Connection::OnCloseHandler &m_onClose;
+
+                    using BufferType = boost::beast::flat_buffer;
+                    using BufferPtr = std::shared_ptr<BufferType>;
+
+                    using ResponseBodyType = boost::beast::http::vector_body<char>;
+                    using ResponseType = boost::beast::http::response<ResponseBodyType>;
+                    using ResponsePtr = std::shared_ptr<ResponseType>;
+
+                    void OnConnect(Connection::IOutputPackPtr pack, boost::beast::error_code const &ec,
+                            boost::asio::ip::tcp::resolver::results_type::endpoint_type const &endpoint)
+                    {
+                        Mif::Common::Unused(endpoint);
+
+                        if (ec)
+                        {
+                            m_isClosed = true;
+
+                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnConnect] "
+                                    << "Failed to connect to endpoint. Error: " << ec.message();
+
+                            return;
+                        }
+
+                        m_isClosed = false;
+
+                        Post(std::move(pack));
+                    }
+
+                    void OnWrite(Connection::IOutputPackPtr pack, std::string const target,
+                            boost::beast::error_code const &ec, std::size_t bytes)
+                    {
+                        Mif::Common::Unused(pack, bytes);
+
+                        if (ec)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnWrite] "
+                                    << "Failed to send request. Error: " << ec.message();
+
+                            Close();
+                            return;;
+                        }
+
+                        auto buffer = std::make_shared<BufferType>();
+                        auto response = std::make_shared<ResponseType>();
+
+                        boost::beast::http::async_read(m_stream, *buffer, *response,
+                                boost::beast::bind_front_handler(&Session::OnRead,
+                                shared_from_this(), buffer, response, target
+                            ));
+                    }
+
+                    void OnRead(BufferPtr buffer, ResponsePtr response,
+                            std::string const target,
+                            boost::beast::error_code const &ec, std::size_t bytes)
+                    {
+                        Mif::Common::Unused(buffer, bytes);
+
+                        if (ec)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnRead] "
+                                    << "Failed to receive response. Error: " << ec.message();
+
+                            Close();
+                            return;
+                        }
+
+                        OnResponse(*response, target);
+
+                        //if (!response->keep_alive())
+                            Close();
+                    }
+
+                    void Close()
+                    {
+                        boost::beast::error_code ec;
+
+                        m_stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+
+                        if (ec)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnClose] "
+                                    << "Failed to close connection. Error: " << ec.message();
+                        }
+
+                        OnClose();
+                    }
+
+                    void OnClose() noexcept
+                    {
+                        try
+                        {
+                            m_isClosed = true;
+                            m_onClose();
+                        }
+                        catch (std::exception const &e)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnClose] "
+                                << "Failed to call OnClose handler. Error: " << e.what();
+                        }
+                        catch (...)
+                        {
+                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnClose] "
+                                << "Failed to call OnClose handler. Error: unknown";
+                        }
+                    }
+
+                    void OnResponse(ResponseType &response, boost::string_view target) noexcept
+                    {
+                        try
+                        {
+                            Detail::InputPack<ResponseType> pack{response, std::string{target}};
+
+                            m_handler(pack);
+                        }
+                        catch (std::exception const &e)
+                        {
+                            MIF_LOG(Warning) << "[Mif::Net::Http::Session::OnResponse] "
+                                << "Failed to process response. Error: " << e.what();
+                        }
+                        catch (...)
+                        {
+                            MIF_LOG(Warning) << "[Mif::Net::Http::Session::OnResponse] "
+                                << "Failed to process response. Error: unknown";
+                        }
+                    }
+                };
+
+            }   // namespace
 
             class Connection::Impl final
             {
             public:
-                Impl(Impl const &) = delete;
-                Impl& operator = (Impl const &) = delete;
-                Impl(Impl &&) = delete;
-                Impl& operator = (Impl &&) = delete;
-
                 Impl(Params const &params, ClientHandler const &handler,
                         OnCloseHandler const &onClose)
                     : m_handler{handler}
                     , m_onClose{onClose}
-                    , m_host{params.host}
-                    , m_port{params.port}
-                    , m_base{Detail::Utility::CreateEventBase()}
+                    , m_params{params}
                 {
-                    Detail::LibEventInitializer::Init();
-
-                    m_connection.reset(evhttp_connection_base_new(m_base.get(), nullptr, params.host.c_str(),
-                        static_cast<ev_uint16_t>(std::stoi(params.port))));
-
-                    if (!m_connection)
+                    try
                     {
-                        throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] "
-                            "Failed to create connection to \"" + m_host + ":" + m_port + "\"."};
+                        boost::asio::ip::tcp::resolver resolver{m_ioc};
+                        m_destinations = resolver.resolve(params.host, params.port);
+                    }
+                    catch (std::exception const &e)
+                    {
+                        MIF_LOG(Fatal) << "[Mif::Net::Http::Connection::Impl] "
+                                << "Failed to resolve address where host is \"" << params.host << "\" "
+                                << "and port is \"" << params.port << "\". Error: " << e.what();
+                        throw;
                     }
 
-                    evhttp_connection_set_closecb(m_connection.get(), &Impl::OnClose, this);
+                    m_worker = boost::make_unique<std::thread>(
+                            [this]
+                            {
+                                while (m_isRun)
+                                {
+                                    try
+                                    {
+                                        m_ioc.run();
+                                    }
+                                    catch (std::exception const &e)
+                                    {
+                                        MIF_LOG(Fatal) << "[Mif::Net::Http::Connection::Impl] "
+                                                << "Failed to run ioc. Error: " << e.what();
 
-                    if (params.timeout != std::chrono::seconds::max())
-                        evhttp_connection_set_timeout(m_connection.get(), params.timeout.count());
+                                        std::abort();
+                                    }
 
-                    if (params.retriesCount != std::numeric_limits<std::size_t>::max())
-                        evhttp_connection_set_retries(m_connection.get(), params.retriesCount);
-
-                    if (params.maxHeaderSize != std::numeric_limits<std::size_t>::max())
-                        evhttp_connection_set_max_headers_size(m_connection.get(), params.maxHeaderSize);
-
-                    if (params.maxBodySize != std::numeric_limits<std::size_t>::max())
-                        evhttp_connection_set_max_body_size(m_connection.get(), params.maxBodySize);
-
-                    {
-                        EventPtr timer{event_new(m_base.get(), -1, EV_PERSIST, &Impl::OnTimer, this), &event_free};
-                        if (!timer)
-                            throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] Failed to create timer object."};
-                        timeval interval{0, m_period};
-                        if (event_add(timer.get(), &interval))
-                            throw std::runtime_error{"[Mif::Net::Http::Connection::Impl] Failed to initialize timer."};
-                        std::swap(timer, m_timer);
-                    }
-
-                    m_thread.reset(new std::thread{std::bind(&Impl::Run, this)});
+                                    if (m_isRun)
+                                    {
+                                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl] "
+                                                << "Ioc has been interrupted and run again.";
+                                        std::this_thread::sleep_for(std::chrono::milliseconds{20});;
+                                    }
+                                }
+                            }
+                        );
                 }
 
                 Impl(std::string const &host, std::string const &port,
@@ -97,185 +289,97 @@ namespace Mif
                 {
                 }
 
-                ~Impl()
+                ~Impl() noexcept
                 {
-                    if (event_del(m_timer.get()))
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::~Impl] Failed to destroy timer.";
-                    if (!m_isClosed && event_base_loopbreak(m_base.get()))
+                    m_isRun = false;
+
+                    try
                     {
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::~Impl] "
-                            << "Failed to post 'stop' to server.";
+                        m_work.reset();
                     }
-                    else
+                    catch (std::exception const &e)
                     {
-                        m_isClosed = true;
+                        MIF_LOG(Fatal) << "[Mif::Net::Http::Connection::~Impl] "
+                                << "Failed to reset work guard. Error: " << e.what();
+
+                        std::abort();
                     }
 
-                    m_thread.reset();
+                    try
+                    {
+                        if (!m_ioc.stopped())
+                            m_ioc.stop();
+                    }
+                    catch (std::exception const &e)
+                    {
+                        MIF_LOG(Fatal) << "[Mif::Net::Http::Connection::~Impl] "
+                                << "Failed to stop ioc. Error: " << e.what();
+
+                        std::abort();
+                    }
+
+                    try
+                    {
+                        if (m_worker)
+                            m_worker->join();
+                    }
+                    catch (std::exception const &e)
+                    {
+                        MIF_LOG(Fatal) << "[Mif::Net::Http::Connection::~Impl] "
+                                << "Failed to join worker thread. Error: " << e.what();
+
+                        std::abort();
+                    }
                 }
 
                 bool IsClosed() const
                 {
-                    return m_isClosed;
+                    return m_session ? m_session->IsClosed() : false;
                 }
 
                 IOutputPackPtr CreateRequest() const
                 {
-                    Detail::OutputPack::RequestPtr request{evhttp_request_new(&Impl::OnRequestDone,
-                        const_cast<Impl *>(this)), &evhttp_request_free};
-                    if (!request)
-                        throw std::runtime_error{"[Mif::Net::Http::Connection::Impl::CreateRequest] Failed to create request."};
-
-                    IOutputPackPtr pack{new Detail::OutputPack{std::move(request)}};
-                    return pack;
+                    return std::make_shared<Detail::OutputPack<Session::Request>>(Session::Request{});
                 }
 
-                void MakeRequest(Method::Type method, std::string const &request, IOutputPackPtr pack)
+                void MakeRequest(Method::Type method, std::string const &target, IOutputPackPtr pack)
                 {
-                    if (!pack)
-                        throw std::invalid_argument{"[Mif::Net::Http::Connection::Impl::MakeRequest] Empty package for \"" + request + "\""};
-                    auto *out = static_cast<Detail::OutputPack *>(pack.get());
-                    out->MoveDataToBuffer();
-                    out->ReleaseNewRequest();
-                    if (evhttp_make_request(m_connection.get(), out->GetRequest(),
-                        static_cast<evhttp_cmd_type>(Detail::Utility::ConvertMethodType(method)),
-                        request.c_str()))
-                    {
-                        throw std::runtime_error{"[Mif::Net::Http::Connection::Impl::MakeRequest] Failed to make request for \"" + request + "\""};
-                    }
+                    auto &request = dynamic_cast<Detail::OutputPack<Session::Request> &>(*pack).GetData();
 
+                    request.target(target);
+                    request.method(Detail::Utility::ConvertMethodType(method));
+
+                    if (!m_session || m_session->IsClosed())
+                    {
+                        m_session = std::make_shared<Session>(m_ioc,
+                                m_params, m_handler, m_onClose);
+                        m_session->Run(m_destinations, m_params, std::move(pack));
+                    }
+                    else
+                    {
+                        m_session->Post(std::move(pack));
+                    }
                 }
 
             private:
-                using ConnectionPtr = std::unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)>;
-
                 ClientHandler m_handler;
                 OnCloseHandler m_onClose;
-                std::string m_host;
-                std::string m_port;
+                Params m_params;
 
-                Detail::Utility::EventBasePtr m_base;
+                std::atomic<bool> m_isRun{true};
 
-                std::uint32_t const m_period = 500;
-                using EventPtr = std::unique_ptr<event, decltype(&event_free)>;
-                EventPtr m_timer{nullptr, &event_free};
+                boost::asio::io_context m_ioc;
 
-                ConnectionPtr m_connection{nullptr, &evhttp_connection_free};
+                using IocExecutorType = boost::asio::io_context::executor_type;
+                using WorkGuardType = boost::asio::executor_work_guard<IocExecutorType>;
 
-                std::atomic<bool> m_isClosed{false};
-                using ThreadPtr = std::unique_ptr<std::thread, std::function<void (std::thread *)>>;
-                ThreadPtr m_thread{nullptr, std::bind(&Impl::ThreadDeleter, this, std::placeholders::_1)};
+                WorkGuardType m_work{boost::asio::make_work_guard(m_ioc)};
 
-                static void OnTimer(evutil_socket_t, short, void *)
-                {
-                }
+                std::unique_ptr<std::thread> m_worker;
 
-                void ThreadDeleter(std::thread *t)
-                {
-                    try
-                    {
-                        if (t)
-                            t->join();
-                    }
-                    catch (std::exception const &e)
-                    {
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::ThreadDeleter] "
-                            << "Failed to join thread. Error: " << e.what();
-                    }
-                    catch (...)
-                    {
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::ThreadDeleter] "
-                            << "Failed to join thread. Error: unknown";
-                    }
-                    delete t;
-                }
+                boost::asio::ip::tcp::resolver::results_type m_destinations;
 
-                void Run()
-                {
-                    auto code = event_base_loop(m_base.get(), 0);
-                    if (code < 0)
-                    {
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::Run] "
-                            << "Message loop was broken with code \"" << code << "\".";
-                    }
-
-                    m_isClosed = true;
-                }
-
-                void OnClose()
-                {
-                    try
-                    {
-                        m_isClosed = true;
-                        m_onClose();
-                    }
-                    catch (std::exception const &e)
-                    {
-                        MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnClose] "
-                            << "Failed to call OnClose handler. Error: " << e.what();
-                    }
-                    catch (...)
-                    {
-                        MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnClose] "
-                            << "Failed to call OnClose handler. Error: unknown";
-                    }
-                }
-
-                static void OnClose(evhttp_connection *, void *arg)
-                {
-                    if (!arg)
-                    {
-                        MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnClose] "
-                            << "No argument pointer.";
-                        return;
-                    }
-
-                    auto *self = reinterpret_cast<Impl *>(arg);
-                    self->OnClose();
-                }
-
-                static void OnRequestDone(evhttp_request *request, void *arg)
-                {
-                    if (!arg)
-                    {
-                        MIF_LOG(Error) << "[Mif::Net::Http::Connection::Impl::OnRequestDone] "
-                            << "No argument pointer.";
-                        return;
-                    }
-
-                    auto *self = reinterpret_cast<Impl *>(arg);
-
-                    if (!request || !evhttp_request_get_response_code(request) || !request->response_code)
-                    {
-                        self->OnClose();
-
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::OnRequestDone] "
-                            << "[" << self->m_host << ":" << self->m_port << "] Connection refused.";
-
-                        return;
-                    }
-
-                    self->OnRequest(request);
-                }
-
-                void OnRequest(evhttp_request *request)
-                {
-                    try
-                    {
-                        Detail::InputPack pack{request};
-                        m_handler(pack);
-                    }
-                    catch (std::exception const &e)
-                    {
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::OnRequest] "
-                            << "Failed to process request. Error: " << e.what();
-                    }
-                    catch (...)
-                    {
-                        MIF_LOG(Warning) << "[Mif::Net::Http::Connection::Impl::OnRequest] "
-                            << "Failed to process request. Error: unknown";
-                    }
-                }
+                std::shared_ptr<Session> m_session;
             };
 
 
@@ -302,11 +406,11 @@ namespace Mif
                 return m_impl->CreateRequest();
             }
 
-            void Connection::MakeRequest(Method::Type method, std::string const &request, IOutputPackPtr pack)
+            void Connection::MakeRequest(Method::Type method, std::string const &target, IOutputPackPtr pack)
             {
                 if (!m_impl)
                     throw std::runtime_error{"[Mif::Net::Http::Connection::MakeRequest] Object was moved."};
-                m_impl->MakeRequest(method, request, std::move(pack));
+                m_impl->MakeRequest(method, target, std::move(pack));
             }
 
             bool Connection::IsClosed() const

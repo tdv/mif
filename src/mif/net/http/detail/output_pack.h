@@ -10,9 +10,11 @@
 
 // STD
 #include <memory>
+#include <stdexcept>
 
 // BOOST
 #include <boost/beast/http.hpp>
+#include <boost/optional.hpp>
 
 // MIF
 #include "mif/net/http/ioutput_pack.h"
@@ -29,47 +31,77 @@ namespace Mif
             namespace Detail
             {
 
-                template <typename>
-                class OutputPack;
-
-                template <typename TFields>
-                class OutputPack
-                        <
-                            boost::beast::http::response
-                            <
-                                boost::beast::http::buffer_body,
-                                TFields
-                            >
-                        > final
+                template <typename T>
+                class OutputPack final
                     : public IOutputPack
                 {
                 public:
-                    using BodyType = boost::beast::http::buffer_body;
-                    using Response = boost::beast::http::response<BodyType, TFields>;
-
-                    OutputPack(Response &response)
-                        : m_response{response}
+                    explicit OutputPack(T &data)
+                        : m_data{data}
                     {
                     }
 
+                    explicit OutputPack(T &&data)
+                        : m_holder{std::move(data)}
+                        , m_data{m_holder.get()}
+                    {
+                    }
+
+                    T& GetData() noexcept
+                    {
+                        return m_data;
+                    }
+
+                    T const & GetData() const noexcept
+                    {
+                        return m_data;
+                    }
+
                 private:
-                    Response &m_response;
+                    boost::optional<T> m_holder;
+                    T &m_data;
                     Common::BufferPtr m_buffer;
+
+                    template <typename Y>
+                    auto SetReason(Y &data, std::string const &reason) const
+                        -> decltype (data.reason(reason))
+                    {
+                        return data.reason(reason);
+                    }
+
+                    void SetReason(...) const
+                    {
+                        throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::SetReason] "
+                                "You can't set a reason for a request."};
+                    }
+
+                    template <typename Y>
+                    auto SetCode(Y &data, Code code) const
+                        -> decltype (data.result(Utility::ConvertCode(code)))
+                    {
+                        return data.result(Utility::ConvertCode(code));
+                    }
+
+                    void SetCode(...) const
+                    {
+                        throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::SetCode] "
+                                "You can't set code for a request."};
+                    }
 
                     // IOutputPack
                     virtual void SetCode(Code code) override final
                     {
-                        m_response.result(Utility::ConvertCode(code));
+                        SetCode(m_data, code);
                     }
 
                     virtual void SetReason(std::string const &reason) override final
                     {
-                        m_response.reason(reason);
+                        SetReason(m_data, reason);
                     }
 
                     virtual void SetHeader(std::string const &key, std::string const &value) override final
                     {
-                        m_response.set(key, value);
+                        m_data.set(key, value);
                     }
 
                     virtual void SetData(Common::Buffer buffer) override final
@@ -81,7 +113,7 @@ namespace Mif
                     {
                         std::swap(m_buffer, buffer);
 
-                        auto &body = m_response.body();
+                        auto &body = m_data.body();
                         body.more = false;
 
                         if (m_buffer && !m_buffer->empty())
@@ -94,6 +126,8 @@ namespace Mif
                             body.data = nullptr;
                             body.size = 0;
                         }
+
+                        m_data.content_length(body.size);
                     }
                 };
 
