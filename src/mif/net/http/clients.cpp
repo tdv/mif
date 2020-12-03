@@ -107,16 +107,6 @@ namespace Mif
                         {
                             try
                             {
-                                // TODOÖ
-                                /*if (pack.GetCode() != Code::Ok)
-                                {
-                                    auto const data = pack.GetData();
-                                    std::string extMsg;
-                                    if (!data.empty())
-                                        extMsg = ". Message: \"" + std::string{data.data(), data.size()} + "\"";
-                                    throw std::runtime_error{"The server returned an error \"" + pack.GetReason() + "\"" + extMsg};
-                                }*/
-
                                 {
                                     auto const headers = pack.GetHeaders();
                                     auto const sessionIter = headers.find(Constants::Header::MifExt::Session::Value);
