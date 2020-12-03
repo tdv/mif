@@ -13,7 +13,6 @@
 #include <stdexcept>
 
 // BOOST
-#include <boost/beast/http.hpp>
 #include <boost/optional.hpp>
 
 // MIF

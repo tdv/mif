@@ -17,7 +17,6 @@
 
 // BOOST
 #include <boost/algorithm/string.hpp>
-#include <boost/beast/http.hpp>
 
 // MIF
 #include "mif/net/http/iinput_pack.h"

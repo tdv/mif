@@ -13,7 +13,7 @@ MIF is a C++11 web-application framework designed for the backend micro-service 
 **NOTE:** The master branch is actively developed, use latest release for production use.
 
 # Features:
-- libevent wrapper classes for the easy creation of simple web services
+- Network classes for the easy creation of simple web services
 - Interface-based RPC marshalling with the callback support
 - Reflection for c++ data structures with the inheritance support
 - Json, Xml serialization and the ability to use boost archives
@@ -30,7 +30,6 @@ Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 - zlib
 - jsoncpp
 - pugixml
-- libevent
 - libpq
 - sqlite
 
