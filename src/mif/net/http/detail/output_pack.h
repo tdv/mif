@@ -10,13 +10,16 @@
 
 // STD
 #include <memory>
+#include <stdexcept>
 
-// EVENT
-#include <event2/buffer.h>
-#include <event2/http.h>
+// BOOST
+#include <boost/optional.hpp>
 
 // MIF
 #include "mif/net/http/ioutput_pack.h"
+
+// THIS
+#include "utility.h"
 
 namespace Mif
 {
@@ -27,44 +30,104 @@ namespace Mif
             namespace Detail
             {
 
+                template <typename T>
                 class OutputPack final
                     : public IOutputPack
                 {
                 public:
-                    using RequestPtr = std::unique_ptr<evhttp_request, decltype(&evhttp_request_free)>;
+                    explicit OutputPack(T &data)
+                        : m_data{data}
+                    {
+                    }
 
-                    explicit OutputPack(evhttp_request *request);
-                    explicit OutputPack(RequestPtr request);
+                    explicit OutputPack(T &&data)
+                        : m_holder{std::move(data)}
+                        , m_data{m_holder.get()}
+                    {
+                    }
 
-                    void Send();
-                    evhttp_request* GetRequest();
-                    void MoveDataToBuffer();
-                    void ReleaseNewRequest();
+                    T& GetData() noexcept
+                    {
+                        return m_data;
+                    }
+
+                    T const & GetData() const noexcept
+                    {
+                        return m_data;
+                    }
 
                 private:
-                    RequestPtr m_newRequest{nullptr, &evhttp_request_free};
-
-                    evhttp_request *m_request = nullptr;
-                    evbuffer *m_responseBuffer = nullptr;
-                    evkeyvalq *m_headers = nullptr;
-
-                    Code m_code = Code::Ok;
-                    std::string m_reason;
+                    boost::optional<T> m_holder;
+                    T &m_data;
                     Common::BufferPtr m_buffer;
 
-                    static void CleanUpData(void const *data, size_t datalen, void *extra);
+                    template <typename Y>
+                    auto SetReason(Y &data, std::string const &reason) const
+                        -> decltype (data.reason(reason))
+                    {
+                        return data.reason(reason);
+                    }
+
+                    void SetReason(...) const
+                    {
+                        throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::SetReason] "
+                                "You can't set a reason for a request."};
+                    }
+
+                    template <typename Y>
+                    auto SetCode(Y &data, Code code) const
+                        -> decltype (data.result(Utility::ConvertCode(code)))
+                    {
+                        return data.result(Utility::ConvertCode(code));
+                    }
+
+                    void SetCode(...) const
+                    {
+                        throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::SetCode] "
+                                "You can't set code for a request."};
+                    }
 
                     // IOutputPack
-                    virtual Code GetCode() const override final;
-                    virtual std::string GetReason() const override final;
-                    virtual Common::Buffer GetData() const override final;
+                    virtual void SetCode(Code code) override final
+                    {
+                        SetCode(m_data, code);
+                    }
 
-                    virtual void SetCode(Code code) override final;
-                    virtual void SetReason(std::string const &reason) override final;
+                    virtual void SetReason(std::string const &reason) override final
+                    {
+                        SetReason(m_data, reason);
+                    }
 
-                    virtual void SetHeader(std::string const &key, std::string const &value) override final;
-                    virtual void SetData(Common::Buffer buffer) override final;
-                    virtual void SetData(Common::BufferPtr buffer) override final;
+                    virtual void SetHeader(std::string const &key, std::string const &value) override final
+                    {
+                        m_data.set(key, value);
+                    }
+
+                    virtual void SetData(Common::Buffer buffer) override final
+                    {
+                        SetData(std::make_shared<Common::Buffer>(std::move(buffer)));
+                    }
+
+                    virtual void SetData(Common::BufferPtr buffer) override final
+                    {
+                        std::swap(m_buffer, buffer);
+
+                        auto &body = m_data.body();
+                        body.more = false;
+
+                        if (m_buffer && !m_buffer->empty())
+                        {
+                            body.data = m_buffer->data();
+                            body.size = m_buffer->size();
+                        }
+                        else
+                        {
+                            body.data = nullptr;
+                            body.size = 0;
+                        }
+
+                        m_data.content_length(body.size);
+                    }
                 };
 
             }   // namespace Detail

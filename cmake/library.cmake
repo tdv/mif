@@ -43,11 +43,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/tcp/detail/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/server.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server_thread.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/lib_event_initializer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/server.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/input_pack.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/output_pack.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/detail/utility.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/connection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/net/http/servlet.cpp
@@ -92,7 +88,6 @@ set (MIF_DEPENDENCIES_LIBRARIES
     ${BOOST_LIBRARIES}
     ${JSONCPP_LIBRARIES}
     ${ZLIB_LIBRARIES}
-    ${EVENT_LIBRARIES}
     ${PUGIXML_LIBRARIES}
 )
 

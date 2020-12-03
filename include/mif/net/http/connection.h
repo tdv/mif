@@ -15,6 +15,9 @@
 #include <memory>
 #include <string>
 
+// BOOST
+#include <boost/optional.hpp>
+
 // MIF
 #include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
@@ -30,13 +33,14 @@ namespace Mif
             {
             public:
                 using OnCloseHandler = std::function<void ()>;
-                using IOutputPackPtr = std::unique_ptr<IOutputPack>;
+                using IOutputPackPtr = std::shared_ptr<IOutputPack>;
 
                 struct Params
                 {
                     std::string host;
                     std::string port;
-                    std::chrono::seconds timeout = std::chrono::seconds::max();
+                    boost::optional<std::chrono::seconds> connectionTimeout;
+                    boost::optional<std::chrono::seconds> requestTimeout;
                     std::size_t retriesCount = std::numeric_limits<std::size_t>::max();
                     std::size_t maxHeaderSize = std::numeric_limits<std::size_t>::max();
                     std::size_t maxBodySize = std::numeric_limits<std::size_t>::max();
@@ -51,7 +55,7 @@ namespace Mif
                 ~Connection();
 
                 IOutputPackPtr CreateRequest() const;
-                void MakeRequest(Method::Type method, std::string const &request, IOutputPackPtr pack);
+                void MakeRequest(Method::Type method, std::string const &target, IOutputPackPtr pack);
                 bool IsClosed() const;
 
             private:

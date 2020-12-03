@@ -107,15 +107,6 @@ namespace Mif
                         {
                             try
                             {
-                                if (pack.GetCode() != Code::Ok)
-                                {
-                                    auto const data = pack.GetData();
-                                    std::string extMsg;
-                                    if (!data.empty())
-                                        extMsg = ". Message: \"" + std::string{data.data(), data.size()} + "\"";
-                                    throw std::runtime_error{"The server returned an error \"" + pack.GetReason() + "\"" + extMsg};
-                                }
-
                                 {
                                     auto const headers = pack.GetHeaders();
                                     auto const sessionIter = headers.find(Constants::Header::MifExt::Session::Value);
@@ -166,8 +157,6 @@ namespace Mif
                                 auto connection = GetConnection();
                                 auto pack = connection->CreateRequest();
 
-                                pack->SetHeader(Constants::Header::Request::Connection::Value,
-                                    Constants::Value::Connection::KeepAlive::Value);
                                 pack->SetHeader(Constants::Header::MifExt::Session::Value, m_sessionId);
 
                                 pack->SetData(std::move(buffer));
