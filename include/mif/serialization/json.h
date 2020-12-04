@@ -633,12 +633,7 @@ namespace Mif
             Deserialize(TStream &stream)
             {
                 ::Json::Value root;
-                ::Json::Reader reader;
-                if (!reader.parse(stream, root))
-                {
-                    throw std::invalid_argument{"[Mif::Serialization::Json::Deserialize] Failed to parse json. Error: " +
-                        reader.getFormattedErrorMessages()};
-                }
+                stream >> root;
                 T object;
                 using BasesType = typename Reflection::Reflect<T>::Base;
                 Detail::BasesDeserializer<BasesType, std::tuple_size<BasesType>::value>::Deserialize(root, object);
@@ -662,12 +657,7 @@ namespace Mif
             Deserialize(TStream &stream, std::string const &rootName = {})
             {
                 ::Json::Value root;
-                ::Json::Reader reader;
-                if (!reader.parse(stream, root))
-                {
-                    throw std::invalid_argument{"[Mif::Serialization::Json::Deserialize] Failed to parse json. Error: " +
-                        reader.getFormattedErrorMessages()};
-                }
+                stream >> root;
                 T object{};
                 Detail::JsonToValue<T>(rootName.empty() ? root : root.get(rootName, ::Json::Value{}), object);
                 return object;

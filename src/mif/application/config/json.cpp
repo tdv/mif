@@ -84,12 +84,7 @@ namespace Mif
                         if (!stream)
                             throw std::invalid_argument{"[Mif::Application::Detail::Config] Empty input stream."};
 
-                        ::Json::Reader reader;
-                        if (!reader.parse(*stream, m_root))
-                        {
-                            throw std::invalid_argument{"[Mif::Application::Detail::Config] Empty input stream. "
-                                "Failed to parse json. Error: " + reader.getFormattedErrorMessages()};
-                        }
+                        *stream >> m_root;
                     }
 
                     Config(::Json::Value const &root)
