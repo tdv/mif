@@ -27,22 +27,17 @@ set (LIBRARIES "")
 list (APPEND LIBRARIES "mif")
 
 set (ZLIB_URL "https://github.com/madler/zlib.git")
-set (ZLIB_TAG "v1.2.8")
+set (ZLIB_TAG "v1.2.9")
 
-set (BOOST_URL "https://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.gz")
+set (BOOST_URL "https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz")
 
 set (JSONCPP_URL "https://github.com/open-source-parsers/jsoncpp.git")
-set (JSONCPP_TAG "1.8.0")
+set (JSONCPP_TAG "1.9.4")
 
 set (PUGIXML_URL "http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz")
 
-set (EVENT_URL "https://github.com/libevent/libevent.git")
-set (EVENT_TAG "release-2.1.8-stable")
-
 set (LIBPQ_URL "https://github.com/postgres/postgres.git")
 set (LIBPQ_TAG "REL9_6_2")
-
-set (SQLITE_URL "https://www.sqlite.org/src/tarball/sqlite.tar.gz")
 
 set (MIF_URL "https://github.com/tdv/mif.git")
 set (MIF_TAG "master")
@@ -160,42 +155,6 @@ ExternalProject_Add (${JSONCPP_PROJECT}
 list (APPEND LIBRARIES "jsoncpp")
 #---------------------------------------------------------
 
-#------------------------ Event --------------------------
-set (EVENT_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/event)
-set (EVENT_INCLUDE_DIR ${EVENT_INSTALL_DIR}/include)
-set (EVENT_LIBRARIES_DIR ${EVENT_INSTALL_DIR}/lib)
-include_directories (SYSTEM ${EVENT_INCLUDE_DIR})
-link_directories(${EVENT_LIBRARIES_DIR})
-
-set (EVENT_PROJECT "event-project")
-list (APPEND THIRD_PARTY_PROJECTS ${EVENT_PROJECT})
-
-ExternalProject_Add (${EVENT_PROJECT}
-            GIT_REPOSITORY ${EVENT_URL}
-            GIT_TAG ${EVENT_TAG}
-            UPDATE_COMMAND ""
-            BUILD_IN_SOURCE 1
-            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${EVENT_INSTALL_DIR} 
-                -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
-                -DEVENT__BUILD_SHARED_LIBRARIES=OFF
-                -DEVENT__DISABLE_TESTS=ON
-                -DEVENT__DISABLE_REGRESS=ON
-                -DEVENT__DISABLE_SAMPLES=ON
-                -DEVENT__DISABLE_BENCHMARK=ON
-            LOG_DOWNLOAD 1
-            LOG_UPDATE 1
-            LOG_CONFIGURE 1
-            LOG_BUILD 1
-            LOG_TEST 1
-            LOG_INSTALL 1
-        )
-
-list (APPEND LIBRARIES "event")
-list (APPEND LIBRARIES "event_core")
-list (APPEND LIBRARIES "event_extra")
-#---------------------------------------------------------
-
 #------------------------ LibPQ --------------------------
 set (LIBPQ_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/pq)
 set (LIBPQ_INCLUDE_DIR ${LIBPQ_INSTALL_DIR}/include)
@@ -224,33 +183,6 @@ ExternalProject_Add (${LIBPQ_PROJECT}
         )
 
 list (APPEND LIBRARIES "pq.a")
-#---------------------------------------------------------
-
-#------------------------ SQLite -------------------------
-set (SQLITE_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/sqlite)
-set (SQLITE_INCLUDE_DIR ${SQLITE_INSTALL_DIR}/include)
-set (SQLITE_LIBRARIES_DIR ${SQLITE_INSTALL_DIR}/lib)
-include_directories (SYSTEM ${SQLITE_INCLUDE_DIR})
-link_directories(${SQLITE_LIBRARIES_DIR})
-
-set (SQLITE_PROJECT "sqlite-project")
-list (APPEND THIRD_PARTY_PROJECTS ${SQLITE_PROJECT})
-
-ExternalProject_Add (${SQLITE_PROJECT}
-            URL ${SQLITE_URL}
-            UPDATE_COMMAND ""
-            BUILD_IN_SOURCE 1
-            CONFIGURE_COMMAND ./configure --prefix=${SQLITE_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
-            BUILD_COMMAND ${MAKE}
-            LOG_DOWNLOAD 1
-            LOG_UPDATE 1
-            LOG_CONFIGURE 1
-            LOG_BUILD 1
-            LOG_TEST 1
-            LOG_INSTALL 1
-        )
-
-list (APPEND LIBRARIES "sqlite3")
 #---------------------------------------------------------
 
 #------------------------ PugiXml ------------------------
@@ -307,15 +239,11 @@ ExternalProject_Add (${MIF_PROJECT}
                 -DBOOST_LIBRARIES_DIR=${BOOST_LIBRARIES_DIR}
                 -DJSONCPP_INCLUDE_DIR=${JSONCPP_INCLUDE_DIR}
                 -DJSONCPP_LIBRARIES_DIR=${JSONCPP_LIBRARIES_DIR}
-                -DEVENT_INCLUDE_DIR=${EVENT_INCLUDE_DIR}
-                -DEVENT_LIBRARIES_DIR=${EVENT_LIBRARIES_DIR}
                 -DLIBPQ_INCLUDE_DIR=${LIBPQ_INCLUDE_DIR}
                 -DLIBPQ_LIBRARIES_DIR=${LIBPQ_LIBRARIES_DIR}
-                -DSQLITE_INCLUDE_DIR=${SQLITE_INCLUDE_DIR}
-                -DSQLITE_LIBRARIES_DIR=${SQLITE_LIBRARIES_DIR}
                 -DPUGIXML_INCLUDE_DIR=${PUGIXML_INCLUDE_DIR}
                 -DPUGIXML_LIBRARIES_DIR=${PUGIXML_LIBRARIES_DIR}
-            DEPENDS ${BOOST_PROJECT} ${JSONCPP_PROJECT} ${PUGIXML_PROJECT} ${EVENT_PROJECT} ${LIBPQ_PROJECT} ${SQLITE_PROJECT}
+            DEPENDS ${BOOST_PROJECT} ${JSONCPP_PROJECT} ${PUGIXML_PROJECT} ${LIBPQ_PROJECT}
             BUILD_COMMAND ${MAKE}
             LOG_DOWNLOAD 1
             LOG_UPDATE 1
