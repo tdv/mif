@@ -4,10 +4,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/version.h.in ${CMAKE_C
 
 set (MIF_COMPILER_DEFINES )
 
-if (MIF_WITH_SQLITE)
-    set (MIF_COMPILER_DEFINES "${MIF_COMPILER_DEFINES}\n#define MIF_WITH_SQLITE")
-endif()
-
 if (MIF_WITH_POSTGRESQL)
     set (MIF_COMPILER_DEFINES "${MIF_COMPILER_DEFINES}\n#define MIF_WITH_POSTGRESQL")
 endif()
@@ -63,15 +59,6 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/transaction.cpp
 )
 
-if (MIF_WITH_SQLITE)
-    set(MIF_SOURCES
-        ${MIF_SOURCES}
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/connection.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/statement.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/db/sqlite/detail/recordset.cpp
-        )
-endif()
-
 if (MIF_WITH_POSTGRESQL)
     set(MIF_SOURCES
         ${MIF_SOURCES}
@@ -90,12 +77,6 @@ set (MIF_DEPENDENCIES_LIBRARIES
     ${ZLIB_LIBRARIES}
     ${PUGIXML_LIBRARIES}
 )
-
-if (MIF_WITH_SQLITE)
-    set (MIF_DEPENDENCIES_LIBRARIES
-         ${SQLITE_LIBRARIES}
-    )
-endif()
 
 if (MIF_WITH_POSTGRESQL)
     set (MIF_DEPENDENCIES_LIBRARIES

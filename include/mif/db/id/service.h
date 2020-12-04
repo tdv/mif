@@ -27,12 +27,6 @@ namespace Mif
                     PostgreSQL = Common::Crc32("Mif.Db.Service.Connection.PostgreSQL"),
                     PostgresConnectionPool = Common::Crc32("Mif.Db.Service.PostgresConnectionPool")
 #endif  // !MIF_WITH_POSTGRESQL
-#ifdef MIF_WITH_SQLITE
-#ifdef MIF_WITH_POSTGRESQL
-                    ,
-#endif  // !MIF_WITH_POSTGRESQL
-                    SQLite = Common::Crc32("Mif.Db.Service.Connection.SQLite")
-#endif  // !MIF_WITH_SQLITE
                 };
 
             }   // namespace Service

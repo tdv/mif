@@ -13,10 +13,6 @@ tar zxvf REL9_6_2.tar.gz
 mv postgres-REL9_6_2 libpq
 rm REL9_6_2.tar.gz
 
-wget https://www.sqlite.org/src/tarball/sqlite.tar.gz
-tar zxvf sqlite.tar.gz
-rm sqlite.tar.gz
-
 wget http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz
 tar zxvf pugixml-1.8.tar.gz
 mv pugixml-1.8 pugixml

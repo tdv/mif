@@ -1,3 +1,4 @@
+
 include(ExternalProject)
 include(cmake/options.cmake)
 include(cmake/third_party_paths.cmake)
@@ -34,10 +35,6 @@ set (PUGIXML_LIBRARIES
 
 set (LIBPQ_LIBRARIES
     pq.a
-)
-
-set (SQLITE_LIBRARIES
-    sqlite3
 )
 
 set (MIF_JSONCPP_CMAKE_ARGS "-DJSONCPP_WITH_TESTS=OFF"
@@ -164,26 +161,6 @@ function (mif_add_libpq_project)
     mif_add_third_party_project_end()
 endfunction()
 
-function (mif_add_sqlite_project)
-    mif_add_third_party_project_begin("sqlite")
-
-    ExternalProject_Add(${MIF_THIRD_PARTY_PROJECT}
-        SOURCE_DIR ${MIF_LIB_SOURCE_PATH}
-        UPDATE_COMMAND ""
-        BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND ./configure --prefix=${MIF_LIB_INSTALL_DIR} --disable-readline --enable-shared=no --disable-amalgamation --enable-releasemode --disable-tcl --disable-load-extension CPPFLAGS=-fPIC CFLAGS=-fPIC
-        BUILD_COMMAND ${MAKE}
-        LOG_DOWNLOAD 1
-        LOG_UPDATE 1
-        LOG_CONFIGURE 1
-        LOG_BUILD 1
-        LOG_TEST 1
-        LOG_INSTALL 1
-    )
-
-    mif_add_third_party_project_end()
-endfunction()
-
 function (mif_add_third_party_paths lib)
     string (TOUPPER ${lib} LIB_NAME_UP)
     if (NOT DEFINED ${LIB_NAME_UP}_INCLUDE_DIR)
@@ -209,9 +186,6 @@ if (MIF_NEED_THIRD_PARTY_BUILD)
     if (MIF_WITH_POSTGRESQL)
         mif_add_libpq_project()
     endif()
-    if (MIF_WITH_SQLITE)
-        mif_add_sqlite_project()
-    endif()
 else()
     foreach (lib ${MIF_THIRD_PARTY_LIBS})
         mif_add_third_party_paths(${lib})
@@ -219,9 +193,6 @@ else()
     mif_add_third_party_paths(boost)
     if (MIF_WITH_POSTGRESQL)
         mif_add_third_party_paths(libpq)
-    endif()
-    if (MIF_WITH_SQLITE)
-        mif_add_third_party_paths(sqlite)
     endif()
 endif()
 
@@ -232,7 +203,4 @@ endforeach()
 list (APPEND MIF_THIRD_PARTY_PROJECTS boost-project)
 if (MIF_WITH_POSTGRESQL)
     list (APPEND MIF_THIRD_PARTY_PROJECTS libpq-project)
-endif()
-if (MIF_WITH_SQLITE)
-    list (APPEND MIF_THIRD_PARTY_PROJECTS sqlite-project)
 endif()

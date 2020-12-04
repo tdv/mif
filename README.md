@@ -11,7 +11,7 @@ MIF is a C++11 web-application framework designed for the backend micro-service 
 - Interface-based RPC marshalling with the callback support
 - Reflection for c++ data structures with the inheritance support
 - Json, Xml serialization and the ability to use boost archives
-- Database support (Implemented for PostgreSQL and SQLite)
+- Database support (Implemented for PostgreSQL)
 
 # Compiler
 The minimum compiler version required is gcc 5.3
@@ -25,7 +25,6 @@ Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 - jsoncpp
 - pugixml
 - libpq
-- sqlite
 
 # Build and install
 ```bash
@@ -466,8 +465,3 @@ curl -i "http://localhost:55555/employee/delete?id=1"
 [Source code](https://github.com/tdv/mif/tree/master/examples/reflection)  
 **Description**  
 The example demonstrates the mechanism of C++ data struct reflection. This can be used as a starting point for building application with serialization, ORM and REST API.
-
-## DB client
-[Source code](https://github.com/tdv/mif/tree/master/examples/db_client)  
-**Description**  
-A classical work with databases.
