@@ -73,6 +73,11 @@ namespace Mif
             return std::chrono::microseconds{m_timeout};
         }
 
+        std::string NetBaseApplication::GetConfigBranch() const
+        {
+            return Detail::Config::ServerBranch::Value;
+        }
+
         void NetBaseApplication::OnStart()
         {
             if (auto config = GetConfig())

@@ -35,6 +35,7 @@ namespace Mif
             std::string GetPort() const;
             std::uint16_t GetWorkers() const;
             std::chrono::microseconds GetTimeout() const;
+            std::string GetConfigBranch() const;
 
         private:
             std::string m_host;

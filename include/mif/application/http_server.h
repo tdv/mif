@@ -9,6 +9,7 @@
 #define __MIF_APPLICATION_HTTP_SERVER_H__
 
 // STD
+#include <cstdint>
 #include <memory>
 
 // MIF
@@ -36,6 +37,10 @@ namespace Mif
             virtual void Done();
 
         private:
+            std::size_t m_headersLimit;
+            std::size_t m_bodyLimit;
+            std::size_t m_pipelineLimit;
+
             Net::Http::Methods m_methods;
             std::unique_ptr<Net::Http::Server> m_server;
 

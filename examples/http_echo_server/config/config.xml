@@ -14,6 +14,11 @@
             <port>55555</port>
             <workers>8</workers>
             <timeout>10000000</timeout>
+            <http>
+                <headerslimit>512</headerslimit>
+                <bodylimit>1024</bodylimit>
+                <pipelinelimit>4</pipelinelimit>
+            </http>
         </server>
     </data>
 </document>

@@ -38,7 +38,7 @@ namespace Mif
                     struct Params final
                     {
                         std::size_t headersSize = 1024 * 1024;  // 1 Mb by default
-                        std::size_t bodySize = 128 * 1024 * 1024;   // 128 Mb by default
+                        std::size_t bodySize = 10 * 1024 * 1024;   // 10 Mb by default
                         std::chrono::microseconds requestTimeout{1000000};  // 1 Sec by default
 
                         std::size_t pipelineLimit = 8;  // 8 itams by default
