@@ -3,10 +3,10 @@ cd third_party_sources
 git clone --branch v1.2.9 https://github.com/madler/zlib.git
 git clone --branch 1.9.4 https://github.com/open-source-parsers/jsoncpp.git
 
-wget https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz
-tar zxvf boost_1_74_0.tar.gz
-mv boost_1_74_0 boost
-rm boost_1_74_0.tar.gz
+wget https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz
+tar zxvf boost_1_75_0.tar.gz
+mv boost_1_75_0 boost
+rm boost_1_75_0.tar.gz
 
 wget https://github.com/postgres/postgres/archive/REL9_6_2.tar.gz
 tar zxvf REL9_6_2.tar.gz
