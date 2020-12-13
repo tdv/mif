@@ -69,27 +69,28 @@ namespace Mif
 
                         if (service)
                         {
-                            if (auto checkable = Service::Query<ICheckable>(service))
+                            auto isOk = true;
+                            try
                             {
-                                auto isOk = false;
-                                try
-                                {
+                                if (auto checkable = Service::Query<ICheckable>(service))
                                     isOk = checkable->IsGood();
-                                }
-                                catch (std::exception const &e)
+                            }
+                            catch (std::exception const &e)
+                            {
+                                MIF_LOG(Info) << "[Mif::Service::Detail::PerThreadPool::GetService] "
+                                              << "Service for thread \"" << std::this_thread::get_id() << "\" is bad "
+                                              << "and will be recreated. Error: " << e.what();
+
+                                isOk = false;
+                            }
+
+                            if (!isOk)
+                            {
                                 {
-                                    MIF_LOG(Info) << "[Mif::Service::Detail::PerThreadPool::GetService] "
-                                                  << "Service for thread \"" << std::this_thread::get_id() << "\" is bad "
-                                                  << "and will be recreated. Error: " << e.what();
+                                    LockGuard lock{m_lock};
+                                    m_services.erase(id);
                                 }
-                                if (!isOk)
-                                {
-                                    {
-                                        LockGuard lock{m_lock};
-                                        m_services.erase(id);
-                                    }
-                                    service.reset();
-                                }
+                                service.reset();
                             }
                         }
 

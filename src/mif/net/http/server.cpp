@@ -42,10 +42,10 @@ namespace Mif
             public:
                 Listener(boost::asio::io_context &ioc,
                         boost::asio::ip::tcp::endpoint endpoint,
-                        Detail::Session::ParamsPtr sessionParams)
+                        Detail::Session::Params const &sessionParams)
                     : m_ioc{ioc}
                     , m_acceptor{boost::asio::make_strand(m_ioc)}
-                    , m_sessionParams{std::move(sessionParams)}
+                    , m_sessionParams{sessionParams}
                 {
                     boost::beast::error_code ec;
 
@@ -94,7 +94,7 @@ namespace Mif
                 boost::asio::io_context &m_ioc;
                 boost::asio::ip::tcp::acceptor m_acceptor;
 
-                Detail::Session::ParamsPtr m_sessionParams;
+                Detail::Session::Params m_sessionParams;
 
                 void Accept()
                 {
@@ -131,18 +131,18 @@ namespace Mif
                         std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout)
                     : m_ioc{std::max<int>(1, workers) + 1}
                 {
-                    auto sessionParams = std::make_shared<Detail::Session::Params>();
+                    Detail::Session::Params sessionParams;
 
                     auto const defaultValue = static_cast<std::size_t>(-1);
                     if (headersSize != defaultValue)
-                        sessionParams->headersSize = headersSize;
+                        sessionParams.headersSize = headersSize;
                     if (bodySize != defaultValue)
-                        sessionParams->bodySize = bodySize;
+                        sessionParams.bodySize = bodySize;
                     if (requestTimeout != defaultValue)
-                        sessionParams->requestTimeout = std::chrono::microseconds{requestTimeout};
+                        sessionParams.requestTimeout = std::chrono::microseconds{requestTimeout};
 
-                    sessionParams->allowedMethods = allowedMethods;
-                    sessionParams->handlers = handlers;
+                    sessionParams.allowedMethods = allowedMethods;
+                    sessionParams.handlers = handlers;
 
                     auto address = boost::asio::ip::make_address(host);
                     auto endpoint = boost::asio::ip::tcp::endpoint{std::move(address),

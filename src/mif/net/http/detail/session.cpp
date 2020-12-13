@@ -93,12 +93,11 @@ namespace Mif
                     std::deque<std::function<void ()>> m_tasks;
                 };
 
-                Session::Session(boost::asio::ip::tcp::socket &&socket, ParamsPtr params)
+                Session::Session(boost::asio::ip::tcp::socket &&socket, Params const &params)
                     : m_stream{std::move(socket)}
-                    , m_params{std::move(params)}
+                    , m_params{params}
                     , m_queue{boost::make_unique<Queue>(*this,
-                            std::max<std::size_t>(m_params ? m_params->pipelineLimit :
-                                    Params::DefaultPipelineLimit, Params::DefaultPipelineLimit))
+                            std::max<std::size_t>(m_params.pipelineLimit, 1))
                         }
                 {
                 }
@@ -119,15 +118,9 @@ namespace Mif
                 {
                     m_parser.emplace();
 
-                    if (m_params)
-                    {
-                        if (m_params->headersSize)
-                            m_parser->header_limit(*m_params->headersSize);
-                        if (m_params->bodySize)
-                            m_parser->body_limit(*m_params->bodySize);
-                        if (m_params->requestTimeout)
-                            m_stream.expires_after(*m_params->requestTimeout);
-                    }
+                    m_parser->header_limit(m_params.headersSize);
+                    m_parser->body_limit(m_params.bodySize);
+                    m_stream.expires_after(m_params.requestTimeout);
 
                     boost::beast::http::async_read(m_stream, m_buffer, *m_parser,
                             boost::beast::bind_front_handler(&Session::OnRead,
@@ -214,16 +207,16 @@ namespace Mif
                             return;
                         }
 
-                        if (m_params && m_params->allowedMethods.find(
+                        if (m_params.allowedMethods.find(
                                 Utility::ConvertMethodType(request.method())) ==
-                                std::end(m_params->allowedMethods))
+                                std::end(m_params.allowedMethods))
                         {
                             ReplyError(boost::beast::http::status::method_not_allowed, "The method is not allowed.",
                                     request.keep_alive());
                             return;
                         }
 
-                        if (!m_params || m_params->handlers.empty())
+                        if (m_params.handlers.empty())
                         {
                             ReplyError(boost::beast::http::status::method_not_allowed,
                                     "There is no any method for handling the request.",
@@ -239,8 +232,8 @@ namespace Mif
 
                         auto process = [this, &in, &out] (std::string const &path)
                         {
-                            auto iter = m_params->handlers.find(path);
-                            if (iter != std::end(m_params->handlers))
+                            auto iter = m_params.handlers.find(path);
+                            if (iter != std::end(m_params.handlers))
                             {
                                 iter->second(*in, *out);
                                 return true;

@@ -165,17 +165,17 @@ namespace Mif
                             }
                             catch (std::exception const &e)
                             {
-                                CloseMe();
-
                                 MIF_LOG(Error) << "[Mif::Net::Http::Clients::Impl::Publish] Failed tp Publish data. "
                                     << "Error: " << e.what();
+
+                                CloseMe();
                             }
                             catch (...)
                             {
-                                CloseMe();
-
                                 MIF_LOG(Error) << "[Mif::Net::Http::Clients::Impl::Publish] Failed tp Publish data. "
                                     << "Error: unknown";
+
+                                CloseMe();
                             }
                         }
 
@@ -214,7 +214,7 @@ namespace Mif
             {
             public:
                 Impl(std::shared_ptr<IClientFactory> factory)
-                    : m_factory(factory)
+                    : m_factory{std::move(factory)}
                 {
                 }
 
@@ -236,17 +236,22 @@ namespace Mif
                                         LockGuard guard{*lock};
                                         auto iter = sessions->find(id);
                                         if (iter == std::end(*sessions))
+                                        {
                                             MIF_LOG(Warning) << "[Mif::Net::Http::Clients::Impl::RunClient] "
                                                 << "Session \"" + id + "\" not found.";
-                                        session = iter->second;
-                                        sessions->erase(iter);
+                                        }
+                                        else
+                                        {
+                                            std::swap(session, iter->second);
+                                            sessions->erase(iter);
+                                        }
                                     }
                                 }
                             );
                         auto client = session->Init(*m_factory);
                         {
                             LockGuard lock{*m_lock};
-                            m_sessions->insert(std::make_pair(session->GetId(), session));
+                            m_sessions->emplace(session->GetId(), session);
                         }
                         return client;
                     }
@@ -274,7 +279,7 @@ namespace Mif
 
 
             Clients::Clients(std::shared_ptr<IClientFactory> factory)
-                : m_impl{new Clients::Impl{factory}}
+                : m_impl{new Clients::Impl{std::move(factory)}}
             {
             }
 

@@ -87,7 +87,25 @@ namespace Mif
                                 "You can't set code for a request."};
                     }
 
+                    template <typename Y>
+                    auto GetCode(Y const &data) const
+                        -> decltype (Utility::ConvertCode(data.result))
+                    {
+                        return Utility::ConvertCode(data.result());
+                    }
+
+                    Code GetCode(...) const
+                    {
+                        throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::GetCode] "
+                                "You can't get code for a request."};
+                    }
+
                     // IOutputPack
+                    virtual Code GetCode() const override final
+                    {
+                        return GetCode(m_data);
+                    }
+
                     virtual void SetCode(Code code) override final
                     {
                         SetCode(m_data, code);

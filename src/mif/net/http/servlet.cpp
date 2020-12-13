@@ -7,6 +7,7 @@
 
 // STD
 #include <ctime>
+#include <deque>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -16,10 +17,8 @@
 // BOOST
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/make_unique.hpp>
 #include <boost/scope_exit.hpp>
-
-// EVENT
-#include <event2/util.h>
 
 // MIF
 #include "mif/common/log.h"
@@ -57,13 +56,15 @@ namespace Mif
                         std::exception_ptr GetException() const
                         {
                             std::exception_ptr exception{};
+
                             {
                                 LockGuard lock{m_lock};
                                 auto iter = m_exceptions.find(std::this_thread::get_id());
                                 if (iter != std::end(m_exceptions))
-                                    return iter->second;
+                                    std::swap(exception, iter->second);
                             }
-                            return {};
+
+                            return exception;
                         }
 
                         std::time_t GetTimestamp() const
@@ -73,6 +74,8 @@ namespace Mif
 
                         Common::Buffer OnData(Common::Buffer data)
                         {
+                            Common::Buffer res;
+
                             auto const threadId = std::this_thread::get_id();
 
                             auto cleanResponse = [this, &threadId]
@@ -108,7 +111,7 @@ namespace Mif
                                     LockGuard lock{m_lock};
                                     auto iter = m_responses.find(threadId);
                                     if (iter != std::end(m_responses))
-                                        return std::move(iter->second);
+                                        std::swap(res, iter->second);
                                 }
                             }
                             catch (std::exception const &e)
@@ -117,12 +120,14 @@ namespace Mif
                                     LockGuard lock{m_lock};
                                     m_exceptions.emplace(threadId, std::current_exception());
                                 }
+
                                 CloseMe();
+
                                 MIF_LOG(Warning) << "[Mif::Net::Http::Detail::Session::OnData]. "
                                     << "Failed to process data. Error: " << e.what();
                             }
 
-                            return {};
+                            return res;
                         }
 
                     private:
@@ -136,15 +141,16 @@ namespace Mif
                         std::time_t m_timestamp{std::time(nullptr)};
                         bool m_needForClose{false};
                         Responses m_responses;
-                        Exceptions m_exceptions;
+                        mutable Exceptions m_exceptions;
                         IClientFactory::ClientPtr m_client;
 
                         //----------------------------------------------------------------------------
                         // IPublisher
                         virtual void Publish(Common::Buffer buffer) override
                         {
+                            auto const threadId = std::this_thread::get_id();
                             LockGuard lock{m_lock};
-                            m_responses.emplace(std::this_thread::get_id(), std::move(buffer));
+                            m_responses.emplace(threadId, std::move(buffer));
                         }
 
                         //----------------------------------------------------------------------------
@@ -162,15 +168,17 @@ namespace Mif
                         Servlet(std::shared_ptr<IClientFactory> factory, std::uint32_t sessionTimeout)
                             : m_factory{factory}
                             , m_sessionTimeout{sessionTimeout}
+                            , m_iosWork{boost::make_unique<boost::asio::io_service::work>(m_ioService)}
                         {
-                            m_iosWork.reset(new boost::asio::io_service::work{m_ioService});
                             m_iosWorker.reset(new std::thread{[this] { m_ioService.run(); }});
+
                             auto timer = std::make_shared<boost::asio::deadline_timer>(m_ioService,
                                     boost::posix_time::seconds{m_cleanerTimeout});
+
                             timer->async_wait(std::bind(&Servlet::OnCleaner, this, timer, std::placeholders::_1));
                         }
 
-                        ~Servlet()
+                        ~Servlet() noexcept
                         {
                             try
                             {
@@ -191,12 +199,15 @@ namespace Mif
                             try
                             {
                                 auto const headers = request.GetHeaders();
+
                                 {
                                     auto const iter = headers.find(Constants::Header::MifExt::Session::Value);
+
                                     if (iter != std::end(headers))
                                         sessionId = iter->second;
                                     else
                                         throw std::invalid_argument{"Session not found."};
+
                                     if (sessionId.empty())
                                         throw std::invalid_argument{"Empty session."};
                                 }
@@ -220,7 +231,7 @@ namespace Mif
                                     if (iter != std::end(m_sessions))
                                         session = iter->second;
                                     else if (!sessionId.empty())
-                                        m_sessions.insert(std::make_pair(sessionId, session));
+                                        m_sessions.emplace(sessionId, session);
                                 }
 
                                 auto requestData = request.GetData();
@@ -280,7 +291,7 @@ namespace Mif
                         std::shared_ptr<IClientFactory> m_factory;
                         std::uint32_t m_sessionTimeout;
 
-                        std::int64_t const m_cleanerTimeout = 60;
+                        static std::int64_t const m_cleanerTimeout = 60;
 
                         boost::asio::io_service m_ioService;
                         std::unique_ptr<std::thread, void (*)(std::thread *)> m_iosWorker{nullptr, [] (std::thread *t) { if (t) t->join(); delete t; } };
@@ -301,7 +312,7 @@ namespace Mif
                                 auto iter = m_sessions.find(sessionId);
                                 if (iter != std::end(m_sessions))
                                 {
-                                    session = iter->second;
+                                    std::swap(session, iter->second);
                                     m_sessions.erase(iter);
                                 }
                             }
@@ -323,6 +334,7 @@ namespace Mif
                             }
 
                             {
+                                std::deque<SessionPtr> garbage;
                                 auto const now = std::time(nullptr);
                                 LockGuard lock{m_lock};
                                 for (auto i = std::begin(m_sessions) ; i != std::end(m_sessions) ; )
@@ -331,6 +343,7 @@ namespace Mif
                                             std::difftime(now, i->second->GetTimestamp()) >= m_sessionTimeout)
                                     {
                                         auto id = i->first;
+                                        garbage.emplace_back(std::move(i->second));
                                         m_sessions.erase(i++);
 
                                         MIF_LOG(Info) << "[Mif::Net::Http::Detail::Servlet::OnCleaner] "

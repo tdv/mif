@@ -17,7 +17,6 @@
 #include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <boost/optional.hpp>
 
 // MIF
 #include "mif/net/http/methods.h"
@@ -38,21 +37,18 @@ namespace Mif
                 public:
                     struct Params final
                     {
-                        boost::optional<std::size_t> headersSize;
-                        boost::optional<std::size_t> bodySize;
-                        boost::optional<std::chrono::microseconds> requestTimeout;
+                        std::size_t headersSize = 1024 * 1024;  // 1 Mb by default
+                        std::size_t bodySize = 128 * 1024 * 1024;   // 128 Mb by default
+                        std::chrono::microseconds requestTimeout{1000000};  // 1 Sec by default
 
-                        static std::size_t const DefaultPipelineLimit = 8;
-                        std::size_t pipelineLimit = DefaultPipelineLimit;
+                        std::size_t pipelineLimit = 8;  // 8 itams by default
 
                         Methods allowedMethods;
 
                         ServerHandlers handlers;
                     };
 
-                    using ParamsPtr = std::shared_ptr<Params>;
-
-                    Session(boost::asio::ip::tcp::socket &&socket, ParamsPtr params);
+                    Session(boost::asio::ip::tcp::socket &&socket, Params const &params);
 
                     ~Session();
 
@@ -60,7 +56,7 @@ namespace Mif
 
                 private:
                     boost::beast::tcp_stream m_stream;
-                    ParamsPtr m_params;
+                    Params const &m_params;
 
                     class Queue;
                     std::unique_ptr<Queue> m_queue;
