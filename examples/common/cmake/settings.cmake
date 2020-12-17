@@ -18,6 +18,7 @@ set(LIBRARIES
     ${LIBRARIES}
     mif
     boost_iostreams
+    boost_json
     boost_date_time
     boost_serialization
     boost_program_options
@@ -25,7 +26,6 @@ set(LIBRARIES
     boost_filesystem
     boost_thread
     boost_system
-    jsoncpp
     event
     event_pthreads
     pugixml

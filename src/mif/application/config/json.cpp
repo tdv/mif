@@ -7,6 +7,7 @@
 
 // STD
 #include <istream>
+#include <iterator>
 #include <list>
 #include <memory>
 #include <stdexcept>
@@ -15,14 +16,12 @@
 
 // BOOST
 #include <boost/algorithm/string.hpp>
-
-// JSONCPP
-#include <json/json.h>
-#include <json/reader.h>
+#include <boost/json.hpp>
 
 // MIF
 #include "mif/application/iconfig.h"
 #include "mif/application/id/config.h"
+#include "mif/common/types.h"
 #include "mif/service/creator.h"
 #include "mif/service/make.h"
 
@@ -39,17 +38,21 @@ namespace Mif
                     : public Service::Inherit<Common::ICollection>
                 {
                 public:
-                    Collection(::Json::Value array)
-                        : m_array{std::move(array)}
+                    using ValuePtr = std::shared_ptr<boost::json::value>;
+
+                    Collection(boost::json::array const &array, ValuePtr holder)
+                        : m_holder{std::move(holder)}
+                        , m_array{array}
                         , m_cur{std::begin(m_array)}
                         , m_end{std::end(m_array)}
                     {
                     }
 
                 private:
-                    ::Json::Value m_array;
-                    ::Json::Value::const_iterator m_cur;
-                    ::Json::Value::const_iterator m_end;
+                    ValuePtr m_holder;
+                    boost::json::array const &m_array;
+                    boost::json::array::const_iterator m_cur;
+                    boost::json::array::const_iterator m_end;
 
                     // ICollection
                     virtual bool Next() override final
@@ -78,22 +81,33 @@ namespace Mif
                 {
                 public:
                     using StreamPtr = std::shared_ptr<std::istream>;
+                    using ValuePtr = std::shared_ptr<boost::json::value>;
 
                     Config(StreamPtr stream)
                     {
                         if (!stream)
                             throw std::invalid_argument{"[Mif::Application::Detail::Config] Empty input stream."};
 
-                        *stream >> m_root;
+
+                        Common::Buffer buffer;
+                        std::copy(std::istreambuf_iterator<char>(*stream), std::istreambuf_iterator<char>(),
+                                std::back_inserter(buffer));
+
+                        m_holder = std::make_shared<boost::json::value>(
+                                boost::json::parse({buffer.data(), buffer.size()}));
+
+                        m_root = m_holder.get();
                     }
 
-                    Config(::Json::Value const &root)
-                        : m_root{root}
+                    Config(boost::json::value const &root, ValuePtr holder)
+                        : m_holder{std::move(holder)}
+                        , m_root{&root}
                     {
                     }
 
                 private:
-                    ::Json::Value m_root;
+                    ValuePtr m_holder;
+                    boost::json::value const *m_root;
 
                     using StringList = std::list<std::string>;
 
@@ -107,92 +121,119 @@ namespace Mif
                         return list;
                     }
 
-                    bool FindItem(std::string const &path, ::Json::Value &value) const
+                    boost::json::value const* FindItem(std::string const &path) const
                     {
-                        StringList const list = PathToList(path);
+                        auto list = PathToList(path);
+                        if (list.empty())
+                            return nullptr;
 
-                        ::Json::Value item = m_root;
+                        auto const *item = m_root->if_object();
+                        if (!item)
+                            return nullptr;
+
+                        std::size_t size = list.size();
+                        std::size_t level = 0;
 
                         for (auto const &i : list)
                         {
-                            if (!item.isMember(i))
-                                return false;
-                            item = item.get(i, ::Json::Value{});
+                            if (auto const *nested = item->if_contains(i))
+                            {
+                                if (auto const *obj = nested->if_object())
+                                {
+                                    if ((size - level) == 1)
+                                        break;
+
+                                    item = obj;
+                                    ++level;
+                                }
+                                else
+                                    break;
+                            }
+                            else
+                            {
+                                return nullptr;
+                            }
                         }
 
-                        std::swap(item, value);
-
-                        return true;
+                            return (size - level) == 1 ? item->if_contains(list.back()) : nullptr;
                     }
 
                     // IConfig
                     virtual bool Exists(std::string const &path) const override final
                     {
-                        ::Json::Value item;
-                        return FindItem(path, item);
+                        return !!FindItem(path);
                     }
 
                     virtual std::string GetValue(std::string const &path) const override final
                     {
-                        ::Json::Value item;
-                        if (!FindItem(path, item))
+                        auto const *item = FindItem(path);
+                        if (!item)
                         {
                             throw std::invalid_argument{"[Mif::Application::Detail::Config::GetValue] "
                                     "Failed to get value. Bad path \"" + path + "\""};
                         }
 
-                        if (item.type() == ::Json::nullValue)
+                        if (item->is_null())
                             return {};
 
-                        if (item.type() != ::Json::stringValue && !item.isConvertibleTo(::Json::stringValue))
-                        {
-                            throw std::invalid_argument{"[Mif::Application::Detail::Config::GetValue] "
-                                    "Failed to get value by path \"" + path + "\". Can not convert to a string type."};
-                        }
+                        if (auto const *val = item->if_bool())
+                            return std::to_string(*val);
 
-                        return item.asString();
+                        if (auto const *val = item->if_double())
+                            return std::to_string(*val);
+
+                        if (auto const *val = item->if_int64())
+                            return std::to_string(*val);
+
+                        if (auto const *val = item->if_uint64())
+                            return std::to_string(*val);
+
+                        if (!item->is_string())
+                            throw std::bad_alloc{};
+
+                        return boost::json::value_to<std::string>(*item);
                     }
 
                     virtual Service::TIntrusivePtr<IConfig> GetConfig(std::string const &path) const override final
                     {
-                        ::Json::Value item;
-                        if (!FindItem(path, item))
+                        auto const *item = FindItem(path);
+                        if (!item)
                         {
                             throw std::invalid_argument{"[Mif::Application::Detail::Config::GetConfig] "
                                     "Failed to get config. Bad path \"" + path + "\""};
                         }
 
-                        if (item.type() == ::Json::nullValue)
+                        if (item->is_null())
                             return {};
 
-                        if (!item.isObject())
+                        if (!item->is_object())
                         {
                             throw std::invalid_argument{"[Mif::Application::Detail::Config::GetConfig] "
                                     "Failed to get config by path \"" + path + "\". The value is not an object."};
                         }
 
-                        return Service::Make<Config, IConfig>(item);
+                        return Service::Make<Config, IConfig>(*item, m_holder);
                     }
 
                     virtual Common::ICollectionPtr GetCollection(std::string const &path) const override final
                     {
-                        ::Json::Value item;
-                        if (!FindItem(path, item))
+                        auto const *item = FindItem(path);
+                        if (!item)
                         {
                             throw std::invalid_argument{"[Mif::Application::Detail::Config::GetCollection] "
                                     "Failed to get collection. Bad path \"" + path + "\""};
                         }
 
-                        if (item.type() == ::Json::nullValue)
+                        if (item->is_null())
                             return {};
 
-                        if (!item.isArray())
+                        if (!item->is_array())
                         {
                             throw std::invalid_argument{"[Mif::Application::Detail::Config::GetCollection] "
                                     "Failed to get config by path \"" + path + "\". The value is not an object."};
                         }
 
-                        return Service::Make<Collection, Common::ICollection>(std::move(item));
+                        return Service::Make<Collection, Common::ICollection>(item->as_array(), m_holder);
                     }
                 };
 
@@ -204,7 +245,7 @@ namespace Mif
                                 "Failed to get item. No item."};
                     }
 
-                    return Service::Make<Config>(*m_cur);
+                    return Service::Make<Config>(*m_cur, m_holder);
                 }
 
             }   // namespace

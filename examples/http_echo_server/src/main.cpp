@@ -23,14 +23,11 @@ private:
         handlers["/"] = [] (Mif::Net::Http::IInputPack const &request,
                 Mif::Net::Http::IOutputPack &response)
         {
-            auto data = request.GetData();
+            auto const data = request.GetData();
 
-            MIF_LOG(Info) << "Process request \"" << request.GetPath() << request.GetQuery() << "\"\t Data: "
-                    << (data.empty() ? std::string{"null"} : std::string{std::begin(data), std::end(data)});
+            MIF_LOG(Info) << "Received bytes: " << data.size();
 
             response.SetCode(Mif::Net::Http::Code::Ok);
-            response.SetHeader(Mif::Net::Http::Constants::Header::Response::Connection::Value,
-                               Mif::Net::Http::Constants::Value::Connection::Close::Value);
 
             response.SetData(std::move(data));
         };

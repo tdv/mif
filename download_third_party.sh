@@ -1,7 +1,6 @@
 mkdir third_party_sources ||:
 cd third_party_sources
 git clone --branch v1.2.9 https://github.com/madler/zlib.git
-git clone --branch 1.9.4 https://github.com/open-source-parsers/jsoncpp.git
 
 wget https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz
 tar zxvf boost_1_75_0.tar.gz

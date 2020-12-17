@@ -10,9 +10,6 @@ link_directories (${THITD_PARTY_PATH}/zlib/lib)
 include_directories (SYSTEM ${THITD_PARTY_PATH}/boost/include)
 link_directories (${THITD_PARTY_PATH}/boost/lib)
 
-include_directories (SYSTEM ${THITD_PARTY_PATH}/jsoncpp/include)
-link_directories (${THITD_PARTY_PATH}/jsoncpp/lib)
-
 include_directories (SYSTEM ${THITD_PARTY_PATH}/event/include)
 link_directories (${THITD_PARTY_PATH}/event/lib)
 

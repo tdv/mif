@@ -22,7 +22,6 @@ Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
 # Dependencies
 - Boost
 - zlib
-- jsoncpp
 - pugixml
 - libpq
 

@@ -6,12 +6,7 @@ include(cmake/third_party_paths.cmake)
 set (MIF_THIRD_PARTY_LIBS
     ${MIF_THIRD_PARTY_LIBS}
     zlib
-    jsoncpp
     pugixml
-)
-
-set (JSONCPP_LIBRARIES
-    jsoncpp
 )
 
 set (ZLIB_LIBRARIES
@@ -20,6 +15,7 @@ set (ZLIB_LIBRARIES
 
 set (BOOST_LIBRARIES
     iostreams
+    json
     date_time
     serialization
     program_options
@@ -35,19 +31,6 @@ set (PUGIXML_LIBRARIES
 
 set (LIBPQ_LIBRARIES
     pq.a
-)
-
-set (MIF_JSONCPP_CMAKE_ARGS "-DJSONCPP_WITH_TESTS=OFF"
-    "-DJSONCPP_WITH_TESTS=OFF"
-    "-DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF"
-    "-DJSONCPP_WITH_WARNING_AS_ERROR=OFF"
-    "-DJSONCPP_WITH_STRICT_ISO=OFF"
-    "-DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF"
-    "-DJSONCPP_WITH_CMAKE_PACKAGE=ON"
-    "-DJSONCPP_WITH_EXAMPLE=OFF"
-    "-DBUILD_SHARED_LIBS=OFF"
-    "-DBUILD_STATIC_LIBS=ON"
-    "-DBUILD_OBJECT_LIBS=ON"
 )
 
 set (MIF_THIRD_PARTY_PROJECTS "")

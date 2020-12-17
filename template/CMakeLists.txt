@@ -31,9 +31,6 @@ set (ZLIB_TAG "v1.2.9")
 
 set (BOOST_URL "https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz")
 
-set (JSONCPP_URL "https://github.com/open-source-parsers/jsoncpp.git")
-set (JSONCPP_TAG "1.9.4")
-
 set (PUGIXML_URL "http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz")
 
 set (LIBPQ_URL "https://github.com/postgres/postgres.git")
@@ -74,6 +71,7 @@ list (APPEND LIBRARIES "z.a")
 #------------------------ Boost --------------------------
 set (BOOST_LIBRARIES
     "iostreams"
+    "json"
     "date_time"
     "serialization"
     "program_options"
@@ -118,41 +116,6 @@ ExternalProject_Add(${BOOST_PROJECT}
 foreach (lib ${BOOST_LIBRARIES})
     list (APPEND LIBRARIES boost_${lib})
 endforeach()
-#---------------------------------------------------------
-
-#------------------------ JsonCpp ------------------------
-set (JSONCPP_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/jsoncpp)
-set (JSONCPP_INCLUDE_DIR ${JSONCPP_INSTALL_DIR}/include)
-set (JSONCPP_LIBRARIES_DIR ${JSONCPP_INSTALL_DIR}/lib)
-include_directories (SYSTEM ${JSONCPP_INCLUDE_DIR})
-link_directories(${JSONCPP_LIBRARIES_DIR})
-
-set (JSONCPP_PROJECT "jsoncpp-project")
-list (APPEND THIRD_PARTY_PROJECTS ${JSONCPP_PROJECT})
-
-ExternalProject_Add (${JSONCPP_PROJECT}
-            GIT_REPOSITORY ${JSONCPP_URL}
-            GIT_TAG ${JSONCPP_TAG}
-            UPDATE_COMMAND ""
-            BUILD_IN_SOURCE 1
-            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${JSONCPP_INSTALL_DIR} 
-                -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
-                -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF
-                -DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF
-                -DJSONCPP_WITH_CMAKE_PACKAGE=OFF
-                -DBUILD_SHARED_LIBS=OFF
-                -DBUILD_STATIC_LIBS=ON
-                -DJSONCPP_WITH_TESTS=OFF
-            LOG_DOWNLOAD 1
-            LOG_UPDATE 1
-            LOG_CONFIGURE 1
-            LOG_BUILD 1
-            LOG_TEST 1
-            LOG_INSTALL 1
-        )
-
-list (APPEND LIBRARIES "jsoncpp")
 #---------------------------------------------------------
 
 #------------------------ LibPQ --------------------------
@@ -237,13 +200,11 @@ ExternalProject_Add (${MIF_PROJECT}
                 -DZLIB_LIBRARIES_DIR=${ZLIB_LIBRARIES_DIR}
                 -DBOOST_INCLUDE_DIR=${BOOST_INCLUDE_DIR}
                 -DBOOST_LIBRARIES_DIR=${BOOST_LIBRARIES_DIR}
-                -DJSONCPP_INCLUDE_DIR=${JSONCPP_INCLUDE_DIR}
-                -DJSONCPP_LIBRARIES_DIR=${JSONCPP_LIBRARIES_DIR}
                 -DLIBPQ_INCLUDE_DIR=${LIBPQ_INCLUDE_DIR}
                 -DLIBPQ_LIBRARIES_DIR=${LIBPQ_LIBRARIES_DIR}
                 -DPUGIXML_INCLUDE_DIR=${PUGIXML_INCLUDE_DIR}
                 -DPUGIXML_LIBRARIES_DIR=${PUGIXML_LIBRARIES_DIR}
-            DEPENDS ${BOOST_PROJECT} ${JSONCPP_PROJECT} ${PUGIXML_PROJECT} ${LIBPQ_PROJECT}
+            DEPENDS ${BOOST_PROJECT} ${PUGIXML_PROJECT} ${LIBPQ_PROJECT}
             BUILD_COMMAND ${MAKE}
             LOG_DOWNLOAD 1
             LOG_UPDATE 1
