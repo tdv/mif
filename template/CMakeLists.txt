@@ -29,7 +29,7 @@ list (APPEND LIBRARIES "mif")
 set (ZLIB_URL "https://github.com/madler/zlib.git")
 set (ZLIB_TAG "v1.2.9")
 
-set (BOOST_URL "https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz")
+set (BOOST_URL "https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz")
 
 set (PUGIXML_URL "http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz")
 
