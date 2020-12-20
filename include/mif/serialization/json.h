@@ -22,10 +22,7 @@
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/stream.hpp>
-
-// JSONCPP
-#include <json/json.h>
-#include <json/reader.h>
+#include <boost/json.hpp>
 
 // MIF
 #include "mif/common/types.h"
@@ -64,168 +61,169 @@ namespace Mif
                 struct BasesDeserializer;
 
                 template <typename T>
-                typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, ::Json::Value>::type
+                typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, boost::json::value>::type
                 ValueToJson(T const &object);
 
                 template <typename T>
-                typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, ::Json::Value>::type
+                typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, boost::json::value>::type
                 ValueToJson(T const &object);
 
                 template <typename T>
-                typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
+                typename std::enable_if<Traits::IsSimple<T>(), boost::json::value>::type
                 ValueToJson(T const &object);
 
                 template <typename T>
-                typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, ::Json::Value>::type
+                typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, boost::json::value>::type
                 ValueToJson(T const &object);
 
                 template <typename T>
-                typename std::enable_if<Traits::IsSmartPointer<T>(), ::Json::Value>::type
+                typename std::enable_if<Traits::IsSmartPointer<T>(), boost::json::value>::type
                 ValueToJson(T const &ptr);
 
                 template <typename T>
-                typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
+                typename std::enable_if<Traits::IsIterable<T>(), boost::json::value>::type
                 ValueToJson(T const &array);
 
                 template <typename ... T>
-                ::Json::Value ValueToJson(std::tuple<T ... > const &tuple);
+                boost::json::value ValueToJson(std::tuple<T ... > const &tuple);
 
                 template <typename TFirst, typename TSecond>
-                ::Json::Value ValueToJson(std::pair<TFirst, TSecond> const &pair);
+                boost::json::value ValueToJson(std::pair<TFirst, TSecond> const &pair);
 
                 template <typename T>
                 typename std::enable_if<Traits::IsSimple<T>(), T>::type&
-                JsonToValue(::Json::Value const &root, T &object);
+                JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename T>
                 inline typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, T>::type&
-                JsonToValue(::Json::Value const &root, T &object);
+                JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename T>
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, T>::type&
-                JsonToValue(::Json::Value const &root, T &object);
+                JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename T>
                 typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, T>::type&
-                JsonToValue(::Json::Value const &root, T &object);
+                JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename T>
                 typename std::enable_if<Traits::IsSmartPointer<T>(), T>::type&
-                JsonToValue(::Json::Value const &root, T &object);
+                JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename TFirst, typename TSecond>
                 std::pair<TFirst, TSecond>&
-                JsonToValue(::Json::Value const &root, std::pair<TFirst, TSecond> &pair);
+                JsonToValue(boost::json::value const &root, std::pair<TFirst, TSecond> &pair);
 
                 template <typename ... T>
                 std::tuple<T ... >&
-                JsonToValue(::Json::Value const &root, std::tuple<T ... > &tuple);
+                JsonToValue(boost::json::value const &root, std::tuple<T ... > &tuple);
 
                 template <typename T, std::size_t N>
                 std::array<T, N>&
-                JsonToValue(::Json::Value const &root, std::array<T, N> &array);
+                JsonToValue(boost::json::value const &root, std::array<T, N> &array);
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsIterable<T>(), T>::type&
-                JsonToValue(::Json::Value const &root, T &object);
+                JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename T>
-                inline typename std::enable_if<std::is_pointer<T>::value, ::Json::Value>::type
+                inline typename std::enable_if<std::is_pointer<T>::value, boost::json::value>::type
                 ValueToJson(T const &)
                 {
                     static_assert(!std::is_pointer<T>::value, "[Mif::Serialization::Json::Detail] You can't serialize the raw pointers.");
                 }
 
                 template <typename T>
-                inline typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, ::Json::Value>::type
+                inline typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, boost::json::value>::type
                 ValueToJson(T const &object)
                 {
                     return ValueToJson(static_cast<typename std::underlying_type<T>::type>(object));
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, ::Json::Value>::type
+                inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, boost::json::value>::type
                 ValueToJson(T const &object)
                 {
-                    return Reflection::ToString(object);
+                    return  boost::json::value_from(Reflection::ToString(object));
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Traits::IsSimple<T>(), ::Json::Value>::type
+                inline typename std::enable_if<Traits::IsSimple<T>(), boost::json::value>::type
                 ValueToJson(T const &object)
                 {
-                    return {object};
+                    return boost::json::value_from(object);
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, ::Json::Value>::type
+                inline typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, boost::json::value>::type
                 ValueToJson(T const &object)
                 {
-                    ::Json::Value root{::Json::objectValue};
+                    auto root = boost::json::value_from(boost::json::object{});
                     using BasesType = typename Reflection::Reflect<T>::Base;
                     BasesSerializer<BasesType, std::tuple_size<BasesType>::value>::Serialize(root, object);
                     Serializer<Reflection::Reflect<T>::Fields::Count>::Serialize(root, object);
-                    return root;
+                    return boost::json::value_from(root);
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Traits::IsSmartPointer<T>(), ::Json::Value>::type
+                inline typename std::enable_if<Traits::IsSmartPointer<T>(), boost::json::value>::type
                 ValueToJson(T const &ptr)
                 {
                     if (!ptr)
-                        return {::Json::nullValue};
+                        return boost::json::value{};
                     return ValueToJson(*ptr);
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Traits::IsIterable<T>(), ::Json::Value>::type
+                inline typename std::enable_if<Traits::IsIterable<T>(), boost::json::value>::type
                 ValueToJson(T const &array)
                 {
-                    ::Json::Value root{::Json::arrayValue};
+                    boost::json::array root;
 
                     for (auto const &i : array)
-                        root.append(ValueToJson(i));
+                        root.push_back(ValueToJson(i));
 
-                    return root;
+                    return boost::json::value_from(root);
                 }
 
                 template <typename T, std::size_t ... Indexes>
-                inline ::Json::Value TupleToJson(T const &tuple, Common::IndexSequence<Indexes ... > const *)
+                inline boost::json::value TupleToJson(T const &tuple, Common::IndexSequence<Indexes ... > const *)
                 {
-                    ::Json::Value root(::Json::arrayValue);
+                    boost::json::array root;
+                    root.resize(sizeof ... (Indexes));
 
-                    Common::Unused(root[static_cast<::Json::Value::ArrayIndex>(Indexes)] = ValueToJson(std::get<Indexes>(tuple)) ... );
+                    Common::Unused(root[Indexes] = ValueToJson(std::get<Indexes>(tuple)) ... );
 
-                    return root;
+                    return boost::json::value_from(root);
                 }
 
                 template <typename ... T>
-                inline ::Json::Value ValueToJson(std::tuple<T ... > const &tuple)
+                inline boost::json::value ValueToJson(std::tuple<T ... > const &tuple)
                 {
                     using TupleType = std::tuple<T ... >;
                     return TupleToJson(tuple, static_cast<Common::MakeIndexSequence<std::tuple_size<TupleType>::value> const *>(nullptr));
                 }
 
                 template <typename TFirst, typename TSecond>
-                inline ::Json::Value ValueToJson(std::pair<TFirst, TSecond> const &pair)
+                inline boost::json::value ValueToJson(std::pair<TFirst, TSecond> const &pair)
                 {
-                    ::Json::Value root{::Json::objectValue};
+                    boost::json::object root;
 
                     root[Tag::Id::Value] = ValueToJson(pair.first);
                     root[Tag::Value::Value] = ValueToJson(pair.second);
 
-                    return root;
+                    return boost::json::value_from(root);
                 }
 
                 template <typename TBases, std::size_t I>
                 struct BasesSerializer
                 {
                     template <typename T>
-                    static void Serialize(::Json::Value &root, T const &object)
+                    static void Serialize(boost::json::value &root, T const &object)
                     {
                         BasesSerializer<TBases, I - 1>::Serialize(root, object);
                         using BaseType = typename std::tuple_element<I - 1, TBases>::type;
-                        root[Reflection::Reflect<BaseType>::Name::Value] = ValueToJson(static_cast<BaseType const &>(object));
+                        root.as_object()[Reflection::Reflect<BaseType>::Name::Value] = ValueToJson(static_cast<BaseType const &>(object));
                     }
                 };
 
@@ -233,7 +231,7 @@ namespace Mif
                 struct BasesSerializer<TBases, 0>
                 {
                     template <typename T>
-                    static void Serialize(::Json::Value &, T const &)
+                    static void Serialize(boost::json::value &, T const &)
                     {
                     }
                 };
@@ -242,11 +240,11 @@ namespace Mif
                 struct Serializer
                 {
                     template <typename T>
-                    static void Serialize(::Json::Value &root, T const &object)
+                    static void Serialize(boost::json::value &root, T const &object)
                     {
                         Serializer<I - 1>::Serialize(root, object);
                         using FieldType = typename Reflection::Reflect<T>::Fields::template Field<I - 1>;
-                        root[FieldType::Name::Value] = ValueToJson(object.*FieldType::Access());
+                        root.as_object()[FieldType::Name::Value] = ValueToJson(object.*FieldType::Access());
                     }
                 };
 
@@ -254,7 +252,7 @@ namespace Mif
                 struct Serializer<0>
                 {
                     template <typename T>
-                    static void Serialize(::Json::Value &, T &)
+                    static void Serialize(boost::json::value &, T &)
                     {
                     }
                 };
@@ -265,84 +263,113 @@ namespace Mif
                 template <>
                 struct JsonValueConverter<std::string>
                 {
-                    static std::string Convert(::Json::Value const &val)
+                    static std::string Convert(boost::json::value const &val)
                     {
-                        if (!val.isString() && !val.isConvertibleTo(::Json::stringValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to string."};
-                        return val.asString();
+                        if (auto const *v = val.if_bool())
+                            return std::to_string(*v);
+                        if (auto const *v = val.if_double())
+                            return std::to_string(*v);
+                        if (auto const *v = val.if_int64())
+                            return std::to_string(*v);
+                        if (auto const *v = val.if_string())
+                            return v->c_str();
+                        if (auto const *v = val.if_uint64())
+                            return std::to_string(*v);
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to string."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<double>
                 {
-                    static double Convert(::Json::Value const &val)
+                    static double Convert(boost::json::value const &val)
                     {
-                        if (!val.isDouble() && !val.isConvertibleTo(::Json::realValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to double."};
-                        return val.asDouble();
+                        if (auto const *v = val.if_double())
+                            return *v;
+                        if (auto const *v = val.if_int64())
+                            return *v;
+                        if (auto const *v = val.if_uint64())
+                            return *v;
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to double."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<bool>
                 {
-                    static bool Convert(::Json::Value const &val)
+                    static bool Convert(boost::json::value const &val)
                     {
-                        if (!val.isBool() && !val.isConvertibleTo(::Json::booleanValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to bool."};
-                        return val.asBool();
+                        if (auto const *v = val.if_bool())
+                            return *v;
+                        if (auto const *v = val.if_int64())
+                            return !!*v;
+                        if (auto const *v = val.if_uint64())
+                            return !!*v;
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to bool."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<std::int64_t>
                 {
-                    static std::int64_t Convert(::Json::Value const &val)
+                    static std::int64_t Convert(boost::json::value const &val)
                     {
-                        if (!val.isInt64() && !val.isConvertibleTo(::Json::intValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to int64."};
-                        return val.asInt64();
+                        if (auto const *v = val.if_int64())
+                            return *v;
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to int64."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<std::uint64_t>
                 {
-                    static std::uint64_t Convert(::Json::Value const &val)
+                    static std::uint64_t Convert(boost::json::value const &val)
                     {
-                        if (!val.isUInt64() && !val.isConvertibleTo(::Json::intValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to uint64."};
-                        return val.asUInt64();
+                        if (auto const *v = val.if_uint64())
+                            return *v;
+
+                        if (auto const *v = val.if_int64())
+                            return static_cast<std::uint64_t>(*v);
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to uint64."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<std::int32_t>
                 {
-                    static std::int32_t Convert(::Json::Value const &val)
+                    static std::int32_t Convert(boost::json::value const &val)
                     {
-                        if (!val.isInt() && !val.isConvertibleTo(::Json::intValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to int32."};
-                        return val.asInt();
+                        if (auto const *v = val.if_int64())
+                            return static_cast<std::int32_t>(*v);
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to int32."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<std::uint32_t>
                 {
-                    static std::uint32_t Convert(::Json::Value const &val)
+                    static std::uint32_t Convert(boost::json::value const &val)
                     {
-                        if (!val.isUInt() && !val.isConvertibleTo(::Json::intValue))
-                            throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to uint32."};
-                        return val.asUInt();
+                        if (auto const *v = val.if_uint64())
+                            return static_cast<std::uint32_t>(*v);
+
+                        if (auto const *v = val.if_int64())
+                            return static_cast<std::uint32_t>(*v);
+
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonValueConverter::Convert] Failed to convert to uint32."};
                     }
                 };
 
                 template <>
                 struct JsonValueConverter<std::int16_t>
                 {
-                    static std::int16_t Convert(::Json::Value const &val)
+                    static std::int16_t Convert(boost::json::value const &val)
                     {
                         return static_cast<std::int16_t>(JsonValueConverter<std::int32_t>::Convert(val));
                     }
@@ -351,7 +378,7 @@ namespace Mif
                 template <>
                 struct JsonValueConverter<std::uint16_t>
                 {
-                    static std::uint16_t Convert(::Json::Value const &val)
+                    static std::uint16_t Convert(boost::json::value const &val)
                     {
                         return static_cast<std::uint16_t>(JsonValueConverter<std::int32_t>::Convert(val));
                     }
@@ -360,7 +387,7 @@ namespace Mif
                 template <>
                 struct JsonValueConverter<std::int8_t>
                 {
-                    static std::int8_t Convert(::Json::Value const &val)
+                    static std::int8_t Convert(boost::json::value const &val)
                     {
                         return static_cast<std::int8_t>(JsonValueConverter<std::int32_t>::Convert(val));
                     }
@@ -369,7 +396,7 @@ namespace Mif
                 template <>
                 struct JsonValueConverter<std::uint8_t>
                 {
-                    static std::uint8_t Convert(::Json::Value const &val)
+                    static std::uint8_t Convert(boost::json::value const &val)
                     {
                         return static_cast<std::uint8_t>(JsonValueConverter<std::int32_t>::Convert(val));
                     }
@@ -377,9 +404,9 @@ namespace Mif
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsSimple<T>(), T>::type&
-                JsonToValue(::Json::Value const &root, T &object)
+                JsonToValue(boost::json::value const &root, T &object)
                 {
-                    if (root.isNull())
+                    if (root.is_null())
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
                     object = JsonValueConverter<T>::Convert(root);
                     return object;
@@ -387,9 +414,9 @@ namespace Mif
 
                 template <typename T>
                 inline typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, T>::type&
-                JsonToValue(::Json::Value const &root, T &object)
+                JsonToValue(boost::json::value const &root, T &object)
                 {
-                    if (root.isNull())
+                    if (root.is_null())
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
                     object = static_cast<T>(JsonValueConverter<typename std::underlying_type<T>::type>::Convert(root));
                     return object;
@@ -397,9 +424,9 @@ namespace Mif
 
                 template <typename T>
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, T>::type&
-                JsonToValue(::Json::Value const &root, T &object)
+                JsonToValue(boost::json::value const &root, T &object)
                 {
-                    if (root.isNull())
+                    if (root.is_null())
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value from null."};
                     object = Reflection::FromString<T>(JsonValueConverter<std::string>::Convert(root));
                     return object;
@@ -407,9 +434,10 @@ namespace Mif
 
                 template <typename T>
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && !std::is_enum<T>::value, T>::type&
-                JsonToValue(::Json::Value const &root, T &object)
+                JsonToValue(boost::json::value const &root, T &object)
                 {
-                    if (root.isNull() || (root.type() != ::Json::objectValue && !root.isConvertibleTo(::Json::objectValue)))
+                    auto const *val = root.if_object();
+                    if (!val)
                     {
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value. "
                             "Json element is invalid or is not converted to the correct type."};
@@ -418,15 +446,15 @@ namespace Mif
                     using BasesType = typename Reflection::Reflect<T>::Base;
                     BasesDeserializer<BasesType, std::tuple_size<BasesType>::value>::Deserialize(root, object);
 
-                    Deserializer<Reflection::Reflect<T>::Fields::Count>::Deserialize(root, object);
+                    Deserializer<Reflection::Reflect<T>::Fields::Count>::Deserialize(*val, object);
                     return object;
                 }
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsSmartPointer<T>(), T>::type&
-                JsonToValue(::Json::Value const &root, T &object)
+                JsonToValue(boost::json::value const &root, T &object)
                 {
-                    if (root.isNull())
+                    if (root.is_null())
                         return object;
 
                     using ObjectType = typename T::element_type;
@@ -438,62 +466,65 @@ namespace Mif
 
                 template <typename TFirst, typename TSecond>
                 inline std::pair<TFirst, TSecond>&
-                JsonToValue(::Json::Value const &root, std::pair<TFirst, TSecond> &pair)
+                JsonToValue(boost::json::value const &root, std::pair<TFirst, TSecond> &pair)
                 {
-                    if ((root.isNull() || !root.isMember(Tag::Id::Value) || !root.isMember(Tag::Value::Value)) ||
-                        (root.type() != ::Json::objectValue && !root.isConvertibleTo(::Json::objectValue)))
+                    auto const *obj = root.if_object();
+                    if (!obj && !obj->contains(Tag::Id::Value) && !obj->contains(Tag::Value::Value))
                     {
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
                             "Value is null or json has no pair type object."};
                     }
 
-                    JsonToValue(root.get(Tag::Id::Value, ::Json::Value{}),
-                        const_cast<typename std::remove_const<TFirst>::type &>(pair.first));
-                    JsonToValue(root.get(Tag::Value::Value, ::Json::Value{}), pair.second);
+                    JsonToValue(*obj->if_contains(Tag::Id::Value),
+                            const_cast<typename std::remove_const<TFirst>::type &>(pair.first));
+
+                    JsonToValue(*obj->if_contains(Tag::Value::Value), pair.second);
 
                     return pair;
                 }
 
                 template <typename T, std::size_t ... Indexes>
-                inline void JsonToTuple(::Json::Value const &root, T &tuple, Common::IndexSequence<Indexes ... > const *)
+                inline void JsonToTuple(boost::json::value const &root, T &tuple, Common::IndexSequence<Indexes ... > const *)
                 {
-                    Common::Unused(JsonToValue(root.get(static_cast<::Json::Value::ArrayIndex>(Indexes), ::Json::Value{}), std::get<Indexes>(tuple)) ... );
+                    Common::Unused(JsonToValue(root.as_array()[Indexes], std::get<Indexes>(tuple)) ... );
                 }
 
                 template <typename ... T>
                 inline std::tuple<T ... >&
-                JsonToValue(::Json::Value const &root, std::tuple<T ... > &tuple)
+                JsonToValue(boost::json::value const &root, std::tuple<T ... > &tuple)
                 {
-                    if (root.isNull() || (root.type() != ::Json::arrayValue && !root.isConvertibleTo(::Json::arrayValue)))
+                    auto const *array = root.if_array();
+                    if (!array)
                     {
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
                             "Value is null or json has no tuple type object."};
                     }
 
                     using TupleType = std::tuple<T ... >;
-                    JsonToTuple(root, tuple, static_cast<Common::MakeIndexSequence<std::tuple_size<TupleType>::value> const *>(nullptr));
+                    JsonToTuple(*array, tuple, static_cast<Common::MakeIndexSequence<std::tuple_size<TupleType>::value> const *>(nullptr));
 
                     return tuple;
                 }
 
                 template <typename T, std::size_t ... Indexes>
-                inline void JsonToArray(::Json::Value const &root, std::array<T, sizeof ... (Indexes)> &array, Common::IndexSequence<Indexes ... > const *)
+                inline void JsonToArray(boost::json::value const &root, std::array<T, sizeof ... (Indexes)> &array, Common::IndexSequence<Indexes ... > const *)
                 {
-                    Common::Unused(JsonToValue(root.get(static_cast<::Json::Value::ArrayIndex>(Indexes), ::Json::Value{}), array[Indexes]) ... );
+                    Common::Unused(JsonToValue(root.as_array()[Indexes], array[Indexes]) ... );
                 }
 
                 template <typename T, std::size_t N>
                 inline std::array<T, N>&
-                JsonToValue(::Json::Value const &root, std::array<T, N> &array)
+                JsonToValue(boost::json::value const &root, std::array<T, N> &array)
                 {
-                    if (root.isNull() || (root.type() != ::Json::arrayValue && !root.isConvertibleTo(::Json::arrayValue)))
+                    auto const *arr = root.if_array();
+                    if (!arr)
                     {
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to parse pair. "
                             "Value is null or json has no array type object."};
                     }
 
                     std::array<T, N> tmp;
-                    JsonToArray(root, tmp, static_cast<Common::MakeIndexSequence<N> const *>(nullptr));
+                    JsonToArray(*arr, tmp, static_cast<Common::MakeIndexSequence<N> const *>(nullptr));
                     std::swap(array, tmp);
 
                     return array;
@@ -501,9 +532,10 @@ namespace Mif
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsIterable<T>(), T>::type&
-                JsonToValue(::Json::Value const &root, T &object)
+                JsonToValue(boost::json::value const &root, T &object)
                 {
-                    if (root.isNull() || (root.type() != ::Json::arrayValue && !root.isConvertibleTo(::Json::arrayValue)))
+                    auto const *arr = root.if_array();
+                    if (!arr)
                     {
                         throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value. "
                             "Json element is invalid or is not converted to the array."};
@@ -511,12 +543,12 @@ namespace Mif
 
                     T{}.swap(object);
 
-                    if (!root.size())
+                    if (!arr->size())
                         return object;
 
                     using ObjectType = typename T::value_type;
 
-                    for (auto const &i : root)
+                    for (auto const &i : *arr)
                     {
                         ObjectType item;
                         JsonToValue(i, item);
@@ -530,11 +562,12 @@ namespace Mif
                 struct BasesDeserializer
                 {
                     template <typename T>
-                    static void Deserialize(::Json::Value const &root, T &object)
+                    static void Deserialize(boost::json::value const &root, T &object)
                     {
                         BasesDeserializer<TBases, I - 1>::Deserialize(root, object);
                         using BaseType = typename std::tuple_element<I - 1, TBases>::type;
-                        JsonToValue(root.get(Reflection::Reflect<BaseType>::Name::Value, ::Json::Value{}), static_cast<BaseType &>(object));
+                        auto tmp = boost::json::value_from(root.as_object().at(Reflection::Reflect<BaseType>::Name::Value));
+                        JsonToValue(tmp, static_cast<BaseType &>(object));
                     }
                 };
 
@@ -542,7 +575,7 @@ namespace Mif
                 struct BasesDeserializer<TBases, 0>
                 {
                     template <typename T>
-                    static void Deserialize(::Json::Value const &, T &)
+                    static void Deserialize(boost::json::value const &, T &)
                     {
                     }
                 };
@@ -552,11 +585,11 @@ namespace Mif
                 struct Deserializer
                 {
                     template <typename T>
-                    static void Deserialize(::Json::Value const &root, T &object)
+                    static void Deserialize(boost::json::value const &root, T &object)
                     {
                         Deserializer<I - 1>::Deserialize(root, object);
                         using FieldType = typename Reflection::Reflect<T>::Fields::template Field<I - 1>;
-                        JsonToValue(root.get(FieldType::Name::Value, ::Json::Value{}), object.*FieldType::Access());
+                        JsonToValue(root.as_object().at(FieldType::Name::Value), object.*FieldType::Access());
                     }
                 };
 
@@ -564,7 +597,7 @@ namespace Mif
                 struct Deserializer<0>
                 {
                     template <typename T>
-                    static void Deserialize(::Json::Value const &, T &)
+                    static void Deserialize(boost::json::value const &, T &)
                     {
                     }
                 };
@@ -575,10 +608,11 @@ namespace Mif
             inline typename std::enable_if<Reflection::IsReflectable<T>(), void>::type
             Serialize(T const &object, TStream &stream)
             {
-                ::Json::Value root{::Json::objectValue};
+                auto root = boost::json::value_from(boost::json::object{});
                 using BasesType = typename Reflection::Reflect<T>::Base;
                 Detail::BasesSerializer<BasesType, std::tuple_size<BasesType>::value>::Serialize(root, object);
                 Detail::Serializer<Reflection::Reflect<T>::Fields::Count>::Serialize(root, object);
+                boost::json::serializer sr;
                 stream << root;
             }
 
@@ -603,7 +637,7 @@ namespace Mif
             {
                 if (!rootName.empty())
                 {
-                    ::Json::Value root{::Json::objectValue};
+                    boost::json::object root;
                     root[rootName] = Detail::ValueToJson(object);
                     stream << root;
                 }
@@ -632,8 +666,11 @@ namespace Mif
             inline typename std::enable_if<Reflection::IsReflectable<T>(), T>::type
             Deserialize(TStream &stream)
             {
-                ::Json::Value root;
-                stream >> root;
+                Common::Buffer buffer;
+                std::copy(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>(),
+                        std::back_inserter(buffer));
+                auto root = boost::json::parse({buffer.data(), buffer.size()});
+
                 T object;
                 using BasesType = typename Reflection::Reflect<T>::Base;
                 Detail::BasesDeserializer<BasesType, std::tuple_size<BasesType>::value>::Deserialize(root, object);
@@ -656,10 +693,13 @@ namespace Mif
             inline typename std::enable_if<!Reflection::IsReflectable<T>(), T>::type
             Deserialize(TStream &stream, std::string const &rootName = {})
             {
-                ::Json::Value root;
-                stream >> root;
+                Common::Buffer buffer;
+                std::copy(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>(),
+                        std::back_inserter(buffer));
+                auto root = boost::json::parse({buffer.data(), buffer.size()});
+
                 T object{};
-                Detail::JsonToValue<T>(rootName.empty() ? root : root.get(rootName, ::Json::Value{}), object);
+                Detail::JsonToValue<T>(rootName.empty() ? root : root.as_object()[rootName], object);
                 return object;
             }
 
