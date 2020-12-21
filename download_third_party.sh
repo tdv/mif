@@ -11,8 +11,3 @@ wget https://github.com/postgres/postgres/archive/REL9_6_2.tar.gz
 tar zxvf REL9_6_2.tar.gz
 mv postgres-REL9_6_2 libpq
 rm REL9_6_2.tar.gz
-
-wget http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz
-tar zxvf pugixml-1.8.tar.gz
-mv pugixml-1.8 pugixml
-rm pugixml-1.8.tar.gz

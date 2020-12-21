@@ -28,7 +28,6 @@ set(LIBRARIES
     boost_system
     event
     event_pthreads
-    pugixml
     pthread
     z
     rt

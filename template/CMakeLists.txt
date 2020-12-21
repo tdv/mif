@@ -31,8 +31,6 @@ set (ZLIB_TAG "v1.2.9")
 
 set (BOOST_URL "https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz")
 
-set (PUGIXML_URL "http://github.com/zeux/pugixml/releases/download/v1.8/pugixml-1.8.tar.gz")
-
 set (LIBPQ_URL "https://github.com/postgres/postgres.git")
 set (LIBPQ_TAG "REL9_6_2")
 
@@ -148,34 +146,6 @@ ExternalProject_Add (${LIBPQ_PROJECT}
 list (APPEND LIBRARIES "pq.a")
 #---------------------------------------------------------
 
-#------------------------ PugiXml ------------------------
-set (PUGIXML_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/pugixml)
-set (PUGIXML_INCLUDE_DIR ${PUGIXML_INSTALL_DIR}/include)
-set (PUGIXML_LIBRARIES_DIR ${PUGIXML_INSTALL_DIR}/lib)
-include_directories (SYSTEM ${PUGIXML_INCLUDE_DIR})
-link_directories(${PUGIXML_LIBRARIES_DIR})
-
-set (PUGIXML_PROJECT "pugixml-project")
-list (APPEND THIRD_PARTY_PROJECTS ${PUGIXML_PROJECT})
-
-ExternalProject_Add (${PUGIXML_PROJECT}
-            URL ${PUGIXML_URL}
-            UPDATE_COMMAND ""
-            BUILD_IN_SOURCE 1
-            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:INTERNAL=${PUGIXML_INSTALL_DIR} 
-                -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
-                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} 
-            LOG_DOWNLOAD 1
-            LOG_UPDATE 1
-            LOG_CONFIGURE 1
-            LOG_BUILD 1
-            LOG_TEST 1
-            LOG_INSTALL 1
-        )
-
-list (APPEND LIBRARIES "pugixml")
-#---------------------------------------------------------
-
 #------------------------ MIF ----------------------------
 set (MIF_INSTALL_DIR ${THITD_PARTY_OUTPUT_PATH}/mif)
 set (MIF_INCLUDE_DIR ${MIF_INSTALL_DIR}/include)
@@ -202,9 +172,7 @@ ExternalProject_Add (${MIF_PROJECT}
                 -DBOOST_LIBRARIES_DIR=${BOOST_LIBRARIES_DIR}
                 -DLIBPQ_INCLUDE_DIR=${LIBPQ_INCLUDE_DIR}
                 -DLIBPQ_LIBRARIES_DIR=${LIBPQ_LIBRARIES_DIR}
-                -DPUGIXML_INCLUDE_DIR=${PUGIXML_INCLUDE_DIR}
-                -DPUGIXML_LIBRARIES_DIR=${PUGIXML_LIBRARIES_DIR}
-            DEPENDS ${BOOST_PROJECT} ${PUGIXML_PROJECT} ${LIBPQ_PROJECT}
+            DEPENDS ${BOOST_PROJECT} ${LIBPQ_PROJECT}
             BUILD_COMMAND ${MAKE}
             LOG_DOWNLOAD 1
             LOG_UPDATE 1

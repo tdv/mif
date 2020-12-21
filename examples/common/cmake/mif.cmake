@@ -23,9 +23,6 @@ if (MIF_WITH_SQLITE)
     link_directories (${THITD_PARTY_PATH}/sqlite/lib)
 endif()
 
-include_directories (SYSTEM ${THITD_PARTY_PATH}/pugixml/include)
-link_directories (${THITD_PARTY_PATH}/pugixml/lib)
-
 include_directories (SYSTEM ${THITD_PARTY_PATH}/mif/include)
 link_directories (${THITD_PARTY_PATH}/mif/lib)
 

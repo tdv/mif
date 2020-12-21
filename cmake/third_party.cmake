@@ -6,7 +6,6 @@ include(cmake/third_party_paths.cmake)
 set (MIF_THIRD_PARTY_LIBS
     ${MIF_THIRD_PARTY_LIBS}
     zlib
-    pugixml
 )
 
 set (ZLIB_LIBRARIES
@@ -23,10 +22,6 @@ set (BOOST_LIBRARIES
     filesystem
     thread
     system
-)
-
-set (PUGIXML_LIBRARIES
-    pugixml
 )
 
 set (LIBPQ_LIBRARIES

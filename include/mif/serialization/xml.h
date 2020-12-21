@@ -26,9 +26,9 @@
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
-// PUGIXML
-#include <pugixml.hpp>
 
 // MIF
 #include "mif/common/types.h"
@@ -54,7 +54,7 @@ namespace Mif
 
                 }   // namespace Tag
 
-                using NodeType = pugi::xml_node;
+                using NodeType = boost::property_tree::ptree;
 
                 //--------------------------------------------------------------------------------------------------------------------------
 
@@ -190,15 +190,14 @@ namespace Mif
                 template <typename T>
                 inline void Serialize(std::ostream &stream, T const &object, std::string const &root)
                 {
-                    pugi::xml_document doc;
-
-                    auto decl = doc.append_child(pugi::xml_node_type::node_declaration);
-                    decl.append_attribute("version") = "1.0";
-                    decl.append_attribute("encoding") = "UTF-8";
+                    NodeType doc;
 
                     Serialize(doc, object, root);
 
-                    doc.save(stream);
+                    auto const settings = boost::property_tree::xml_writer_make_settings<std::string>(
+                            '\t', 1, "utf-8");
+
+                    boost::property_tree::write_xml(stream, doc, settings);
                 }
 
 
@@ -227,7 +226,7 @@ namespace Mif
                     using Meta = Reflection::Reflect<T>;
                     using Bases = typename Meta::Base;
                     auto const itemName = !name.empty() ? name : Meta::Name::Value;
-                    auto item = node.append_child(itemName.c_str());
+                    auto &item = node.add(itemName, "");
                     SerializeBase<Bases, 0>(item, object);
                     Serialize<0, Meta::Fields::Count>(item, object);
                 }
@@ -236,9 +235,7 @@ namespace Mif
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
                 Serialize(NodeType &node, T const &object, std::string const &name)
                 {
-                    node.append_child(name.c_str())
-                            .append_child(pugi::xml_node_type::node_pcdata)
-                            .set_value(Reflection::ToString(object).c_str()  );
+                    node.add(name, Reflection::ToString(object));
                 }
 
                 template <typename T>
@@ -246,16 +243,14 @@ namespace Mif
                 Serialize(NodeType &node, T const &object, std::string const &name)
                 {
                     using Type = typename std::underlying_type<T>::type;
-                    node.append_child(name.c_str())
-                            .append_child(pugi::xml_node_type::node_pcdata)
-                            .set_value(std::to_string(static_cast<Type>(object)).c_str());
+                    node.add(name, std::to_string(static_cast<Type>(object)));
                 }
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsIterable<T>(), void>::type
                 Serialize(NodeType &node, T const &object, std::string const &name)
                 {
-                    auto item = node.append_child(name.c_str());
+                    auto &item = node.add(name, "");
                     for (auto const &i : object)
                         Serialize(item, i, Tag::Item::Value);
                 }
@@ -264,24 +259,20 @@ namespace Mif
                 inline typename std::enable_if<Traits::IsSimple<T>() && !std::is_enum<T>::value && !std::is_same<T, std::string>::value, void>::type
                 Serialize(NodeType &node, T const &object, std::string const &name)
                 {
-                    node.append_child(name.c_str())
-                            .append_child(pugi::xml_node_type::node_pcdata)
-                            .set_value(std::to_string(object).c_str());
+                    node.add(name, std::to_string(object));
                 }
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsSimple<T>() && std::is_same<T, std::string>::value, void>::type
                 Serialize(NodeType &node, T const &object, std::string const &name)
                 {
-                    node.append_child(name.c_str())
-                            .append_child(pugi::xml_node_type::node_cdata)
-                            .set_value(object.c_str());
+                    node.add(name, object);
                 }
 
                 template <typename TFirst, typename TSecond>
                 inline void Serialize(NodeType &node, std::pair<TFirst, TSecond> const &object, std::string const &name)
                 {
-                    auto item = node.append_child(name.c_str());
+                    auto &item = node.add(name, "");
                     Serialize(item, object.first, Tag::Id::Value);
                     Serialize(item, object.second, Tag::Value::Value);
                 }
@@ -293,13 +284,13 @@ namespace Mif
                     if (object)
                         Serialize(node, *object, name);
                     else
-                        node.append_child(name.c_str());
+                        node.add(name, "");
                 }
 
                 template <typename ... T>
                 inline void Serialize(NodeType &node, std::tuple<T ... > const &object, std::string const &name)
                 {
-                    auto item = node.append_child(name.c_str());
+                    auto item = node.add(name, "");
                     Serialize<0, sizeof ... (T)>(item, object);
                 }
 
@@ -339,14 +330,15 @@ namespace Mif
                 template <typename T>
                 inline void Deserialize(std::istream &stream, T &object, std::string const &root)
                 {
-                    pugi::xml_document doc;
-
-                    auto result = doc.load(stream);
-                    if (!result)
                     {
-                        throw std::invalid_argument{"[Mif::Serialization::Xml::Deserialize] Failed to parse xml. Error: " +
-                            std::string{result.description()}};
+                        T tmp;
+                        std::swap(tmp, object);
                     }
+
+                    NodeType doc;
+
+                    boost::property_tree::ptree tree;
+                    boost::property_tree::xml_parser::read_xml(stream, doc);
 
                     Deserialize(doc, object, root);
                 }
@@ -375,69 +367,41 @@ namespace Mif
                 {
                     using Meta = Reflection::Reflect<T>;
                     using Bases = typename Meta::Base;
-                    auto const item = node.child((!name.empty() ? name : Meta::Name::Value).c_str());
-                    DeserializeBase<Bases, 0>(item, object);
-                    Deserialize<0, Meta::Fields::Count>(item, object);
+                    if (auto const item = node.get_child_optional(Meta::Name::Value))
+                    {
+                        DeserializeBase<Bases, 0>(item.get(), object);
+                        Deserialize<0, Meta::Fields::Count>(item.get(), object);
+                    }
+                    else
+                    {
+                        auto const itemObj = node.get_child(name);
+                        DeserializeBase<Bases, 0>(itemObj, object);
+                        Deserialize<0, Meta::Fields::Count>(itemObj, object);
+                    }
                 }
 
                 template <typename T>
                 inline typename std::enable_if<Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (node)
+                    if (auto const value = node.get_optional<std::string>(name))
                     {
-                        if (auto const item = node.child(name.c_str()))
-                        {
-
-                            if (auto const *value = item.child_value())
-                            {
-                                object = Reflection::FromString<T>(value);
-                            }
-                            else
-                            {
-                                throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                        "Failed to parse enum value. No value in the node \"" + name + "\"."};
-                            }
-
+                            object = Reflection::FromString<T>(value.get());
                         }
                         else
                         {
                             throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
                                     "Failed to parse enum value. No node \"" + name + "\"."};
                         }
-                    }
-                    else
-                    {
-                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                "Failed to parse enum value. No node \"" + name + "\"."};
-                    }
                 }
 
                 template <typename T>
                 inline typename std::enable_if<!Reflection::IsReflectable<T>() && std::is_enum<T>::value, void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (node)
+                    if (auto const value = node.get_optional<T>(name))
                     {
-                        if (auto const item = node.child(name.c_str()))
-                        {
-
-                            if (auto const *value = item.child_value())
-                            {
-                                object = static_cast<T>(std::stoull(value));
-                            }
-                            else
-                            {
-                                throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                        "Failed to parse enum value. No value in the node \"" + name + "\"."};
-                            }
-
-                        }
-                        else
-                        {
-                            throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                    "Failed to parse enum value. No node \"" + name + "\"."};
-                        }
+                        object = value.get();
                     }
                     else
                     {
@@ -468,16 +432,19 @@ namespace Mif
                 inline typename std::enable_if<Traits::IsIterable<T>(), void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (auto const items = node.child(name.c_str()))
                     {
-                        for (auto i = items.child(Tag::Item::Value); i ; i = i.next_sibling())
+                        T tmp;
+                        std::swap(tmp, object);
+                    }
+                    if (auto const items = node.get_child_optional(name))
+                    {
+                        auto inserter = std::inserter(object, std::end(object));
+                        for (auto const &i : items.get())
                         {
                             using Type = typename T::value_type;
                             Type data;
-                            pugi::xml_document tmp;
-                            tmp.append_copy(i);
-                            Deserialize(tmp, data, Tag::Item::Value);
-                            *std::inserter(object, std::end(object)) = std::move(data);
+                            Deserialize(i.second, data, "");
+                            *inserter = std::move(data);
                         }
                     }
                     else
@@ -491,9 +458,9 @@ namespace Mif
                 inline typename std::enable_if<Traits::IsSimple<T>() && !std::is_enum<T>::value && !std::is_same<T, std::string>::value, void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (auto const item = node.child(name.c_str()))
+                    if (auto const item = node.get_optional<std::string>(name))
                     {
-                        std::stringstream{item.child_value()} >> object;
+                        std::stringstream{item.get()} >> object;
                     }
                     else
                     {
@@ -506,9 +473,9 @@ namespace Mif
                 inline typename std::enable_if<Traits::IsSimple<T>() && std::is_same<T, std::string>::value, void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (auto const item = node.child(name.c_str()))
+                    if (auto const item = node.get_optional<std::string>(name))
                     {
-                        object = item.child_value();
+                        object = item.get();
                     }
                     else
                     {
@@ -520,49 +487,24 @@ namespace Mif
                 template <typename TFirst, typename TSecond>
                 inline void Deserialize(NodeType const &node, std::pair<TFirst, TSecond> &object, std::string const &name)
                 {
-                    if (node)
-                    {
-                        Deserialize(node, const_cast<typename std::remove_const<TFirst>::type &>(object.first), Tag::Id::Value);
-                        Deserialize(node, object.second, Tag::Value::Value);
-                    }
-                    else
-                    {
-                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                "Failed to parse pair. No node \"" + name + "\"."};
-                    }
+                    Deserialize(node, const_cast<typename std::remove_const<TFirst>::type &>(object.first), Tag::Id::Value);
+                    Deserialize(node, object.second, Tag::Value::Value);
                 }
 
                 template <typename T>
                 inline typename std::enable_if<Traits::IsSmartPointer<T>(), void>::type
                 Deserialize(NodeType const &node, T &object, std::string const &name)
                 {
-                    if (node)
-                    {
-                        using Type = typename T::element_type;
-                        object.reset(new Type{});
-                        Deserialize(node, *object, name);
-                    }
-                    else
-                    {
-                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                "Failed to parse item. No node \"" + name + "\"."};
-                    }
+                    using Type = typename T::element_type;
+                    object.reset(new Type{});
+                    Deserialize(node, *object, name);
                 }
 
                 template <std::size_t I, std::size_t N, typename T>
                 inline typename std::enable_if<I != N, void>::type
                 Deserialize(NodeType &node, T &object)
                 {
-                    if (!node)
-                    {
-                        throw std::invalid_argument{"[Mif::Serialization::Xml::Detail::Deserialize] "
-                                "Failed to parse tuple item."};
-                    }
-
                     Deserialize(node, std::get<I>(object), Tag::Item::Value);
-
-                    node.remove_child(Tag::Item::Value);
-
                     Deserialize<I + 1, N>(node, object);
                 }
 
@@ -576,9 +518,9 @@ namespace Mif
                 template <typename ... T>
                 inline void Deserialize(NodeType const &node, std::tuple<T ... > &object, std::string const &name)
                 {
-                    if (auto item = node.child(name.c_str()))
+                    if (auto item = node.get_child_optional(name))
                     {
-                        Deserialize<0, sizeof ... (T)>(item, object);
+                        Deserialize<0, sizeof ... (T)>(item.get(), object);
                     }
                     else
                     {
@@ -590,9 +532,9 @@ namespace Mif
                 template <typename T, std::size_t N>
                 inline void Deserialize(NodeType const &node, std::array<T, N> &object, std::string const &name)
                 {
-                    if (auto item = node.child(name.c_str()))
+                    if (auto item = node.get_child_optional(name))
                     {
-                        Deserialize<0, N>(item, object);
+                        Deserialize<0, N>(item.get(), object);
                     }
                     else
                     {
