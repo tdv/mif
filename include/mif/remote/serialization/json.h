@@ -15,8 +15,8 @@
 #include <type_traits>
 #include <utility>
 
-// JSONCPP
-#include <json/writer.h>
+// BOOST
+#include <boost/json.hpp>
 
 // MIF
 #include "mif/common/types.h"
@@ -54,8 +54,8 @@ namespace Mif
                     template <typename ... TParams>
                     void PutParams(TParams && ... params)
                     {
-                        if (m_value.isMember(Detail::Tag::Param::Value))
-                            m_value.removeMember(Detail::Tag::Param::Value);
+                        if (auto iter = m_value.find(Detail::Tag::Param::Value); iter != std::end(m_value))
+                            m_value.erase(iter);
 
                         auto const tuple = std::make_tuple(std::forward<TParams>(params) ... );
                         m_value[Detail::Tag::Param::Value] = ::Mif::Serialization::Json::Detail::ValueToJson(tuple);
@@ -63,8 +63,8 @@ namespace Mif
 
                     void PutException(std::exception_ptr ex)
                     {
-                        if (m_value.isMember(Detail::Tag::Exception::Value))
-                            m_value.removeMember(Detail::Tag::Exception::Value);
+                        if (auto iter = m_value.find(Detail::Tag::Exception::Value); iter != std::end(m_value))
+                            m_value.erase(iter);
 
                         try
                         {
@@ -82,13 +82,12 @@ namespace Mif
 
                     Common::Buffer GetBuffer()
                     {
-                        ::Json::FastWriter writer;
-                        auto data = writer.write(m_value);
+                        auto data = boost::json::serialize(boost::json::value_from(m_value));
                         return {std::begin(data), std::end(data)};
                     }
 
                 private:
-                    ::Json::Value m_value{::Json::objectValue};
+                    boost::json::object m_value;
 
                     template <typename ... TParams>
                     typename std::enable_if<sizeof ... (TParams), void>::type
@@ -112,20 +111,20 @@ namespace Mif
                         if (buffer.empty())
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Json::Deserializer] Empty buffer."};
 
-                        ::Json::Reader reader;
-                        if (!reader.parse({std::begin(buffer), std::end(buffer)}, m_value))
-                            throw std::invalid_argument{"[Mif::Remote::Serialization::Json::Deserializer] Bad json."};
+                        auto val = boost::json::parse(boost::string_view{buffer.data(), buffer.size()});
 
-                        if (m_value.isNull())
+                        if (val.is_null())
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Json::Deserializer] Empty json object."};
 
-                        if (m_value.type() != ::Json::objectValue)
+                        if (!val.is_object())
                             throw std::invalid_argument{"[Mif::Remote::Serialization::Json::Deserializer] Json is no object type."};
+
+                        m_value = val.as_object();
                     }
 
                     std::string const GetUuid() const
                     {
-                        return m_value.get(Detail::Tag::Uuid::Value, "").asString();
+                        return m_value.at(Detail::Tag::Uuid::Value).as_string().c_str();
                     }
 
                     bool IsRequest() const
@@ -140,22 +139,22 @@ namespace Mif
 
                     std::string const GetType() const
                     {
-                        return m_value.get(Detail::Tag::Type::Value, "").asString();
+                        return m_value.at(Detail::Tag::Type::Value).as_string().c_str();
                     }
 
                     std::string const GetInstance() const
                     {
-                        return m_value.get(Detail::Tag::Instsnce::Value, "").asString();
+                        return m_value.at(Detail::Tag::Instsnce::Value).as_string().c_str();
                     }
 
                     std::string const GetInterface() const
                     {
-                        return m_value.get(Detail::Tag::Interface::Value, "").asString();
+                        return m_value.at(Detail::Tag::Interface::Value).as_string().c_str();
                     }
 
                     std::string const GetMethod() const
                     {
-                        return m_value.get(Detail::Tag::Method::Value, "").asString();
+                        return m_value.at(Detail::Tag::Method::Value).as_string().c_str();
                     }
 
                     template <typename ... TParams>
@@ -166,7 +165,7 @@ namespace Mif
 
                     bool HasException() const
                     {
-                        return m_value.isMember(Detail::Tag::Exception::Value);
+                        return m_value.contains(Detail::Tag::Exception::Value);
                     }
 
                     std::exception_ptr GetException() const
@@ -177,7 +176,7 @@ namespace Mif
                         {
                             try
                             {
-                                auto message = m_value.get(Detail::Tag::Exception::Value, "").asString();
+                                std::string message{m_value.at(Detail::Tag::Exception::Value).as_string().c_str()};
                                 throw std::runtime_error{std::move(message)};
                             }
                             catch (...)
@@ -190,7 +189,7 @@ namespace Mif
                     }
 
                 private:
-                    ::Json::Value m_value;
+                    boost::json::object m_value;
 
                     template <typename ... TParams>
                     typename std::enable_if<sizeof ... (TParams), std::tuple<typename std::decay<TParams>::type ... >>::type
@@ -198,7 +197,7 @@ namespace Mif
                     {
                         using TResult = std::tuple<typename std::decay<TParams>::type ... >;
                         TResult res;
-                        ::Mif::Serialization::Json::Detail::JsonToValue(m_value.get(Detail::Tag::Param::Value, ::Json::Value{}), res);
+                        ::Mif::Serialization::Json::Detail::JsonToValue(m_value.at(Detail::Tag::Param::Value), res);
                         return res;
                     }
 
