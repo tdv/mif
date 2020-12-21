@@ -26,8 +26,6 @@ set(LIBRARIES
     boost_filesystem
     boost_thread
     boost_system
-    event
-    event_pthreads
     pthread
     z
     rt
@@ -36,7 +34,6 @@ set(LIBRARIES
 if (MIF_WITH_SQLITE)
     set(LIBRARIES
         ${LIBRARIES}
-        sqlite3
     )
 endif()
 
