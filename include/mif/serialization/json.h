@@ -25,12 +25,15 @@
 #include <boost/json.hpp>
 
 // MIF
+#include "mif/common/config.h"
 #include "mif/common/types.h"
 #include "mif/common/index_sequence.h"
 #include "mif/common/static_string.h"
 #include "mif/common/unused.h"
 #include "mif/reflection/reflection.h"
 #include "mif/serialization/traits.h"
+
+// Use MIF_PRETTY_JSON_WRITER define in order to write pretty json
 
 namespace Mif
 {
@@ -602,6 +605,89 @@ namespace Mif
                     }
                 };
 
+#ifdef MIF_PRETTY_JSON_WRITER
+                inline void Write(std::ostream &os, boost::json::value const &val,
+                        std::size_t level = 0)
+                {
+                    static constexpr std::size_t indentSize = 4;
+
+                    std::string indent;
+                    switch(val.kind())
+                    {
+                    case boost::json::kind::object :
+                    {
+                        ++level;
+                        indent.append(level * indentSize, ' ');
+                        os << "{\n";
+                        auto const &obj = val.get_object();
+                        if (!obj.empty())
+                        {
+                            for(auto i = std::begin(obj) ; i != std::end(obj) ; )
+                            {
+                                os << indent << boost::json::serialize(i->key()) << ": ";
+                                Write(os, i->value(), level);
+                                if(++i == std::end(obj))
+                                    break;
+                                os << ",\n";
+                            }
+                        }
+                        os << "\n";
+                        --level;
+                        indent.resize(level * indentSize);
+                        os << indent << "}";
+                        break;
+                    }
+                    case boost::json::kind::array :
+                    {
+                        os << "[\n";
+                        ++level;
+                        indent.append(level * indentSize, ' ');
+                        auto const &arr = val.get_array();
+                        for(auto i = std::begin(arr) ; i != std::end(arr) ; )
+                        {
+                            os << indent;
+                            Write(os, *i, level);
+                            if(++i == std::end(arr))
+                                break;
+                            os << ",\n";
+                        }
+                        os << "\n";
+                        --level;
+                        indent.resize(level * indentSize);
+                        os << indent << "]";
+                        break;
+                    }
+                    case boost::json::kind::string :
+                    {
+                        os << boost::json::serialize(val.get_string());
+                        break;
+                    }
+                    case boost::json::kind::uint64 :
+                        os << val.get_uint64();
+                        break;
+                    case boost::json::kind::int64 :
+                        os << val.get_int64();
+                        break;
+                    case boost::json::kind::double_ :
+                        os << val.get_double();
+                        break;
+                    case boost::json::kind::bool_ :
+                        os << (val.get_bool() ? "true" : "false");
+                        break;
+                    case boost::json::kind::null :
+                        os << "null";
+                        break;
+                    }
+                    if(!level)
+                        os << "\n";
+                }
+#else
+                inline void Write(std::ostream &os, boost::json::value const &val)
+                {
+                    os << val;
+                }
+#endif  // !MIF_PRETTY_JSON_WRITER
+
             }   // namespace Detail
 
             template <typename T, typename TStream>
@@ -612,8 +698,7 @@ namespace Mif
                 using BasesType = typename Reflection::Reflect<T>::Base;
                 Detail::BasesSerializer<BasesType, std::tuple_size<BasesType>::value>::Serialize(root, object);
                 Detail::Serializer<Reflection::Reflect<T>::Fields::Count>::Serialize(root, object);
-                boost::json::serializer sr;
-                stream << root;
+                Detail::Write(stream, root);
             }
 
             template <typename T>
@@ -639,11 +724,11 @@ namespace Mif
                 {
                     boost::json::object root;
                     root[rootName] = Detail::ValueToJson(object);
-                    stream << root;
+                    Detail::Write(stream, root);
                 }
                 else
                 {
-                    stream << Detail::ValueToJson(object);
+                    Detail::Write(stream, Detail::ValueToJson(object));
                 }
             }
 

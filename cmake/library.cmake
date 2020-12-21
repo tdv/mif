@@ -8,6 +8,10 @@ if (MIF_WITH_POSTGRESQL)
     set (MIF_COMPILER_DEFINES "${MIF_COMPILER_DEFINES}\n#define MIF_WITH_POSTGRESQL")
 endif()
 
+if (MIF_PRETTY_JSON_WRITER)
+    set (MIF_COMPILER_DEFINES "${MIF_COMPILER_DEFINES}\n#define MIF_PRETTY_JSON_WRITER")
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/mif/common/config.h)
 
 set(MIF_SOURCES
