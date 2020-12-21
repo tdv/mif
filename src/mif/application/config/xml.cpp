@@ -136,8 +136,7 @@ namespace Mif
                                     "Failed to get config by path \"" + path + "\". Error: " + std::string{e.what()}};
                         }
 
-                        throw std::invalid_argument{"[Mif::Application::Detail::Config::GetConfig] "
-                                "Failed to get config. Bad path \"" + path + "\""};
+                        return {};
                     }
 
                     virtual Common::ICollectionPtr GetCollection(std::string const &path) const override final
@@ -153,8 +152,7 @@ namespace Mif
                                     "Failed to get collection by path \"" + path + "\". Error: " + std::string{e.what()}};
                         }
 
-                        throw std::invalid_argument{"[Mif::Application::Detail::Config::GetCollection] "
-                                "Failed to get collection. Bad path \"" + path + "\""};
+                        return {};
                     }
                 };
 

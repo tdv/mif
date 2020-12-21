@@ -65,9 +65,8 @@ namespace Mif
             if (auto config = GetConfig())
             {
                 auto const branch = (GetConfigBranch() + ".") + Detail::Config::HttpBranch::Value;
-                if (config->Exists(branch))
+                if (auto limits = config->GetConfig(branch))
                 {
-                     auto limits = config->GetConfig(branch);
                     m_headersLimit = limits->GetValue<std::size_t>(Detail::Config::HeadersLimit::Value);
                     m_bodyLimit = limits->GetValue<std::size_t>(Detail::Config::BodyLimit::Value);
                     m_pipelineLimit = limits->GetValue<std::size_t>(Detail::Config::PipelineLimit::Value);
