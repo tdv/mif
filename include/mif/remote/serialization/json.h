@@ -54,7 +54,8 @@ namespace Mif
                     template <typename ... TParams>
                     void PutParams(TParams && ... params)
                     {
-                        if (auto iter = m_value.find(Detail::Tag::Param::Value); iter != std::end(m_value))
+                        auto iter = m_value.find(Detail::Tag::Param::Value);
+                        if (iter != std::end(m_value))
                             m_value.erase(iter);
 
                         auto const tuple = std::make_tuple(std::forward<TParams>(params) ... );
@@ -63,8 +64,11 @@ namespace Mif
 
                     void PutException(std::exception_ptr ex)
                     {
-                        if (auto iter = m_value.find(Detail::Tag::Exception::Value); iter != std::end(m_value))
-                            m_value.erase(iter);
+                        {
+                            auto iter = m_value.find(Detail::Tag::Exception::Value);
+                            if (iter != std::end(m_value))
+                                m_value.erase(iter);
+                        }
 
                         try
                         {
