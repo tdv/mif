@@ -305,7 +305,7 @@ namespace Mif
 
                 void Session::Reply(Response &&response, bool isKeepAlive)
                 {
-                    response.result(boost::beast::http::status::ok);
+                    //response.result(boost::beast::http::status::ok);
                     //response.set(boost::beast::http::field::server, "Mif");
                     response.set(boost::beast::http::field::date, Utility::CreateTimestamp());
                     response.version(11);
