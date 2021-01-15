@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     05.2020
-//  Copyright (C) 2016-2020 tdv
+//  Copyright (C) 2016-2021 tdv
 //-------------------------------------------------------------------
 
 #ifndef __MIF_REMOTE_META_SERVICE_ICHECKABLE_H__
