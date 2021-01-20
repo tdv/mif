@@ -215,6 +215,7 @@ namespace Mif
                         try
                         {
                             Detail::InputPack<ResponseType> pack{response, std::string{target}};
+                            //Detail::InputPack<ResponseType> pack{response, std::string{"/"}};
 
                             m_handler(pack);
                         }
@@ -346,6 +347,7 @@ namespace Mif
                 {
                     auto &request = dynamic_cast<Detail::OutputPack<Session::Request> &>(*pack).GetData();
 
+                    //request.target(Detail::Utility::EncodeUrl(target));
                     request.target(target);
                     request.method(Detail::Utility::ConvertMethodType(method));
 

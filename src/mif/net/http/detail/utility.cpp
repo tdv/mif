@@ -241,37 +241,44 @@ namespace Mif
                         return out;
                     }
 
+                    std::string EncodeUrl(std::string const &url)
+                    {
+                        std::ostringstream stream;
+                        stream.fill('0');
+                        stream << std::hex;
+
+                        for (auto i = std::begin(url) ; i != std::end(url) ; ++i)
+                        {
+                            auto c = *i;
+
+                            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+                            {
+                                stream << c;
+                                continue;
+                            }
+
+                            stream << std::uppercase;
+                            stream << '%' << std::setw(2)
+                                   << static_cast<int>(static_cast<unsigned char>(c));
+                            stream << std::nouppercase;
+                        }
+
+                        return stream.str();
+                    }
+
                     Target::Target (std::string const &url)
                     {
-                        /*std::regex const regexpr{std::string{"^"
-                                "((http[s]?)://)?"  // Schema
-                                "(([^@/:\\s]+)@)?"  // User
-                                "([^@/:\\s]+)"      // Host
-                                "(:([0-9]{1,5}))?"  // Port
-                                "(/[^:#?\\s]*)?"    // Path
-                                "(\\?(([^?;&#=]+=[^?;&#=]+)([;|&]([^?;&#=]+=[^?;&#=]+))*))?"    // Query
-                                "(#([^#\\s]*))?"    // Fragment
-                                "$"}
-                            };*/
-
-                        std::regex const regexpr{std::string{"^"
-                                "(/[^:#?\\s]*)?"    // Path
-                                "(\\?(([^?;&#=]+=[^?;&#=]+)([;|&]([^?;&#=]+=[^?;&#=]+))*))?"    // Query
-                                                                "$"}
+                        std::regex const regexpr{
+                                "^(^/+.*?(?=[?#]|$))"    // Path
+                                "[?#/]*" // Splitter
+                                "(.*)?"    // Query
+                                "$"
                             };
 
                         std::smatch match;
 
                         if (!std::regex_match(std::begin(url), std::end(url), match, regexpr))
                             throw std::runtime_error{"Failed to parse url \"" + url + "\"."};
-
-                        /*m_schema.assign(match[2].first, match[2].second);
-                        m_user.assign(match[4].first, match[4].second);
-                        m_host.assign(match[5].first, match[5].second);
-                        m_port.assign(match[7].first, match[7].second);
-                        m_path.assign(match[8].first, match[8].second);
-                        m_query.assign(match[10].first, match[10].second);
-                        m_fragment.assign(match[15].first, match[15].second);*/
 
                         m_path.assign(match[1].first, match[1].second);
                         m_query.assign(match[2].first, match[2].second);

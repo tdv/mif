@@ -198,7 +198,7 @@ namespace Mif
                 {
                     try
                     {
-                        auto const &path = request.target();
+                        auto const &path = Utility::DecodeUrl(std::string{request.target()});
 
                         if (path.empty() || path[0] != '/' ||
                                 path.find("..") != boost::beast::string_view::npos)
