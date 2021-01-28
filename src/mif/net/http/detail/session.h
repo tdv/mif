@@ -22,6 +22,9 @@
 #include "mif/net/http/methods.h"
 #include "mif/net/http/request_handler.h"
 
+// THIS
+#include "output_pack.h"
+
 namespace Mif
 {
     namespace Net
@@ -85,8 +88,9 @@ namespace Mif
 
                     using ResponseBodyType = boost::beast::http::buffer_body;
                     using Response = boost::beast::http::response<ResponseBodyType>;
+                    using OutputPackPtr = std::shared_ptr<OutputPack<Response>>;
 
-                    void Reply(Response &&response, bool isKeepAlive);
+                    void Reply(OutputPackPtr out, bool isKeepAlive);
                 };
 
             } // namespace Detail

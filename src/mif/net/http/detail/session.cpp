@@ -20,7 +20,6 @@
 
 // THIS
 #include "input_pack.h"
-#include "output_pack.h"
 #include "session.h"
 #include "utility.h"
 
@@ -50,16 +49,14 @@ namespace Mif
                     template <typename TBody, typename TFields>
                     using Response = boost::beast::http::response<TBody, TFields>;
 
-                    template <typename TBody, typename TFields>
-                    void Post(Response<TBody, TFields> &&response)
+                    void Post(OutputPackPtr out)
                     {
-                        auto resp = std::make_shared<Response<TBody, TFields>>(std::move(response));
-
-                        auto task = [this, resp]
+                        auto task = [this, out]
                         {
-                            boost::beast::http::async_write(m_session.m_stream, *resp,
+                            auto &resp = out->GetData();
+                            boost::beast::http::async_write(m_session.m_stream, resp,
                                     boost::beast::bind_front_handler(&Session::OnWrite,
-                                    m_session.shared_from_this(), resp->need_eof()));
+                                    m_session.shared_from_this(), resp.need_eof()));
                         };
 
                         m_tasks.emplace_back(std::move(task));
@@ -225,10 +222,8 @@ namespace Mif
                             return;
                         }
 
-                        Response response;
-
                         std::shared_ptr<IInputPack> in = std::make_shared<InputPack<Request<TBody, TAllocator>>>(request);
-                        auto out = std::make_shared<OutputPack<Response>>(response);
+                        auto out = std::make_shared<OutputPack<Response>>();
 
                         auto process = [this, &in, &out] (std::string const &path)
                         {
@@ -273,7 +268,7 @@ namespace Mif
                             return;
                         }
 
-                        Reply(std::move(response), request.keep_alive());
+                        Reply(std::move(out), request.keep_alive());
                     }
                     catch (std::exception const &e)
                     {
@@ -288,24 +283,31 @@ namespace Mif
                 void Session::ReplyError(boost::beast::http::status status, std::string const &reason,
                         bool isKeepAlive)
                 {
-                    boost::beast::http::response<boost::beast::http::string_body> response;
+                    auto out = std::make_shared<OutputPack<Response>>();
 
-                    response.result(status);
+                    auto &iface = static_cast<IOutputPack &>(*out);
+
+                    iface.SetCode(Detail::Utility::ConvertCode(status));
+                    iface.SetReason(reason);
+                    iface.SetData({std::begin(reason), std::end(reason)});
+                    iface.SetHeader(Constants::Header::Response::ContentType::Value, "text/plain");
+                    iface.SetHeader(Constants::Header::Response::Date::Value, Utility::CreateTimestamp());
+
+                    auto &response = out->GetData();
+
                     //response.set(boost::beast::http::field::server, "Mif");
-                    response.set(boost::beast::http::field::content_type, "text/plain");
-                    response.set(boost::beast::http::field::date, Utility::CreateTimestamp());
                     response.keep_alive(isKeepAlive);
                     response.version(11);
-                    response.body() = std::string(reason);
 
                     response.prepare_payload();
 
-                    m_queue->Post(std::move(response));
+                    m_queue->Post(std::move(out));
                 }
 
-                void Session::Reply(Response &&response, bool isKeepAlive)
+                void Session::Reply(OutputPackPtr out, bool isKeepAlive)
                 {
-                    //response.result(boost::beast::http::status::ok);
+                    auto &response = out->GetData();
+
                     //response.set(boost::beast::http::field::server, "Mif");
                     response.set(boost::beast::http::field::date, Utility::CreateTimestamp());
                     response.version(11);
@@ -313,7 +315,7 @@ namespace Mif
 
                     response.prepare_payload();
 
-                    m_queue->Post(std::move(response));
+                    m_queue->Post(std::move(out));
                 }
 
             } // namespace Detail

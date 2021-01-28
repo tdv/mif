@@ -35,14 +35,10 @@ namespace Mif
                     : public IOutputPack
                 {
                 public:
-                    explicit OutputPack(T &data)
-                        : m_data{data}
-                    {
-                    }
+                    explicit OutputPack() = default;
 
                     explicit OutputPack(T &&data)
-                        : m_holder{std::move(data)}
-                        , m_data{m_holder.get()}
+                        : m_data{std::move(data)}
                     {
                     }
 
@@ -57,8 +53,7 @@ namespace Mif
                     }
 
                 private:
-                    boost::optional<T> m_holder;
-                    T &m_data;
+                    T m_data;
                     Common::BufferPtr m_buffer;
 
                     template <typename Y>
