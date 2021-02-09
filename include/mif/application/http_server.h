@@ -39,6 +39,7 @@ namespace Mif
         private:
             std::size_t m_headersLimit;
             std::size_t m_bodyLimit;
+            std::size_t m_chunkSize;
             std::size_t m_pipelineLimit;
 
             Net::Http::Methods m_methods;

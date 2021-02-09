@@ -33,6 +33,7 @@ namespace Mif
                     ServerHandlers const &handlers,
                     std::size_t headersSize = -1,
                     std::size_t bodySize = -1,
+                    std::size_t chunkSize = -1,
                     std::size_t requestTimeout = -1,
                     std::size_t pipelineLimit = -1);
 

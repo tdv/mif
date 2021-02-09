@@ -17,6 +17,7 @@
             <http>
                 <headerslimit>512</headerslimit>
                 <bodylimit>1024</bodylimit>
+                <chunksize>1024</chunksize>
                 <pipelinelimit>4</pipelinelimit>
             </http>
         </server>

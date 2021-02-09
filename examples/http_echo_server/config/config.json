@@ -17,6 +17,7 @@
             "http": {
                 "headerslimit": 512,
                 "bodylimit": 1024,
+                "chunksize": 1024,
                 "pipelinelimit": 4
             }
         }

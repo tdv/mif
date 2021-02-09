@@ -13,7 +13,7 @@
 #include <stdexcept>
 
 // BOOST
-#include <boost/optional.hpp>
+#include <boost/beast/http.hpp>
 
 // MIF
 #include "mif/net/http/ioutput_pack.h"
@@ -30,31 +30,77 @@ namespace Mif
             namespace Detail
             {
 
-                template <typename T>
-                class OutputPack final
+                template <typename>
+                class OutputPack;
+
+                template <bool isRequest, typename TFields>
+                class OutputPack<boost::beast::http::message<isRequest, boost::beast::http::buffer_body, TFields>> final
                     : public IOutputPack
                 {
                 public:
-                    explicit OutputPack() = default;
+                    using MessageType = boost::beast::http::message<isRequest, boost::beast::http::buffer_body, TFields>;
+                    using SerializerType = boost::beast::http::serializer<isRequest, boost::beast::http::buffer_body, TFields>;
 
-                    explicit OutputPack(T &&data)
+                    explicit OutputPack(std::size_t chunkSize = 1024 * 1024)
+                        : m_chunkSize{chunkSize}
+                    {
+                    }
+
+                    explicit OutputPack(MessageType &&data, std::size_t chunkSize = 256 * 1024)
                         : m_data{std::move(data)}
+                        , m_chunkSize{chunkSize}
                     {
                     }
 
-                    T& GetData() noexcept
+                    ~OutputPack() = default;
+
+                    MessageType& GetData() noexcept
                     {
                         return m_data;
                     }
 
-                    T const & GetData() const noexcept
+                    MessageType const& GetData() const noexcept
                     {
                         return m_data;
+                    }
+
+                    SerializerType& GetNextPortion()
+                    {
+                        if (!m_serializer)
+                        {
+                            throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::GetNextPortion] "
+                                                  "There is no any portion of the data."};
+                        }
+
+                        auto &body = m_data.body();
+
+                        if (!body.more)
+                        {
+                            throw std::logic_error{"[Mif::Net::Http::Detail::OutputPack::GetNextPortion] "
+                                                  "There is no more data."};
+                        }
+
+                        body.data = m_bufferPtr;
+                        body.size = std::min<std::size_t>(m_buffer->size() -
+                                (m_bufferPtr - m_buffer->data()), m_chunkSize);
+                        body.more = (m_buffer->size() - (m_bufferPtr - m_buffer->data()))
+                                > m_chunkSize;
+
+                        m_bufferPtr += body.size;
+
+                        return *m_serializer;
                     }
 
                 private:
-                    T m_data;
+                    using SerializerPtr = std::unique_ptr<SerializerType>;
+
+                    MessageType m_data;
+                    std::size_t m_chunkSize;
+
+                    SerializerPtr m_serializer;
+
                     Common::BufferPtr m_buffer;
+                    char *m_bufferPtr = nullptr;
 
                     template <typename Y>
                     auto SetReason(Y &data, std::string const &reason) const
@@ -123,23 +169,36 @@ namespace Mif
 
                     virtual void SetData(Common::BufferPtr buffer) override final
                     {
+                        m_serializer.reset();
+
                         std::swap(m_buffer, buffer);
 
                         auto &body = m_data.body();
-                        body.more = false;
 
-                        if (m_buffer && !m_buffer->empty())
-                        {
-                            body.data = m_buffer->data();
-                            body.size = m_buffer->size();
-                        }
-                        else
+                        if (!m_buffer || m_buffer->empty())
                         {
                             body.data = nullptr;
                             body.size = 0;
+                            body.more = false;
+
+                            return;
                         }
 
-                        m_data.content_length(body.size);
+                        if (m_buffer->size() < m_chunkSize)
+                        {
+                            body.data = m_buffer->data();
+                            body.size = m_buffer->size();
+                            body.more = false;
+
+                            return;
+                        }
+
+                        body.data = nullptr;
+                        body.size = 0;
+                        body.more = true;
+
+                        m_serializer.reset(new SerializerType{m_data});
+                        m_bufferPtr = m_buffer->data();
                     }
                 };
 

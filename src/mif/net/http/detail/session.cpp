@@ -54,9 +54,23 @@ namespace Mif
                         auto task = [this, out]
                         {
                             auto &resp = out->GetData();
+                            resp.version(11);
+                            resp.set(boost::beast::http::field::date, Utility::CreateTimestamp());
+                            resp.set(boost::beast::http::field::server, "MifHttpServer");
+                            if (resp.has_content_length())
+                                resp.erase(boost::beast::http::field::content_length);
+                            resp.chunked(true);
+                            resp.set(boost::beast::http::field::transfer_encoding, "chunked");
+                            resp.prepare_payload();
+                            resp.set(boost::beast::http::field::connection,
+                                    resp.keep_alive() ?
+                                         Constants::Value::Connection::KeepAlive::Value :
+                                         Constants::Value::Connection::Close::Value
+                                );
+
                             boost::beast::http::async_write(m_session.m_stream, resp,
                                     boost::beast::bind_front_handler(&Session::OnWrite,
-                                    m_session.shared_from_this(), resp.need_eof()));
+                                    m_session.shared_from_this(), resp.need_eof(), out));
                         };
 
                         m_tasks.emplace_back(std::move(task));
@@ -156,14 +170,25 @@ namespace Mif
                     // TODO:
                 }
 
-                void Session::OnWrite(bool close, boost::beast::error_code ec, std::size_t bytes)
+                void Session::OnWrite(bool close, OutputPackPtr out, boost::beast::error_code ec, std::size_t bytes)
                 {
                     Common::Unused(bytes);
 
                     if (ec)
                     {
-                        MIF_LOG(Info) << "[Mif::Net::Http::Detail::Session::OnWrite] "
-                                << "Failed to write data. Error: " << ec.message();
+                        if (ec == boost::beast::http::error::need_buffer)
+                        {
+                            auto &portion = out->GetNextPortion();
+
+                            boost::beast::http::async_write(m_stream, portion,
+                                    boost::beast::bind_front_handler(&Session::OnWrite,
+                                    shared_from_this(), out->GetData().need_eof(), out));
+                        }
+                        else
+                        {
+                            MIF_LOG(Info) << "[Mif::Net::Http::Detail::Session::OnWrite] "
+                                    << "Failed to write data. Error: " << ec.message();
+                        }
 
                         return;
                     }
@@ -223,7 +248,7 @@ namespace Mif
                         }
 
                         std::shared_ptr<IInputPack> in = std::make_shared<InputPack<Request<TBody, TAllocator>>>(request);
-                        auto out = std::make_shared<OutputPack<Response>>();
+                        auto out = std::make_shared<OutputPack<Response>>(m_params.chunkSize);
 
                         auto process = [this, &in, &out] (std::string const &path)
                         {
@@ -283,7 +308,7 @@ namespace Mif
                 void Session::ReplyError(boost::beast::http::status status, std::string const &reason,
                         bool isKeepAlive)
                 {
-                    auto out = std::make_shared<OutputPack<Response>>();
+                    auto out = std::make_shared<OutputPack<Response>>(m_params.chunkSize);
 
                     auto &iface = static_cast<IOutputPack &>(*out);
 
@@ -291,29 +316,19 @@ namespace Mif
                     iface.SetReason(reason);
                     iface.SetData({std::begin(reason), std::end(reason)});
                     iface.SetHeader(Constants::Header::Response::ContentType::Value, "text/plain");
-                    iface.SetHeader(Constants::Header::Response::Date::Value, Utility::CreateTimestamp());
 
                     auto &response = out->GetData();
-
-                    //response.set(boost::beast::http::field::server, "Mif");
                     response.keep_alive(isKeepAlive);
-                    response.version(11);
-
-                    response.prepare_payload();
 
                     m_queue->Post(std::move(out));
                 }
 
                 void Session::Reply(OutputPackPtr out, bool isKeepAlive)
                 {
+                    isKeepAlive = false;    // Temporary false...
+
                     auto &response = out->GetData();
-
-                    //response.set(boost::beast::http::field::server, "Mif");
-                    response.set(boost::beast::http::field::date, Utility::CreateTimestamp());
-                    response.version(11);
                     response.keep_alive(isKeepAlive);
-
-                    response.prepare_payload();
 
                     m_queue->Post(std::move(out));
                 }

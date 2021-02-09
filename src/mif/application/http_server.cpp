@@ -25,6 +25,7 @@ namespace Mif
                     using HttpBranch = MIF_STATIC_STR("http");
                     using HeadersLimit = MIF_STATIC_STR("headerslimit");
                     using BodyLimit = MIF_STATIC_STR("bodylimit");
+                    using ChunkSize = MIF_STATIC_STR("chunksize");
                     using PipelineLimit = MIF_STATIC_STR("pipelinelimit");
 
                 }   // namespace Config
@@ -40,6 +41,7 @@ namespace Mif
             options.add_options()
                     (Detail::Config::HeadersLimit::Value, boost::program_options::value<std::size_t >(&m_headersLimit)->default_value(1024 * 1024), "Max length of headers (bytes)")
                     (Detail::Config::BodyLimit::Value, boost::program_options::value<std::size_t >(&m_bodyLimit)->default_value(10 * 1024 * 1024), "Max body length (bytes)")
+                    (Detail::Config::ChunkSize::Value, boost::program_options::value<std::size_t >(&m_chunkSize)->default_value(10 * 1024 * 1024), "Data chunk size (bytes)")
                     (Detail::Config::PipelineLimit::Value, boost::program_options::value<std::size_t >(&m_pipelineLimit)->default_value(8), "Max items count in pipeline");
 
             AddCustomOptions(options);
@@ -67,22 +69,32 @@ namespace Mif
                 auto const branch = (GetConfigBranch() + ".") + Detail::Config::HttpBranch::Value;
                 if (auto limits = config->GetConfig(branch))
                 {
-                    m_headersLimit = limits->GetValue<std::size_t>(Detail::Config::HeadersLimit::Value);
-                    m_bodyLimit = limits->GetValue<std::size_t>(Detail::Config::BodyLimit::Value);
-                    m_pipelineLimit = limits->GetValue<std::size_t>(Detail::Config::PipelineLimit::Value);
+                    if (limits->Exists(Detail::Config::HeadersLimit::Value))
+                        m_headersLimit = limits->GetValue<std::size_t>(Detail::Config::HeadersLimit::Value);
+
+                    if (limits->Exists(Detail::Config::BodyLimit::Value))
+                        m_bodyLimit = limits->GetValue<std::size_t>(Detail::Config::BodyLimit::Value);
+
+                    if (limits->Exists(Detail::Config::ChunkSize::Value))
+                        m_chunkSize = limits->GetValue<std::size_t>(Detail::Config::ChunkSize::Value);
+
+                    if (limits->Exists(Detail::Config::PipelineLimit::Value))
+                        m_pipelineLimit = limits->GetValue<std::size_t>(Detail::Config::PipelineLimit::Value);
                 }
             }
 
             auto const headersLimit = std::max<std::size_t>(m_headersLimit, 128);
             auto const bodyLimit = std::max<std::size_t>(m_bodyLimit, 256);
+            auto const chunkSize = std::max<std::size_t>(m_chunkSize, 256);
             auto const pipelineLimit = std::max<std::size_t>(m_pipelineLimit, 1);
 
-            MIF_LOG(Info) << "Starting server with host \"" << host << "\" "
-                          << "port \"" << port << "\" "
-                          << "timeout \"" << timeout << "\" "
-                          << "workers \"" << workers << "\" "
-                             << "headers limit \"" << headersLimit << "\" "
-                             << "body limit \"" << bodyLimit << "\" "
+            MIF_LOG(Info) << "Starting server with host \"" << host << "\", "
+                          << "port \"" << port << "\", "
+                          << "timeout \"" << timeout << "\", "
+                          << "workers \"" << workers << "\", "
+                             << "headers limit \"" << headersLimit << "\", "
+                             << "body limit \"" << bodyLimit << "\", "
+                                << "chunk size \"" << chunkSize << "\", "
                              << "pipeline limit \"" << pipelineLimit << "\" ";
 
             Net::Http::ServerHandlers handlers;
@@ -90,7 +102,7 @@ namespace Mif
             Init(handlers);
 
             m_server.reset(new Net::Http::Server{host, port, workers, m_methods,
-                handlers, headersLimit, bodyLimit, timeout, pipelineLimit});
+                handlers, headersLimit, bodyLimit, chunkSize, timeout, pipelineLimit});
 
             MIF_LOG(Info) << "Server is successfully started.";
         }

@@ -128,8 +128,8 @@ namespace Mif
             public:
                 Impl(std::string const &host, std::string const &port,
                         std::uint16_t workers, ServerHandlers const &handlers, Methods const &allowedMethods,
-                        std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout,
-                        std::size_t pipelineLimit)
+                        std::size_t headersSize, std::size_t bodySize, std::size_t chunkSize,
+                        std::size_t requestTimeout, std::size_t pipelineLimit)
                     : m_ioc{std::max<int>(1, workers) + 1}
                 {
                     Detail::Session::Params sessionParams;
@@ -139,6 +139,8 @@ namespace Mif
                         sessionParams.headersSize = headersSize;
                     if (bodySize != defaultValue)
                         sessionParams.bodySize = bodySize;
+                    if (chunkSize != defaultValue)
+                        sessionParams.chunkSize = chunkSize;
                     if (requestTimeout != defaultValue)
                         sessionParams.requestTimeout = std::chrono::microseconds{requestTimeout};
                     if (pipelineLimit != defaultValue)
@@ -224,9 +226,10 @@ namespace Mif
 
             Server::Server(std::string const &host, std::string const &port,
                 std::uint16_t workers, Methods const &allowedMethods, ServerHandlers const &handlers,
-                std::size_t headersSize, std::size_t bodySize, std::size_t requestTimeout, std::size_t pipelineLimit)
+                std::size_t headersSize, std::size_t bodySize, std::size_t chunkSize, std::size_t requestTimeout,
+                std::size_t pipelineLimit)
                 : m_impl{boost::make_unique<Impl>(host, port, workers, handlers, allowedMethods, headersSize, bodySize,
-                        requestTimeout, pipelineLimit)}
+                        chunkSize, requestTimeout, pipelineLimit)}
             {
             }
 

@@ -42,6 +42,7 @@ namespace Mif
                     {
                         std::size_t headersSize = 1024 * 1024;  // 1 Mb by default
                         std::size_t bodySize = 10 * 1024 * 1024;   // 10 Mb by default
+                        std::size_t chunkSize = 10 * 1024 * 1024;   // 10 Mb by default
                         std::chrono::microseconds requestTimeout{1000000};  // 1 Sec by default
 
                         std::size_t pipelineLimit = 8;  // 8 itams by default
@@ -69,13 +70,17 @@ namespace Mif
 
                     using BufferType = boost::beast::flat_buffer;
 
+                    using ResponseBodyType = boost::beast::http::buffer_body;
+                    using Response = boost::beast::http::response<ResponseBodyType>;
+                    using OutputPackPtr = std::shared_ptr<OutputPack<Response>>;
+
                     boost::optional<RequestParser> m_parser;
                     BufferType m_buffer;
 
                     void Read();
                     void OnRead(boost::beast::error_code ec, std::size_t bytes);
 
-                    void OnWrite(bool close, boost::beast::error_code ec, std::size_t bytes);
+                    void OnWrite(bool close, OutputPackPtr out, boost::beast::error_code ec, std::size_t bytes);
                     void Close();
 
                     template <typename TBody, typename TAllocator>
@@ -85,10 +90,6 @@ namespace Mif
                     void HandleRequest(Request<TBody, TAllocator> &&request);
 
                     void ReplyError(boost::beast::http::status status, std::string const &reason, bool isKeepAlive);
-
-                    using ResponseBodyType = boost::beast::http::buffer_body;
-                    using Response = boost::beast::http::response<ResponseBodyType>;
-                    using OutputPackPtr = std::shared_ptr<OutputPack<Response>>;
 
                     void Reply(OutputPackPtr out, bool isKeepAlive);
                 };

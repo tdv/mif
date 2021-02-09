@@ -46,6 +46,7 @@ namespace Mif
                 public:
                     using RequestBodyType = boost::beast::http::buffer_body;
                     using Request = boost::beast::http::request<RequestBodyType>;
+                    using OutputPackPtr = std::shared_ptr<Detail::OutputPack<Request>>;
 
                     Session(boost::asio::io_context &ioc, Connection::Params const &params,
                             ClientHandler &handler, Connection::OnCloseHandler &onClose)
@@ -80,7 +81,11 @@ namespace Mif
                                     "The connection has not been opened or has already closed.");
                         }
 
-                        auto &request = dynamic_cast<Detail::OutputPack<Request> &>(*pack).GetData();
+                        auto out = std::dynamic_pointer_cast<Detail::OutputPack<Request>>(pack);
+                        if (!out)
+                            throw std::bad_cast{};
+
+                        auto &request = out->GetData();
                         request.keep_alive(false);
 
                         if (m_params.requestTimeout)
@@ -88,7 +93,7 @@ namespace Mif
 
                         boost::beast::http::async_write(m_stream, request,
                                 boost::beast::bind_front_handler(&Session::OnWrite,
-                                shared_from_this(), pack, std::string{request.target()}));
+                                shared_from_this(), out, std::string{request.target()}));
                     }
 
                     bool IsClosed() const
@@ -132,17 +137,30 @@ namespace Mif
                         Post(std::move(pack));
                     }
 
-                    void OnWrite(Connection::IOutputPackPtr pack, std::string const target,
+                    void OnWrite(OutputPackPtr out, std::string const target,
                             boost::beast::error_code const &ec, std::size_t bytes)
                     {
-                        Mif::Common::Unused(pack, bytes);
+                        Mif::Common::Unused(bytes);
 
                         if (ec)
                         {
-                            MIF_LOG(Error) << "[Mif::Net::Http::Session::OnWrite] "
-                                    << "Failed to send request. Error: " << ec.message();
+                            if (ec == boost::beast::http::error::need_buffer)
+                            {
+                                auto &portion = out->GetNextPortion();
 
-                            Close();
+                                boost::beast::http::async_write(m_stream, portion,
+                                        boost::beast::bind_front_handler(&Session::OnWrite,
+                                        shared_from_this(), out,
+                                        std::string{out->GetData().target()}));
+                            }
+                            else
+                            {
+                                MIF_LOG(Error) << "[Mif::Net::Http::Session::OnWrite] "
+                                        << "Failed to send request. Error: " << ec.message();
+
+                                Close();
+                            }
+
                             return;;
                         }
 
@@ -215,7 +233,6 @@ namespace Mif
                         try
                         {
                             Detail::InputPack<ResponseType> pack{response, std::string{target}};
-                            //Detail::InputPack<ResponseType> pack{response, std::string{"/"}};
 
                             m_handler(pack);
                         }
@@ -348,8 +365,14 @@ namespace Mif
                     auto &request = dynamic_cast<Detail::OutputPack<Session::Request> &>(*pack).GetData();
 
                     //request.target(Detail::Utility::EncodeUrl(target));
+                    request.version(11);
                     request.target(target);
                     request.method(Detail::Utility::ConvertMethodType(method));
+                    if (request.has_content_length())
+                        request.erase(boost::beast::http::field::content_length);
+                    request.chunked(true);
+                    request.set(boost::beast::http::field::transfer_encoding, "chunked");
+                    request.prepare_payload();
 
                     if (!m_session || m_session->IsClosed())
                     {
