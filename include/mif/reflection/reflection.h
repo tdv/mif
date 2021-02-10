@@ -62,10 +62,13 @@ namespace Mif
                 using RegItemType = Registry::Registry<T>;
                 using MetaType = typename RegItemType::Type;
 
+                template <std::size_t Index>
+                using FieldInfo = decltype(MetaType::GetFieldInfo(Common::Detail::Hierarchy<Index>{}));
+
             public:
                 static constexpr std::size_t Count = MetaType::FieldsCount - 1;
                 template <std::size_t Index>
-                using Field = FieldItem<Index, decltype(MetaType::GetFieldInfo(Common::Detail::Hierarchy<Index>{}))>;
+                using Field = FieldItem<Index, FieldInfo<Index>>;
             };
 
             template <typename T>
