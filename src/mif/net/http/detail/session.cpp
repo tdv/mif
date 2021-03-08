@@ -62,11 +62,6 @@ namespace Mif
                             resp.chunked(true);
                             resp.set(boost::beast::http::field::transfer_encoding, "chunked");
                             resp.prepare_payload();
-                            resp.set(boost::beast::http::field::connection,
-                                    resp.keep_alive() ?
-                                         Constants::Value::Connection::KeepAlive::Value :
-                                         Constants::Value::Connection::Close::Value
-                                );
 
                             boost::beast::http::async_write(m_session.m_stream, resp,
                                     boost::beast::bind_front_handler(&Session::OnWrite,
@@ -111,6 +106,13 @@ namespace Mif
                             std::max<std::size_t>(m_params.pipelineLimit, 1))
                         }
                 {
+                    auto &sock = m_stream.socket();
+
+                    sock.set_option(boost::asio::ip::tcp::no_delay{true});
+                    sock.set_option(boost::asio::socket_base::keep_alive{true});
+
+                    sock.set_option(boost::asio::socket_base::send_buffer_size{64 * 1024});
+                    sock.set_option(boost::asio::socket_base::receive_buffer_size{64 * 1024});
                 }
 
                 Session::~Session()
@@ -325,7 +327,7 @@ namespace Mif
 
                 void Session::Reply(OutputPackPtr out, bool isKeepAlive)
                 {
-                    isKeepAlive = false;    // Temporary false...
+                    // isKeepAlive = false;    // Temporary false...
 
                     auto &response = out->GetData();
                     response.keep_alive(isKeepAlive);
