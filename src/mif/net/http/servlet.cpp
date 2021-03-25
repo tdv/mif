@@ -291,7 +291,7 @@ namespace Mif
                         std::shared_ptr<IClientFactory> m_factory;
                         std::uint32_t m_sessionTimeout;
 
-                        static std::int64_t const m_cleanerTimeout = 60;
+                        static std::int64_t const m_cleanerTimeout;
 
                         boost::asio::io_service m_ioService;
                         std::unique_ptr<std::thread, void (*)(std::thread *)> m_iosWorker{nullptr, [] (std::thread *t) { if (t) t->join(); delete t; } };
@@ -361,6 +361,8 @@ namespace Mif
                             timer->async_wait(std::bind(&Servlet::OnCleaner, this, timer, std::placeholders::_1));
                         }
                     };
+
+                    std::int64_t const Servlet::m_cleanerTimeout = 60;
 
                 }   // namespace
             }   // namespace Detail
