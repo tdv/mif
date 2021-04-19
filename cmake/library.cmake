@@ -21,6 +21,7 @@ set(MIF_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/thread_pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/uuid_generator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/common/hash_calc.cpp
 
     # Service
     ${CMAKE_CURRENT_SOURCE_DIR}/src/mif/service/locator.cpp
