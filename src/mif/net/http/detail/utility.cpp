@@ -154,7 +154,7 @@ namespace Mif
                             break;
                         }
 
-                        throw std::invalid_argument{"[Mif::Net::Http::Detail::Utility::ConvertCode] Unknowd HTTP code."};
+                        return static_cast<boost::beast::http::status>(code);
                     }
 
                     Code ConvertCode(boost::beast::http::status code)

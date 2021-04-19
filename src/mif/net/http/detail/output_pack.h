@@ -56,11 +56,9 @@ namespace Mif
 
                     MessageType& GetData() noexcept
                     {
-                        return m_data;
-                    }
+                        if (!m_serializer)
+                            SetData(Common::BufferPtr{});
 
-                    MessageType const& GetData() const noexcept
-                    {
                         return m_data;
                     }
 
@@ -180,25 +178,24 @@ namespace Mif
                             body.data = nullptr;
                             body.size = 0;
                             body.more = false;
-
-                            return;
                         }
-
-                        if (m_buffer->size() < m_chunkSize)
+                        else if (m_buffer->size() < m_chunkSize)
                         {
                             body.data = m_buffer->data();
                             body.size = m_buffer->size();
                             body.more = false;
-
-                            return;
+                        }
+                        else
+                        {
+                            body.data = nullptr;
+                            body.size = 0;
+                            body.more = true;
                         }
 
-                        body.data = nullptr;
-                        body.size = 0;
-                        body.more = true;
-
                         m_serializer.reset(new SerializerType{m_data});
-                        m_bufferPtr = m_buffer->data();
+
+                        if (m_buffer && !m_buffer->empty())
+                            m_bufferPtr = m_buffer->data();
                     }
                 };
 
