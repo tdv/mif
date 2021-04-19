@@ -19,9 +19,9 @@ namespace Mif
         namespace Hash
         {
 
-            std::string Crc32(void *data, std::size_t size);
-            std::string Md5(void *data, std::size_t size);
-            std::string Sha1(void *data, std::size_t size);
+            std::string Crc32(void const *data, std::size_t size);
+            std::string Md5(void const *data, std::size_t size);
+            std::string Sha1(void const *data, std::size_t size);
 
         }   // namespace Hash
     }   // namespace Common
