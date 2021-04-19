@@ -2,7 +2,7 @@
 MIF is a C++11 web-application framework designed for the backend micro-service development. The framework makes use of additional type meta-information.
 
 # Version
-1.4.1  
+1.5.0  
 
 **NOTE:** The master branch is actively developed, use latest release for production use.
 
