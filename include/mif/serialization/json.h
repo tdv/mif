@@ -84,6 +84,10 @@ namespace Mif
                 ValueToJson(T const &ptr);
 
                 template <typename T>
+                typename std::enable_if<Traits::IsOptional<T>(), boost::json::value>::type
+                ValueToJson(T const &value);
+
+                template <typename T>
                 typename std::enable_if<Traits::IsIterable<T>(), boost::json::value>::type
                 ValueToJson(T const &array);
 
@@ -111,6 +115,10 @@ namespace Mif
 
                 template <typename T>
                 typename std::enable_if<Traits::IsSmartPointer<T>(), T>::type&
+                JsonToValue(boost::json::value const &root, T &object);
+
+                template <typename T>
+                typename std::enable_if<Traits::IsOptional<T>(), T>::type&
                 JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename TFirst, typename TSecond>
@@ -175,6 +183,15 @@ namespace Mif
                     if (!ptr)
                         return boost::json::value{};
                     return ValueToJson(*ptr);
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsOptional<T>(), boost::json::value>::type
+                ValueToJson(T const &value)
+                {
+                    if (!value)
+                        return boost::json::value{};
+                    return ValueToJson(*value);
                 }
 
                 template <typename T>
@@ -463,6 +480,21 @@ namespace Mif
                     using ObjectType = typename T::element_type;
                     object.reset(new ObjectType{});
                     JsonToValue<ObjectType>(root, *object);
+
+                    return object;
+                }
+
+                template <typename T>
+                inline typename std::enable_if<Traits::IsOptional<T>(), T>::type&
+                JsonToValue(boost::json::value const &root, T &object)
+                {
+                    if (root.is_null())
+                        return object;
+
+                    using ObjectType = typename T::value_type;
+                    ObjectType value;
+                    JsonToValue<ObjectType>(root, value);
+                    object.reset(value);
 
                     return object;
                 }
