@@ -624,7 +624,11 @@ namespace Mif
                     {
                         Deserializer<I - 1>::Deserialize(root, object);
                         using FieldType = typename Reflection::Reflect<T>::Fields::template Field<I - 1>;
-                        JsonToValue(root.as_object().at(FieldType::Name::Value), object.*FieldType::Access());
+                        auto const &item = root.as_object();
+                        JsonToValue(item.contains(FieldType::Name::Value) ?
+                                item.at(FieldType::Name::Value) :
+                                boost::json::value{},
+                                object.*FieldType::Access());
                     }
                 };
 
