@@ -12,6 +12,7 @@
 #include <array>
 #include <stdexcept>
 #include <cstdint>
+#include <iomanip>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -88,7 +89,21 @@ namespace Mif
                 ValueToJson(T const &value);
 
                 template <typename T>
-                typename std::enable_if<Traits::IsIterable<T>(), boost::json::value>::type
+                typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            !std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        boost::json::value
+                    >::type
+                ValueToJson(T const &array);
+
+                template <typename T>
+                typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        boost::json::value
+                    >::type
                 ValueToJson(T const &array);
 
                 template <typename ... T>
@@ -134,7 +149,21 @@ namespace Mif
                 JsonToValue(boost::json::value const &root, std::array<T, N> &array);
 
                 template <typename T>
-                inline typename std::enable_if<Traits::IsIterable<T>(), T>::type&
+                inline typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            !std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        T
+                    >::type&
+                JsonToValue(boost::json::value const &root, T &object);
+
+                template <typename T>
+                inline typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        T
+                    >::type&
                 JsonToValue(boost::json::value const &root, T &object);
 
                 template <typename T>
@@ -195,13 +224,42 @@ namespace Mif
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Traits::IsIterable<T>(), boost::json::value>::type
+                inline typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            !std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        boost::json::value
+                    >::type
                 ValueToJson(T const &array)
                 {
                     boost::json::array root;
 
                     for (auto const &i : array)
                         root.push_back(ValueToJson(i));
+
+                    return boost::json::value_from(root);
+                }
+
+                template <typename T>
+                inline typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        boost::json::value
+                    >::type
+                ValueToJson(T const &array)
+                {
+                    boost::json::array root;
+
+                    std::ostringstream stream;
+
+                    for (auto const &i : array)
+                    {
+                        stream << std::hex << std::setw(2) << std::setfill('0')
+                               << static_cast<int>(i) << ' ';
+                    }
+
+                    root.push_back(ValueToJson(stream.str()));
 
                     return boost::json::value_from(root);
                 }
@@ -566,7 +624,12 @@ namespace Mif
                 }
 
                 template <typename T>
-                inline typename std::enable_if<Traits::IsIterable<T>(), T>::type&
+                inline typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            !std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        T
+                    >::type&
                 JsonToValue(boost::json::value const &root, T &object)
                 {
                     auto const *arr = root.if_array();
@@ -587,6 +650,41 @@ namespace Mif
                     {
                         ObjectType item;
                         JsonToValue(i, item);
+                        *std::inserter(object, std::end(object)) = std::move(item);
+                    }
+
+                    return object;
+                }
+
+                template <typename T>
+                inline typename std::enable_if
+                    <
+                        Traits::IsIterable<T>() &&
+                            std::is_same<typename std::decay<typename T::value_type>::type, char>::value,
+                        T
+                    >::type&
+                JsonToValue(boost::json::value const &root, T &object)
+                {
+                    auto const *arr = root.if_string();
+                    if (!arr)
+                    {
+                        throw std::invalid_argument{"[Mif::Serialization::Json::Detail::JsonToValue] Failed to get value. "
+                            "Json element is invalid or is not converted to the array."};
+                    }
+
+                    T{}.swap(object);
+
+                    if (!arr->size())
+                        return object;
+
+                    using ObjectType = typename T::value_type;
+
+                    std::stringstream stream{arr->c_str()};
+
+                    for (int i = 0 ; stream.good() ; i = 0)
+                    {
+                        stream >> std::hex >> std::setw(2) >> std::setfill('0') >> i;
+                        ObjectType item{static_cast<ObjectType>(i)};
                         *std::inserter(object, std::end(object)) = std::move(item);
                     }
 
