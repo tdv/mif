@@ -14,10 +14,10 @@ MIF is a C++11 web-application framework designed for the backend micro-service 
 - Database support (Implemented for PostgreSQL)
 
 # Compiler
-The minimum compiler version required is gcc 5.3
+The minimum compiler version required is gcc 9.4
 
 # OS
-Linux (Tested on Ubuntu 16.04 and CentOS 6.5, 7.2)
+Linux (Tested on Ubuntu 20.04)
 
 # Dependencies
 - Boost
