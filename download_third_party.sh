@@ -2,7 +2,7 @@ mkdir third_party_sources ||:
 cd third_party_sources
 git clone --branch v1.2.9 https://github.com/madler/zlib.git
 
-wget https://dl.bintray.com/boostorg/release/1.76.0/source/boost_1_76_0.tar.gz
+wget https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.gz
 tar zxvf boost_1_76_0.tar.gz
 mv boost_1_76_0 boost
 rm boost_1_76_0.tar.gz
