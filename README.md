@@ -2,7 +2,7 @@
 MIF is a C++11 web-application framework designed for the backend micro-service development. The framework makes use of additional type meta-information.
 
 # Version
-1.5.0  
+1.5.1  
 
 **NOTE:** The master branch is actively developed, use latest release for production use.
 
@@ -14,10 +14,10 @@ MIF is a C++11 web-application framework designed for the backend micro-service 
 - Database support (Implemented for PostgreSQL)
 
 # Compiler
-The minimum compiler version required is gcc 9.4
+The minimum compiler version required is gcc 9.4 (last test on gcc 13.2)
 
 # OS
-Linux (Tested on Ubuntu 20.04)
+Linux (Tested on Ubuntu 23.10)
 
 # Dependencies
 - Boost
@@ -35,6 +35,8 @@ cmake ..
 make  
 make install  
 ```
+
+**NOTE:** In Ubuntu you might have to install some additional packages: liblz4-dev, pkgconf, bison, flex
 
 You can try using CMAKE_INSTALL_PREFIX to select the installation directory
 

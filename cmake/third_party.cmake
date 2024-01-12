@@ -126,7 +126,7 @@ function (mif_add_libpq_project)
         UPDATE_COMMAND ""
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ${MIF_LIB_SOURCE_PATH}configure --enable-thread-safety --without-readline --prefix=${MIF_LIB_INSTALL_DIR}
-        BUILD_COMMAND make install -C ${MIF_LIB_SOURCE_PATH}src/interfaces/libpq
+        BUILD_COMMAND make install MAKELEVEL=0 -C ${MIF_LIB_SOURCE_PATH}src/interfaces/libpq
         INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory src/include ${MIF_LIB_INSTALL_DIR}/include
         LOG_DOWNLOAD 1
         LOG_UPDATE 1
