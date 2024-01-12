@@ -2,7 +2,7 @@
 //  MetaInfo Framework (MIF)
 //  https://github.com/tdv/mif
 //  Created:     08.2017
-//  Copyright (C) 2016-2021 tdv
+//  Copyright (C) 2016-2024 tdv
 //-------------------------------------------------------------------
 
 #ifndef __MICROSERVICES_COMMON_INTERFACE_IEMPPLOYEE_STORAGE_H__
