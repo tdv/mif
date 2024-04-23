@@ -2,10 +2,10 @@ mkdir third_party_sources ||:
 cd third_party_sources
 git clone --branch v1.3 https://github.com/madler/zlib.git
 
-wget https://boostorg.jfrog.io/artifactory/main/release/1.84.0/source/boost_1_84_0.tar.gz
-tar zxvf boost_1_84_0.tar.gz
-mv boost_1_84_0 boost
-rm boost_1_84_0.tar.gz
+wget https://boostorg.jfrog.io/artifactory/main/release/1.85.0/source/boost_1_85_0.tar.gz
+tar zxvf boost_1_85_0.tar.gz
+mv boost_1_85_0 boost
+rm boost_1_85_0.tar.gz
 
 # In Ubuntu you might have to install some additional packages
 # - liblz4-dev
