@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.27)
 
 include(ExternalProject)
 
@@ -27,12 +27,13 @@ set (LIBRARIES "")
 list (APPEND LIBRARIES "mif")
 
 set (ZLIB_URL "https://github.com/madler/zlib.git")
-set (ZLIB_TAG "v1.2.9")
+set (ZLIB_TAG "v1.3")
 
-set (BOOST_URL "https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz")
+set (BOOST_URL "https://boostorg.jfrog.io/artifactory/main/release/1.85.0/source/boost_1_85_0.tar.gz")
 
-set (LIBPQ_URL "https://github.com/postgres/postgres.git")
-set (LIBPQ_TAG "REL9_6_2")
+set (LIBPQ_URL "https://github.com/postgres/postgres/archive/REL_16_1.tar.gz
+tar")
+set (LIBPQ_TAG "REL_16_1")
 
 set (MIF_URL "https://github.com/tdv/mif.git")
 set (MIF_TAG "master")
@@ -100,9 +101,9 @@ ExternalProject_Add(${BOOST_PROJECT}
         UPDATE_COMMAND ""
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ./bootstrap.sh --prefix=${BOOST_INSTALL_DIR} --with-libraries=${BOOST_LIBRARIES_LIST} --without-icu --without-icu
-        DEPENDS ${ZLIB_PROJECT}
         BUILD_COMMAND ./b2 install -j8 --disable-icu --ignore-site-config "cxxflags=-std=${STD_CXX} -fPIC" link=static threading=multi runtime-link=static
         INSTALL_COMMAND ""
+        DEPENDS "zlib-project"
         LOG_DOWNLOAD 1
         LOG_UPDATE 1
         LOG_CONFIGURE 1
@@ -127,13 +128,13 @@ set (LIBPQ_PROJECT "pq-project")
 list (APPEND THIRD_PARTY_PROJECTS ${LIBPQ_PROJECT})
 
 ExternalProject_Add (${LIBPQ_PROJECT}
-            GIT_REPOSITORY ${LIBPQ_URL}
+            URL ${LIBPQ_URL}
             GIT_TAG ${LIBPQ_TAG}
             UPDATE_COMMAND ""
             BUILD_IN_SOURCE 1
             CONFIGURE_COMMAND ./configure --enable-thread-safety --without-readline --prefix=${LIBPQ_INSTALL_DIR}
             BUILD_IN_SOURCE 1
-            BUILD_COMMAND make install -C src/interfaces/libpq
+            BUILD_COMMAND make install MAKELEVEL=0 -C src/interfaces/libpq
             INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory src/include ${LIBPQ_INSTALL_DIR}/include
             LOG_DOWNLOAD 1
             LOG_UPDATE 1
