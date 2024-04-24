@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <string>
+#include <sstream>
 #include <tuple>
 #include <type_traits>
 #include <utility>

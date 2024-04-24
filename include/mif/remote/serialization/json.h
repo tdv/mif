@@ -17,6 +17,7 @@
 
 // BOOST
 #include <boost/json.hpp>
+#include <boost/utility/string_view.hpp>
 
 // MIF
 #include "mif/common/types.h"
