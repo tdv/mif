@@ -25,7 +25,7 @@ set (BOOST_LIBRARIES
 )
 
 set (LIBPQ_LIBRARIES
-    pq.a
+    pq
 )
 
 set (MIF_THIRD_PARTY_PROJECTS "")

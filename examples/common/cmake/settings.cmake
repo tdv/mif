@@ -31,15 +31,9 @@ set(LIBRARIES
     rt
 )
 
-if (MIF_WITH_SQLITE)
-    set(LIBRARIES
-        ${LIBRARIES}
-    )
-endif()
-
 if (MIF_WITH_POSTGRESQL)
     set(LIBRARIES
         ${LIBRARIES}
-        pq.a
+        pq
     )
 endif()
