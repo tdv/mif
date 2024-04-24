@@ -31,7 +31,7 @@ namespace Mif
                     if (!m_buffer.size())
                         m_buffer.swap(buffer);
                     else
-                        m_buffer.insert(std::end(m_buffer), std::begin(buffer), std::end(buffer));
+                        std::copy(std::begin(buffer), std::end(buffer), std::back_inserter(m_buffer));
                     std::int32_t frameBytes = 0;
                     if (m_buffer.size() < sizeof(frameBytes))
                         return;
