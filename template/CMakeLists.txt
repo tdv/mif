@@ -144,7 +144,7 @@ ExternalProject_Add (${LIBPQ_PROJECT}
             LOG_INSTALL 1
         )
 
-list (APPEND LIBRARIES "pq.a")
+list (APPEND LIBRARIES "pq")
 #---------------------------------------------------------
 
 #------------------------ MIF ----------------------------
